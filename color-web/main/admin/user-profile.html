@@ -17,7 +17,7 @@
         <div class="nav-links"></div>
     </nav>
     <main class="main-content">
-        <a href="account-manage.html" class="back-button" aria-label="返回">
+        <a href="/main/admin/account-manage.html" class="back-button" aria-label="返回">
             <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
             <span class="back-text">帳號管理</span>
         </a>
@@ -59,7 +59,7 @@
             document.getElementById('testTab').onclick = function() {
                 const urlParams = new URLSearchParams(window.location.search);
                 const userEmail = urlParams.get('email');
-                window.location.href = `user-test.html?email=${encodeURIComponent(userEmail)}`;
+                window.location.href = `/main/admin/user-test.html?email=${encodeURIComponent(userEmail)}`;
             };
             // 查詢 email
             const urlParams = new URLSearchParams(window.location.search);

@@ -12,22 +12,22 @@
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
-            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
-            <span class="site-title">ColorMind Lab</span>
-        </div>
+            <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
+            <a href="/index.html" class="site-title">ColorMind Lab</a>
+          </div>
         <div class="nav-links">
-            <a href="../index.html" class="nav-link">首頁</a>
-            <a href="test.html" class="nav-link active">測驗系統</a>
-            <a href="../main/about.html" class="nav-link">關於我們</a>
-            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <a href="/main/common.html" class="nav-link">首頁</a>
+            <a href="/test/test.html" class="nav-link">測驗系統</a>
+            <a href="/main/about.html" class="nav-link">關於我們</a>
+            <a href="/main/login-user.html" class="nav-link" id="loginButton">登入</a>
             <div class="user-dropdown" id="userDropdown" style="display: none;">
-                <a href="#" class="user-icon" id="userName"></a>
-                <div class="dropdown-content">
-                    <a href="../main/profile.html">個人資料</a>
-                    <a href="#" id="logoutLink">登出</a>
-                </div>
+              <a href="#" class="user-icon" id="userName"></a>
+              <div class="dropdown-content">
+                <a href="/main/user/profile.html">個人資料</a>
+                <a href="#" id="logoutLink">登出</a>
+              </div>
             </div>
-        </div>
+          </div>
     </nav>
 
     <div class="main-container">
@@ -51,8 +51,8 @@
     </div>
 
     <div class="back-section">
-        <a href="test.html" class="back-button">返回</a>
-    </div>
+        <a href="/test/test.html" class="back-button">返回</a>
+      </div>
 
     <div class="login-modal" id="loginModal">
         <div class="login-container">
@@ -74,7 +74,7 @@
     </footer>
 
     <script>
-    function checkPageAccess() {
+     function checkPageAccess() {
         const adminToken = sessionStorage.getItem('adminToken');
         const admin = sessionStorage.getItem('admin');
         const isGuest = sessionStorage.getItem('isGuest') === 'true';
@@ -83,12 +83,13 @@
         const user = sessionStorage.getItem('user');
         const userEmail = sessionStorage.getItem('userEmail');
         const userName = sessionStorage.getItem('userName');
+
         if (adminToken && admin) {
-            window.location.href = '../main/admin/admin.html';
+            window.location.href = '/main/admin/admin.html';
             return;
         }
         if (!((userToken && user) || (userEmail && userName) || (isGuest && guestId))) {
-            window.location.href = '../main/login-user.html';
+            window.location.href = '/main/login-user.html';
             return;
         }
     }

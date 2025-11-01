@@ -10,16 +10,16 @@
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
-            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+          <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+          <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
         </div>
         <div class="nav-links">
-            <a href="main/common.html" class="nav-link">首頁</a>
-            <a href="../../test/test.html" class="nav-link">測驗系統</a>
-            <a href="about.html" class="nav-link">關於我們</a>
-            <a href="login-user.html" class="nav-link">登入</a>
+          <a href="/main/common.html" class="nav-link">首頁</a>
+          <a href="/test/test.html" class="nav-link">測驗系統</a>
+          <a href="/main/about.html" class="nav-link">關於我們</a>
+          <a href="/main/login-user.html" class="nav-link">登入</a>
         </div>
-    </nav>
+      </nav>
 
     <div class="main-container">
         <div class="register-container">
@@ -85,7 +85,7 @@
                 </div>
                 <button type="submit" class="register-button">建立帳號</button>
                 <div class="login-link">
-                    <a href="../login-user.html">已有帳號？立即登入</a>
+                    <a href="/main/login-user.html">已有帳號？立即登入</a>
                 </div>
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
@@ -98,10 +98,13 @@
     </footer>
 
     <script>
-        // 根據當前訪問的URL判斷使用哪個API地址
-        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3000'
-            : 'http://20.57.128.97:8080';
+        // 動態判斷 API URL（生產環境使用相對路徑）
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
 
         async function handleRegister(e) {
             e.preventDefault();

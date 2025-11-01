@@ -1,11 +1,19 @@
 // API處理函數 - 測驗相關
 
-// 根據當前環境確定API基礎URL
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000'  // 本地開發環境
-    : 'http://20.57.128.97:3000';  // 生產環境（虛擬機）
+// 載入統一的 API 配置（如果尚未載入）
+if (typeof window.API_BASE_URL === 'undefined') {
+    // 使用動態判斷
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port;
+    
+    window.API_BASE_URL = (hostname === 'localhost' || hostname === '127.0.0.1')
+        ? `${protocol}//${hostname}:${port || '3000'}`
+        : ''; // 生產環境使用相對路徑
+}
 
-console.log('當前API基礎URL:', API_BASE_URL);
+const API_BASE_URL = window.API_BASE_URL;
+console.log('當前API基礎URL:', API_BASE_URL || '(使用相對路徑)');
 
 // 保存測驗記錄到資料庫
 async function saveTestRecord(testData) {

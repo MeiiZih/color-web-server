@@ -13,21 +13,20 @@
         <div class="site-logo-title">
             <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
             <a href="/index.html" class="site-title">ColorMind Lab</a>
-        </div>
-        <div class="nav-links">
-            <a href="main/common.html" class="nav-link">首頁</a>
-            <a href="../../test/test.html" class="nav-link">測驗系統</a>
-            <a href="about.html" class="nav-link">關於我們</a>
-            <a href="login-user.html" class="nav-link" id="loginButton">登入</a>
-            <!-- 用戶下拉選單將由js動態添加 -->
+          </div>
+          <div class="nav-links">
+            <a href="/main/common.html" class="nav-link">首頁</a>
+            <a href="/test/test.html" class="nav-link">測驗系統</a>
+            <a href="/main/about.html" class="nav-link">關於我們</a>
+            <a href="/main/login-user.html" class="nav-link" id="loginButton">登入</a>
             <div class="user-dropdown" id="userDropdown" style="display: none;">
-                <a href="#" class="user-icon" id="userName"></a>
-                <div class="dropdown-content">
-                    <a href="profile.html">個人資料</a>
-                    <a href="#" id="logoutLink">登出</a>
-                </div>
+              <a href="#" class="user-icon" id="userName"></a>
+              <div class="dropdown-content">
+                <a href="/main/user/profile.html">個人資料</a>
+                <a href="#" id="logoutLink">登出</a>
+              </div>
             </div>
-        </div>
+          </div>
     </nav>
 
     <div class="profile-container">
@@ -119,10 +118,13 @@
     </footer>
 
     <script>
-        // 根據當前訪問的URL判斷使用哪個API地址
-        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3000'
-            : 'http://20.57.128.97:8080';
+        // 動態判斷 API URL（生產環境使用相對路徑）
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
             
         // 頁面載入時執行
         window.onload = function() {
@@ -175,7 +177,7 @@
             if (!userEmail && !user) {
                 // 未登入，重定向到登入頁面
                 console.log('未檢測到登入狀態，重定向到登入頁面');
-                window.location.href = '../login-user.html';
+                window.location.href = '/main/login-user.html';
             } else {
                 // 已登入，顯示用戶資料
                 // 優先使用user對象，如果沒有則創建一個

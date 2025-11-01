@@ -37,9 +37,7 @@ coverage/
 *.tmp
 temp/
 
-# Uploads (optional - remove this if you want to track uploaded files)
-uploads/homepage/*.jpg
-uploads/homepage/*.png
-uploads/homepage/*.gif
-uploads/homepage/*.jpeg
+# Uploads (保留目錄結構，但不追蹤實際檔案)
+uploads/homepage/*
+!uploads/homepage/.gitkeep
 

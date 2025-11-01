@@ -18,10 +18,15 @@
         <div class="nav-links"></div>
     </nav>
     <main class="main-content">
-        <a href="admin.html" class="back-button" aria-label="返回">
+        <a href="/main/admin/admin.html" class="back-button" aria-label="返回">
             <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
             <span class="back-text">後臺管理</span>
-        </a>
+          </a>
+          <script>
+            document.getElementById('testTab').onclick = function() {
+              location.href = '/main/admin/data.html';
+            };
+          </script>
         
         <div class="tab-btns">
             <button class="tab-btn" id="testTab">測驗結果</button>

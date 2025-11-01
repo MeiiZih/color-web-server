@@ -1,6 +1,13 @@
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000'
-    : 'http://20.57.128.97:3000';
+// 載入統一的 API 配置
+if (typeof window.API_BASE_URL === 'undefined') {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    const port = window.location.port;
+    window.API_BASE_URL = (hostname === 'localhost' || hostname === '127.0.0.1')
+        ? `${protocol}//${hostname}:${port || '3000'}`
+        : '';
+}
+const API_BASE_URL = window.API_BASE_URL;
 
 let currentType = 'news'; // "news" 或 "common"
 let homepageList = [];

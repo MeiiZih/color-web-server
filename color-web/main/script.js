@@ -219,7 +219,14 @@ startQuizButton.addEventListener('click', () => {
 // 用戶註冊
 async function registerUser(nickname, email, password) {
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/register', {
+        // 動態判斷 API URL
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
+        const response = await fetch(`${apiBaseUrl}/api/user/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -241,7 +248,14 @@ async function registerUser(nickname, email, password) {
 // 用戶登入
 async function loginUser(email, password) {
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/login', {
+        // 動態判斷 API URL
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
+        const response = await fetch(`${apiBaseUrl}/api/user/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -262,7 +276,14 @@ async function loginUser(email, password) {
 // 驗證用戶 token
 async function verifyToken(token) {
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/verify', {
+        // 動態判斷 API URL
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
+        const response = await fetch(`${apiBaseUrl}/api/user/profile`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -279,7 +300,14 @@ async function verifyToken(token) {
 // 更新用戶資料
 async function updateUserProfile(token, userData) {
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/profile', {
+        // 動態判斷 API URL
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
+        const response = await fetch(`${apiBaseUrl}/api/user/update-profile`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -298,7 +326,14 @@ async function updateUserProfile(token, userData) {
 // 獲取用戶測驗歷史
 async function getUserHistory(token) {
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/history', {
+        // 動態判斷 API URL
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
+        const response = await fetch(`${apiBaseUrl}/api/test/user-stats/${token}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -315,7 +350,14 @@ async function getUserHistory(token) {
 // 保存測驗結果
 async function saveTestResult(token, testData) {
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/result', {
+        // 動態判斷 API URL
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
+            ? `${protocol}//${hostname}:${port || '3000'}`
+            : '';
+        const response = await fetch(`${apiBaseUrl}/api/test/saveRecord`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,

@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchTestHistory() {
         const token = localStorage.getItem('token');
         
-        // 向後端 API 請求測驗記錄
-        fetch('../api/test/history', {
+        // 向後端 API 請求測驗記錄（使用絕對路徑）
+        fetch('/api/test/user-stats', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -124,8 +124,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchTestDetail(testId) {
         const token = localStorage.getItem('token');
         
-        // 向後端 API 請求測驗詳情
-        fetch(`../api/test/detail/${testId}`, {
+        // 向後端 API 請求測驗詳情（使用絕對路徑）
+        fetch(`/api/test/recordByInfo?id=${testId}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

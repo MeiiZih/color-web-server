@@ -19,10 +19,10 @@
     </nav>
     
     <main class="main-content">
-        <a href="admin.html" class="back-button" aria-label="返回">
+        <a href="/main/admin/admin.html" class="back-button" aria-label="返回">
             <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
             <span class="back-text">後臺管理</span>
-        </a>
+          </a>
         
         <div class="tab-btns">
             <button class="tab-btn active" id="testTab">測驗結果</button>
@@ -179,11 +179,12 @@
                 const adminToken = sessionStorage.getItem('adminToken');
                 console.log('Admin Token:', adminToken ? '存在' : '不存在');
                 
-                const response = await fetch('/api/admin/test-types', {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+                const response = await fetch(`/api/admin/test-records?${params}`, {
+                     headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('adminToken') || ''}`
+                        }
+                    });
                 
                 console.log('API 響應狀態:', response.status);
                 

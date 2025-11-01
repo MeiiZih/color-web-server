@@ -1,4 +1,10 @@
-const API_BASE_URL = window.location.hostname.includes('localhost') ? 'http://localhost:3000' : 'http://20.57.128.97:3000';
+// 動態判斷 API URL
+const hostname = window.location.hostname;
+const protocol = window.location.protocol;
+const port = window.location.port;
+const API_BASE_URL = (hostname === 'localhost' || hostname === '127.0.0.1')
+    ? `${protocol}//${hostname}:${port || '3000'}`
+    : ''; // 生產環境使用相對路徑
 window.addEventListener('DOMContentLoaded', () => {
     fetch(`${API_BASE_URL}/api/homepage?type=news`).then(r => r.json()).then(arr => {
         const root = document.getElementById('events-list');

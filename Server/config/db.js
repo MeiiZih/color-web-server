@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
     try {
-        // MongoDB Atlas 連接字符串
-        const mongoURI = 'mongodb+srv://meiizih04:G591eJaRx2YuixPW@cluster0.yq5jdcr.mongodb.net/survey_db';
+        // 優先使用環境變數，如果沒有則使用預設值（開發環境）
+        const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://meiizih04:G591eJaRx2YuixPW@cluster0.yq5jdcr.mongodb.net/survey_db';
         
         console.log('正在連接到 MongoDB Atlas...');
         
