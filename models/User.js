@@ -1,0 +1,71 @@
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const userSchema = new mongoose.Schema({
+    email: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        lowercase: true 
+    },
+    password: { 
+        type: String, 
+        required: true, 
+        minlength: 6 
+    },
+    name: {
+        type: String,
+        default: ''
+    },
+    gender: {
+        type: String,
+        enum: ['男', '女', 'unknown'],
+        default: 'unknown'
+    },
+    birthDate: {
+        type: Date,
+        default: Date.now
+    },
+    phone: {
+        type: String,
+        default: ''
+    },
+    occupation: {
+        type: String,
+        default: '未設定'
+    },
+    role: {
+        type: String,
+        enum: ['user'],
+        default: 'user'
+    },
+    createdAt: { 
+        type: Date, 
+        default: Date.now 
+    },
+    lastLogin: { 
+        type: Date 
+    }
+});
+
+// 儲存前進行密碼加密
+userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+});
+
+// 檢查密碼
+userSchema.methods.matchPassword = async function (enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// 生成 JWT Token
+userSchema.methods.generateToken = function() {
+    return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET || 'your-secret-key', {
+        expiresIn: '30d'
+    });
+};
+
+module.exports = mongoose.model('User', userSchema);
