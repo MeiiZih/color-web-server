@@ -1,242 +1,179 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>編輯首頁資訊 - ColorMind Lab</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 首頁資訊管理</title>
     <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/admin.css">
-    <style>
-        .form-card{max-width:960px;margin:24px auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
-        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-        .grid-1{display:grid;grid-template-columns:1fr;gap:16px}
-        .field label{display:block;margin-bottom:6px;color:#555}
-        .field input[type="text"], .field input[type="url"], .field select, .field textarea{
-            width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px
-        }
-        .field textarea{min-height:120px;resize:vertical}
-        .image-box{display:flex;gap:16px;align-items:flex-start}
-        .preview{width:280px;aspect-ratio:16/9;border:1px dashed #ddd;border-radius:12px;object-fit:cover;background:#f9fafb}
-        .hint{font-size:12px;color:#777}
-        .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:16px}
-        .btn{padding:10px 16px;border:none;border-radius:10px;cursor:pointer}
-        .btn-primary{background:#ff6b81;color:#fff}
-        .btn-secondary{background:#f1f3f5}
-        .pill{display:inline-block;background:#f8f9fa;border:1px solid #e9ecef;border-radius:999px;padding:4px 10px;font-size:12px;color:#666}
-        .progress{height:8px;background:#f1f3f5;border-radius:8px;overflow:hidden}
-        .progress>span{display:block;height:100%;background:#74c0fc;width:0%}
-    </style>
+    <link rel="stylesheet" href="../../css/EditCommon.css">
+    <script src="../../js/navbar.js"></script>
+    <script src="../../js/edit-common.js" defer></script>
 </head>
 <body>
     <nav class="nav-header">
-      <div class="site-logo-title">
-        <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-        <span class="site-title">ColorMind Lab</span>
-      </div>
-      <div class="nav-links"></div>
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
     </nav>
-  
     <main class="main-content">
-      <a href="/main/admin/admin.html" class="back-button" aria-label="返回">
-        <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
-        <span class="back-text">後臺管理</span>
-      </a>
-  
-      <div class="form-card">
-        <h2 style="margin:0 0 8px">首頁資訊</h2>
-        <div class="pill" id="modePill">建立新項目</div>
-  
-        <div class="grid" style="margin-top:16px">
-          <div class="field">
-            <label for="title">標題</label>
-            <input id="title" type="text" placeholder="輸入標題" />
-          </div>
-          <div class="field">
-            <label for="category">分類</label>
-            <select id="category">
-              <option value="news">最新消息</option>
-              <option value="common">一般資訊</option>
-              <option value="banner">首頁橫幅</option>
-            </select>
-          </div>
-          <div class="field grid-1" style="grid-column:1 / -1">
-            <label for="description">內容說明</label>
-            <textarea id="description" placeholder="輸入說明文字"></textarea>
-          </div>
-          <div class="field">
-            <label for="linkUrl">相關連結（選填）</label>
-            <input id="linkUrl" type="url" placeholder="https://example.com/page"/>
-          </div>
-          <div class="field">
-            <label for="publishAt">發佈日期（選填）</label>
-            <input id="publishAt" type="date"/>
-          </div>
-        </div>
-  
-        <!-- 圖片 -->
-        <div class="grid" style="margin-top:8px">
-          <div class="field grid-1" style="grid-column:1 / -1">
-            <label>封面圖片</label>
-            <div class="image-box">
-              <img id="preview" class="preview" alt="預覽">
-              <div style="flex:1">
-                <input id="fileInput" type="file" accept="image/*">
-                <div class="hint" style="margin-top:6px">建議比例 16:9（例如 1280×720），支援 JPG/PNG/WebP。</div>
-                <div class="progress" style="margin-top:10px;display:none" id="prog"><span></span></div>
-                <input id="imageUrl" type="hidden" />
-                <div class="hint" id="uploadedHint" style="margin-top:8px;display:none"></div>
-                <div style="margin-top:10px">
-                  <button class="btn btn-secondary" id="removeImg" type="button" style="display:none">移除圖片</button>
-                </div>
-              </div>
+        <div class="tabs">
+            <div style="display:flex;gap:2rem;">
+                <button class="tab-btn active" data-type="news">最新資訊</button>
+                <button class="tab-btn" data-type="common">一般資訊</button>
             </div>
-          </div>
+            <button id="add-btn" class="add-btn" style="margin:0 0 0 auto;">＋ 新增資訊</button>
         </div>
-  
-        <div class="actions">
-          <button class="btn btn-secondary" onclick="location.href='/main/admin/admin.html'">取消</button>
-          <button class="btn btn-primary" id="saveBtn">儲存</button>
+        <div id="info-list-section">
+            <!-- JS 動態渲染資訊卡片 -->
         </div>
-      </div>
+        <div id="edit-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h3 id="modal-title">新增/編輯資訊</h3>
+                <form id="info-form">
+                    <input type="hidden" id="info-id">
+                    <input type="hidden" id="info-type">
+                    <div class="form-row">
+                        <label for="title">標題：</label>
+                        <input type="text" id="title" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="description">說明：</label>
+                        <textarea id="description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label for="link">連結：</label>
+                        <input type="text" id="link" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="image-input">封面海報：</label>
+                        <input type="file" id="image-input" accept="image/*">
+                        <img id="preview-image" src="" style="display:none;max-width:200px;margin-top:10px;">
+                        <input type="hidden" id="imageUrl">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="save-btn" class="save-btn">儲存</button>
+                        <button type="button" id="cancel-btn" class="cancel-btn">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </main>
-  
-    <footer class="footer">國立臺中科技大學－資訊管理系114學年專題</footer>
-  
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
     <script>
-      // ======= Cloudinary 設定（請改成你自己的） =======
-      const CLOUD_NAME_HOMEPAGE = 'dgsj2css3';
-      const UNSIGNED_PRESET_SURVEY = 'color-web-homepage';
-      const CLOUD_FOLDER_SURVEY = 'homepage';
-  
-      // ======= 共用：讀參數、權限 =======
-      const qs = new URLSearchParams(location.search);
-      const itemId = qs.get('id'); // 有 id -> 編輯；無 id -> 新增
-      const adminToken = sessionStorage.getItem('adminToken');
-      if (!adminToken) location.href = '/main/login-user.html';
-  
-      // ======= 載入既有資料（編輯模式） =======
-      async function loadItem() {
-        if (!itemId) return;
-        document.getElementById('modePill').textContent = '編輯項目';
-        const res = await fetch(`/api/homepage/${itemId}`, {
-          headers: { 'Authorization': 'Bearer ' + adminToken }
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            if (!adminEmail || !adminName) {
+                window.location.href = '../../main/login-user.html';
+            }
+            if (typeof updateNavbar === 'function') updateNavbar();
         });
-        if (!res.ok) {
-          alert('讀取資料失敗');
-          return;
+        /** === Cloudinary 設定：用你的值 === */
+        const CLOUD_NAME = 'dgsj2css3';
+        const UPLOAD_PRESET = 'color-web-homepage';
+        const CLOUD_FOLDER = 'homepage';
+
+        /** === 小工具：找出頁面上最合理的元素（不破壞你原本的 ID/Name） === */
+        function findFileInput() {
+        return (
+            document.querySelector('input[type="file"][name*="image" i]') ||
+            document.querySelector('input[type="file"][id*="image" i]') ||
+            document.querySelector('input[type="file"]')
+        );
         }
-        const data = await res.json();
-        document.getElementById('title').value = data.title || '';
-        document.getElementById('category').value = data.category || 'common';
-        document.getElementById('description').value = data.description || '';
-        document.getElementById('linkUrl').value = data.linkUrl || '';
-        if (data.publishAt) document.getElementById('publishAt').value = data.publishAt.slice(0,10);
-        if (data.imageUrl) {
-          document.getElementById('imageUrl').value = data.imageUrl;
-          document.getElementById('preview').src = data.imageUrl;
-          document.getElementById('uploadedHint').style.display='block';
-          document.getElementById('uploadedHint').textContent = data.imageUrl;
-          document.getElementById('removeImg').style.display='inline-block';
+        function findHiddenImageUrlInput() {
+        return (
+            document.querySelector('input[name="imageUrl"]') ||
+            document.querySelector('#imageUrl') ||
+            document.querySelector('input[type="hidden"][name*="image" i]')
+        );
         }
-      }
-  
-      // ======= Cloudinary 上傳（unsigned） =======
-      async function uploadToCloudinary(file) {
+        function findPreviewImg() {
+        return (
+            document.querySelector('#preview') ||
+            document.querySelector('img[data-preview]') ||
+            document.querySelector('.preview, .preview-img')
+        );
+        }
+        function showProgress(pct) {
+        let bar = document.getElementById('cloudinaryProgressBar');
+        let wrap = document.getElementById('cloudinaryProgressWrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'cloudinaryProgressWrap';
+            wrap.style.cssText = 'height:8px;background:#f1f3f5;border-radius:8px;overflow:hidden;margin-top:8px;';
+            bar = document.createElement('span');
+            bar.id = 'cloudinaryProgressBar';
+            bar.style.cssText = 'display:block;height:100%;background:#74c0fc;width:0%';
+            wrap.appendChild(bar);
+            const fi = findFileInput();
+            fi && fi.parentNode && fi.parentNode.appendChild(wrap);
+        }
+        bar.style.width = pct + '%';
+        if (pct >= 100) setTimeout(() => wrap.remove(), 700);
+        }
+
+        /** === 上傳到 Cloudinary（Unsigned） === */
+        async function uploadToCloudinary(file) {
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('upload_preset', UNSIGNED_PRESET_HOMEPAGE);
+        fd.append('upload_preset', UPLOAD_PRESET);
         fd.append('folder', CLOUD_FOLDER);
-  
-        const progWrap = document.getElementById('prog');
-        const bar = progWrap.querySelector('span');
-        progWrap.style.display = 'block'; bar.style.width = '10%';
-  
-        // 使用原生 XHR 方便監聽進度
-        const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME_HOMEPAGE}/image/upload`;
+
+        const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+
+        // 用 XHR 取得進度（不動你原本的 fetch）
         const xhr = new XMLHttpRequest();
-        const p = new Promise((resolve, reject)=>{
-          xhr.upload.addEventListener('progress', e=>{
-            if (e.lengthComputable) bar.style.width = Math.round(e.loaded/e.total*100)+'%';
-          });
-          xhr.onreadystatechange = ()=>{
-            if (xhr.readyState === 4){
-              progWrap.style.display = 'none';
-              if (xhr.status>=200 && xhr.status<300){
-                try { resolve(JSON.parse(xhr.responseText)); } catch(err){ reject(err); }
-              } else {
+        const p = new Promise((resolve, reject) => {
+            xhr.upload.addEventListener('progress', e => {
+            if (e.lengthComputable) showProgress(Math.round((e.loaded / e.total) * 100));
+            });
+            xhr.onreadystatechange = () => {
+            if (xhr.readyState === 4) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                try { resolve(JSON.parse(xhr.responseText)); }
+                catch (err) { reject(err); }
+                } else {
                 reject(new Error('Cloudinary 上傳失敗'));
-              }
+                }
             }
-          };
-          xhr.open('POST', url);
-          xhr.send(fd);
+            };
+            xhr.open('POST', url);
+            xhr.send(fd);
         });
+
         const data = await p;
         if (!data.secure_url) throw new Error(data.error?.message || '上傳失敗');
         return data.secure_url;
-      }
-  
-      // 選圖即上傳
-      document.getElementById('fileInput').addEventListener('change', async (e)=>{
-        const file = e.target.files[0];
-        if (!file) return;
-        try{
-          const url = await uploadToCloudinary(file);
-          document.getElementById('imageUrl').value = url;
-          document.getElementById('preview').src = url;
-          document.getElementById('uploadedHint').style.display='block';
-          document.getElementById('uploadedHint').textContent = url;
-          document.getElementById('removeImg').style.display='inline-block';
-        }catch(err){
-          console.error(err);
-          alert('圖片上傳失敗：' + err.message);
-        }finally{
-          e.target.value = '';
         }
-      });
-  
-      // 移除圖片（僅清空欄位，不刪雲端）
-      document.getElementById('removeImg').addEventListener('click', ()=>{
-        document.getElementById('imageUrl').value = '';
-        document.getElementById('preview').src = '';
-        document.getElementById('uploadedHint').style.display='none';
-        document.getElementById('removeImg').style.display='none';
-      });
-  
-      // ======= 儲存（POST/PUT） =======
-      document.getElementById('saveBtn').addEventListener('click', async ()=>{
-        const payload = {
-          title: document.getElementById('title').value.trim(),
-          category: document.getElementById('category').value,
-          description: document.getElementById('description').value.trim(),
-          linkUrl: document.getElementById('linkUrl').value.trim(),
-          publishAt: document.getElementById('publishAt').value || null,
-          imageUrl: document.getElementById('imageUrl').value.trim() || null,
-        };
-        if (!payload.title) return alert('請輸入標題');
-        if (!payload.imageUrl) if(!confirm('尚未選擇圖片，確定要儲存嗎？')) return;
-  
-        const method = itemId ? 'PUT' : 'POST';
-        const url = itemId ? `/api/homepage/${itemId}` : '/api/homepage';
-        const res = await fetch(url, {
-          method,
-          headers:{
-            'Content-Type':'application/json',
-            'Authorization':'Bearer ' + adminToken
-          },
-          body: JSON.stringify(payload)
+
+        /** === 綁定事件：不干擾你既有的 submit/儲存流程 === */
+        (function attachCloudinaryToCommon(){
+        const fileInput = findFileInput();
+        const hidden = findHiddenImageUrlInput();
+        const preview = findPreviewImg();
+        if (!fileInput || !hidden) return; // 頁面沒有上傳欄位就略過
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+            const url = await uploadToCloudinary(file);
+            hidden.value = url;              // 回填你的 imageUrl 欄位（後端照舊接收）
+            if (preview) preview.src = url;  // 即時預覽（如果頁面有預覽圖）
+            } catch (err) {
+            console.error(err);
+            alert('圖片上傳失敗：' + err.message);
+            } finally {
+            e.target.value = ''; // 重置檔案欄位，避免同檔案無法再次觸發 change
+            }
         });
-        if (!res.ok){
-          const txt = await res.text();
-          alert('儲存失敗：' + txt);
-          return;
-        }
-        alert('儲存成功！');
-        location.href = '/main/admin/admin.html';
-      });
-  
-      // 初始化
-      loadItem();
+        })();
     </script>
-  </body>
+</body>
 </html> 
