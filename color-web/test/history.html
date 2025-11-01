@@ -179,256 +179,113 @@
     };
 
     // 登入功能
+    // …前段程式碼保留（checkPageAccess、onload 之類）
+
+    // 登入功能：全部改成同源相對路徑，移除 http IP fallback
     async function login() {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
-
         if (!username || !password) {
             alert('請輸入帳號和密碼');
             return;
         }
-
         try {
-            sessionStorage.clear(); // 清除所有現有的sessionStorage數據
-
-            let apiBaseUrl;
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                apiBaseUrl = 'http://localhost:3000';
-            } else {
-                apiBaseUrl = 'http://20.57.128.97:8080';
-            }
-
-            const apiEndpoints = [`${apiBaseUrl}/api/user/login`, 'http://20.57.128.97:8080/api/user/login'];
-
-            let response = null;
-            for (const endpoint of apiEndpoints) {
-                try {
-                    response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: username,
-                            password: password
-                        }),
-                        signal: AbortSignal.timeout(5000)
-                    });
-
-                    if (response.ok) {
-                        break;
-                    }
-                } catch (endpointError) {
-                    console.error(`嘗試登入端點 ${endpoint} 失敗:`, endpointError);
-                }
-            }
-
-            if (!response || !response.ok) {
-                throw new Error('登入失敗，請檢查您的憑證或稍後再試。');
-            }
+            sessionStorage.clear();
+            const response = await fetch('/api/user/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: username, password })
+            });
+        if (!response.ok) throw new Error('登入失敗，請檢查您的憑證或稍後再試。');
 
             const data = await response.json();
-            if (data.token) {
-                sessionStorage.setItem('userEmail', username);
-                sessionStorage.setItem('userName', data.userName || username);
-                sessionStorage.setItem('token', data.token);
-                sessionStorage.setItem('isGuest', 'false'); // 明確設置為非訪客
-                console.log('登入成功！');
-                alert('登入成功！');
-                document.getElementById('loginModal').style.display = 'none'; // 隱藏登入模態框
-                window.location.reload(); // 重新載入頁面以更新內容
-            } else {
-                throw new Error('登入失敗：未收到有效的Token。');
+            if (!data.token) throw new Error('登入失敗：未收到有效的Token。');
+
+            sessionStorage.setItem('userEmail', username);
+            sessionStorage.setItem('userName', data.userName || username);
+            sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('isGuest', 'false');
+            console.log('登入成功！');
+            alert('登入成功！');
+            document.getElementById('loginModal').style.display = 'none';
+            window.location.reload();
+            } catch (err) {
+            console.error('登入錯誤:', err);
+            alert(err.message);
             }
-        } catch (error) {
-            console.error('登入錯誤:', error);
-            alert(error.message);
         }
-    }
 
-    // 訪客登入功能
-    async function guestLogin() {
-        showGuestNoticeModal();
-    }
-    
-    // 顯示訪客注意事項彈窗
-    function showGuestNoticeModal() {
-        const modal = document.createElement('div');
-        modal.className = 'guest-notice-modal';
-        modal.style.display = 'flex';
-        modal.innerHTML = `
-            <div class="guest-notice-container">
-                <h3>訪客登入注意事項</h3>
-                <div class="notice-content">
-                    <p>請注意，訪客登入不會儲存本次的測驗紀錄及結果，請妥善保存此次的測驗紀錄，若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。</p>
-                    <div class="checkbox-container">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="guestNoticeCheckbox">
-                            <span class="checkmark"></span>
-                            我已瞭解上述事項
-                        </label>
-                    </div>
+        // 訪客登入：把註冊按鈕連結改成根路徑（小優化）
+        function showGuestNoAccessMessage() {
+            const tableBody = document.getElementById('historyTableBody');
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px; color: #666;">
+                <div style="font-size: 18px; margin-bottom: 20px;">
+                    <i style="font-size: 48px; color: #ccc;">📋</i>
                 </div>
-                <div class="modal-buttons">
-                    <button class="cancel-btn" onclick="closeGuestNoticeModal()">取消</button>
-                    <button class="confirm-btn" id="confirmGuestBtn" onclick="proceedGuestLogin()" disabled>確認訪客登入</button>
+                <div style="margin-bottom: 15px;"><strong>訪客模式無法查看測驗記錄</strong></div>
+                <div style="margin-bottom: 20px; line-height: 1.6;">
+                    訪客登入不會儲存本次的測驗紀錄及結果。<br>
+                    若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。
                 </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // 監聽 checkbox 變化
-        document.getElementById('guestNoticeCheckbox').addEventListener('change', function() {
-            document.getElementById('confirmGuestBtn').disabled = !this.checked;
-        });
-    }
-    
-    // 關閉訪客注意事項彈窗
-    function closeGuestNoticeModal() {
-        const modal = document.querySelector('.guest-notice-modal');
-        if (modal) {
-            modal.remove();
+                <button onclick="window.location.href='/main/user/register.html'"
+                        style="background-color: #FF677D; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px;">
+                    立即註冊帳號
+                </button>
+                </td>
+            </tr>
+            `;
         }
-        document.getElementById('loginModal').style.display = 'none';
-    }
-    
-    // 確認訪客登入
-    function proceedGuestLogin() {
-        const checkbox = document.getElementById('guestNoticeCheckbox');
-        if (!checkbox.checked) {
-            alert('請先勾選「我已瞭解上述事項」');
-            return;
-        }
-        
-        try {
-            sessionStorage.clear(); // 清除所有現有的sessionStorage數據
-            // 生成 guestID0001 格式的 ID
-            const randomNum = Math.floor(Math.random() * 1000);
-            const guestId = `guestID${String(randomNum).padStart(4, '0')}`;
-            sessionStorage.setItem('userEmail', guestId); // 設置訪客身份，使用 guestID 作為 email
-            sessionStorage.setItem('userName', '訪客');
-            sessionStorage.setItem('isGuest', 'true');
-            sessionStorage.setItem('guestId', guestId); // 儲存訪客ID
-            sessionStorage.setItem('guestNoticeAccepted', 'true'); // 標記已接受注意事項
-            
-            console.log('訪客登入成功！');
-            alert('訪客登入成功！');
-            closeGuestNoticeModal();
-            window.location.reload(); // 重新載入頁面以更新內容
-        } catch (error) {
-            console.error('訪客登入錯誤:', error);
-            alert('訪客登入失敗，請稍後再試。');
-        }
-    }
 
-    // 獲取測驗記錄
-    async function fetchHistoryRecords() {
-        const userEmail = sessionStorage.getItem('userEmail');
-        const guestId = sessionStorage.getItem('guestId');
-        const token = sessionStorage.getItem('token');
-        const isGuest = sessionStorage.getItem('isGuest') === 'true'; // 將字符串轉換為布林值
+        // 取得測驗紀錄：改成同源相對路徑 /api/test/records?...，保留 Authorization
+        async function fetchHistoryRecords() {
+            const userEmail = sessionStorage.getItem('userEmail');
+            const guestId   = sessionStorage.getItem('guestId');
+            const token     = sessionStorage.getItem('token');
+            const isGuest   = sessionStorage.getItem('isGuest') === 'true';
 
-        if (!userEmail && !isGuest) {
+            if (!userEmail && !isGuest) {
             console.log('未登入用戶或訪客，不獲取測驗記錄。');
             return;
-        }
-
-        let queryParam = '';
-        if (isGuest && guestId) {
-            queryParam = `guestId=${guestId}`; // 訪客使用guestId查詢
-            console.log(`以訪客身份查詢記錄，guestId: ${guestId}`);
-        } else if (userEmail) {
-            queryParam = `email=${userEmail}`; // 正式用戶使用email查詢
-            console.log(`以用戶身份查詢記錄，email: ${userEmail}`);
-        } else {
-            console.log('無法確定查詢參數，不獲取測驗記錄。');
-            return;
-        }
-
-        let apiBaseUrl;
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            apiBaseUrl = 'http://localhost:3000';
-        } else {
-            apiBaseUrl = 'http://20.57.128.97:8080';
-        }
-
-        const apiUrl = `${apiBaseUrl}/api/test/records?${queryParam}`;
-
-        try {
-            const headers = {
-                'Content-Type': 'application/json',
-            };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
             }
 
+            let queryParam = '';
+            if (isGuest && guestId) {
+            queryParam = `guestId=${encodeURIComponent(guestId)}`;
+            console.log(`以訪客身份查詢記錄，guestId: ${guestId}`);
+            } else if (userEmail) {
+            queryParam = `email=${encodeURIComponent(userEmail)}`;
+            console.log(`以用戶身份查詢記錄，email: ${userEmail}`);
+            } else {
+            console.log('無法確定查詢參數，不獲取測驗記錄。');
+            return;
+            }
+
+            const apiUrl = `/api/test/records?${queryParam}`;
+
+            try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             console.log('正在請求:', apiUrl);
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: headers,
-            });
+            const response = await fetch(apiUrl, { method: 'GET', headers });
 
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
-            const records = await response.json();
+            const payload = await response.json();
+            const records = Array.isArray(payload) ? payload : (payload.records || []);
             console.log('接收到的測驗記錄:', records);
-            displayHistoryRecords(records.records);
-        } catch (error) {
+            displayHistoryRecords(records);
+            } catch (error) {
             console.error('獲取測驗記錄失敗:', error);
-            document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="5">加載測驗記錄失敗。</td></tr>';
+            document.getElementById('historyTableBody').innerHTML =
+                '<tr><td colspan="5">加載測驗記錄失敗。</td></tr>';
+            }
         }
-    }
-
-    // 顯示測驗記錄
-    function displayHistoryRecords(records) {
-        const tableBody = document.getElementById('historyTableBody');
-        tableBody.innerHTML = ''; // 清空現有內容
-
-        if (records && records.length > 0) {
-            records.forEach((record, index) => {
-                const row = tableBody.insertRow();
-                // 用 record.timestamp 作為日期
-                row.insertCell(0).textContent = index + 1; // 序號
-                row.insertCell(1).textContent = record.timestamp ? new Date(record.timestamp).toLocaleDateString() : '無日期'; // 日期
-                row.insertCell(2).textContent = record.testType || '未知測驗'; // 測驗名稱
-                row.insertCell(3).textContent = record.result || '無結果'; // 結果類型
-
-                const detailCell = row.insertCell(4);
-                const detailLink = document.createElement('a');
-                
-                // 檢查是否有足夠的資料來創建詳細連結
-                if (record.testType && record.timestamp) {
-                    let detailUrl = `result.html?testType=${encodeURIComponent(record.testType)}&timestamp=${encodeURIComponent(record.timestamp)}`;
-                    
-                    // 根據用戶類型添加不同的識別參數
-                    if (record.email) {
-                        // 正式用戶使用 email
-                        detailUrl += `&email=${encodeURIComponent(record.email)}`;
-                    } else if (record.guestId) {
-                        // 訪客使用 guestId
-                        detailUrl += `&guestId=${encodeURIComponent(record.guestId)}`;
-                    }
-                    
-                    detailLink.href = detailUrl;
-                    detailLink.textContent = '查看';
-                } else {
-                    detailLink.textContent = '資料異常';
-                    detailLink.style.color = 'gray';
-                }
-                detailCell.appendChild(detailLink);
-            });
-        } else {
-            const row = tableBody.insertRow();
-            const cell = row.insertCell(0);
-            cell.colSpan = 5;
-            cell.textContent = '沒有測驗記錄。';
-            cell.style.textAlign = 'center';
-        }
-    }
     </script>
 </body>
 </html> 
