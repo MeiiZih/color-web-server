@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 測驗選擇</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/select.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首頁</a>
+            <a href="test.html" class="nav-link active">測驗系統</a>
+            <a href="../main/about.html" class="nav-link">關於我們</a>
+            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="../main/user/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div id="surveyList" class="test-grid">
+            <!-- 問卷卡片將由 JS 動態渲染 -->
+        </div>
+    </div>
+
+    <div class="back-section">
+        <a href="test.html" class="back-button">返回</a>
+    </div>
+
+    <div class="login-modal" id="loginModal">
+        <div class="login-container">
+            <h2 class="login-title" id="modalTitle">登入</h2>
+            <!-- 登入表單 -->
+            <div id="loginForm">
+                <input type="text" class="input-field" placeholder="帳號" id="username">
+                <input type="password" class="input-field" placeholder="密碼" id="password">
+                <button class="login-button" onclick="login()">登入</button>
+                <div class="login-options">
+                    <button class="option-button" onclick="guestLogin()">訪客登入</button>
+                    <button class="option-button" onclick="showRegisterForm()">建立帳號</button>
+                </div>
+            </div>
+            <!-- 註冊表單 -->
+            <div id="registerForm" class="register-form">
+                <input type="text" class="input-field" placeholder="姓名" id="regName">
+                <div class="gender-group">
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="male" required>
+                        男性
+                    </label>
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="female" required>
+                        女性
+                    </label>
+                </div>
+                <div class="date-fields">
+                    <input type="number" class="date-field" id="year" placeholder="年" min="1900" max="2024">
+                    <input type="number" class="date-field" id="month" placeholder="月" min="1" max="12">
+                    <input type="number" class="date-field" id="day" placeholder="日" min="1" max="31">
+                </div>
+                <input type="email" class="input-field" placeholder="電子郵件" id="regEmail">
+                <input type="tel" class="input-field" placeholder="行動電話" id="regPhone">
+                <input type="password" class="input-field" placeholder="密碼" id="regPassword">
+                <input type="password" class="input-field" placeholder="確認密碼" id="regConfirmPassword">
+                <button class="login-button" onclick="handleRegister()">建立帳號</button>
+                <div class="login-options">
+                    <button class="option-button" onclick="showLoginForm()">返回登入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script src="../js/navbar.js"></script>
+    <script src="../js/guest-record-saver.js"></script>
+    <script>
+    function checkPageAccess() {
+        const adminToken = sessionStorage.getItem('adminToken');
+        const admin = sessionStorage.getItem('admin');
+        const isGuest = sessionStorage.getItem('isGuest') === 'true';
+        const guestId = sessionStorage.getItem('guestId');
+        const userToken = sessionStorage.getItem('token');
+        const user = sessionStorage.getItem('user');
+        const userEmail = sessionStorage.getItem('userEmail');
+        const userName = sessionStorage.getItem('userName');
+        if (adminToken && admin) {
+            window.location.href = '../main/admin/admin.html';
+            return;
+        }
+        if (!((userToken && user) || (userEmail && userName) || (isGuest && guestId))) {
+            window.location.href = '../main/login-user.html';
+            return;
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        checkPageAccess();
+        if (typeof updateNavbar === 'function') updateNavbar();
+        loadSurveyList();
+    });
+
+    async function loadSurveyList() {
+        const surveyListDiv = document.getElementById('surveyList');
+        surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;">載入中...</div>';
+        try {
+            const response = await fetch('/api/test/surveys');
+            if (!response.ok) throw new Error('無法取得問卷列表');
+            const surveys = await response.json();
+            if (!Array.isArray(surveys) || surveys.length === 0) {
+                surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;">目前沒有可用問卷</div>';
+                return;
+            }
+            surveyListDiv.innerHTML = surveys.map(survey => `
+                <div class="test-card">
+                    <div class="test-image">🎨</div>
+                    <div class="test-content">
+                        <h2 class="test-title">${survey.testType || '未命名問卷'}</h2>
+                        <p class="test-desc">${survey.description ? survey.description.split('\n')[0] : ''}</p>
+                        <a href="color-test-intro.html?id=${survey._id}" class="test-button">開始測驗</a>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;color:red;">載入失敗</div>';
+        }
+    }
+    // 訪客登入功能
+    function guestLogin() {
+        showGuestNoticeModal();
+    }
+    
+    // 顯示訪客注意事項彈窗
+    function showGuestNoticeModal() {
+        const modal = document.createElement('div');
+        modal.className = 'guest-notice-modal';
+        modal.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="guest-notice-container">
+                <h3>訪客登入注意事項</h3>
+                <div class="notice-content">
+                    <p>請注意，訪客登入不會儲存本次的測驗紀錄及結果，請妥善保存此次的測驗紀錄，若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。</p>
+                    <div class="checkbox-container">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="guestNoticeCheckbox">
+                            <span class="checkmark"></span>
+                            我已瞭解上述事項
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="cancel-btn" onclick="closeGuestNoticeModal()">取消</button>
+                    <button class="confirm-btn" id="confirmGuestBtn" onclick="proceedGuestLogin()" disabled>確認訪客登入</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // 監聽 checkbox 變化
+        document.getElementById('guestNoticeCheckbox').addEventListener('change', function() {
+            document.getElementById('confirmGuestBtn').disabled = !this.checked;
+        });
+    }
+    
+    // 關閉訪客注意事項彈窗
+    function closeGuestNoticeModal() {
+        const modal = document.querySelector('.guest-notice-modal');
+        if (modal) {
+            modal.remove();
+        }
+        document.getElementById('loginModal').style.display = 'none';
+    }
+    
+    // 確認訪客登入
+    function proceedGuestLogin() {
+        const checkbox = document.getElementById('guestNoticeCheckbox');
+        if (!checkbox.checked) {
+            alert('請先勾選「我已瞭解上述事項」');
+            return;
+        }
+        
+        // 生成 guestID0001 格式的 ID
+        const randomNum = Math.floor(Math.random() * 1000);
+        const guestId = `guestID${String(randomNum).padStart(4, '0')}`;
+        
+        sessionStorage.setItem('isGuest', 'true');
+        sessionStorage.setItem('guestId', guestId);
+        sessionStorage.setItem('userEmail', guestId); // 使用 guestID 作為 email
+        sessionStorage.setItem('userName', '訪客');
+        sessionStorage.setItem('guestNoticeAccepted', 'true'); // 標記已接受注意事項
+        
+        closeGuestNoticeModal();
+        window.location.reload();
+    }
+    
+    // 顯示註冊表單
+    function showRegisterForm() {
+        document.getElementById('modalTitle').textContent = '建立帳號';
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+    }
+    
+    // 顯示登入表單
+    function showLoginForm() {
+        document.getElementById('modalTitle').textContent = '登入';
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+    }
+    
+    // 處理註冊
+    async function handleRegister() {
+        const name = document.getElementById('regName').value;
+        const gender = document.querySelector('input[name="gender"]:checked')?.value;
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        const day = document.getElementById('day').value;
+        const email = document.getElementById('regEmail').value;
+        const phone = document.getElementById('regPhone').value;
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+        // 驗證所有欄位都已填寫
+        if (!name || !gender || !year || !month || !day || !email || !phone || !password || !confirmPassword) {
+            alert('請填寫所有欄位');
+            return;
+        }
+
+        // 驗證密碼
+        if (password !== confirmPassword) {
+            alert('密碼與確認密碼不符');
+            return;
+        }
+
+        // 驗證密碼長度
+        if (password.length < 6) {
+            alert('密碼長度至少需要6個字元');
+            return;
+        }
+
+        const birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+        try {
+            // 根據當前訪問的URL判斷使用哪個API地址
+            const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000'
+                : 'http://20.57.128.97:8080';
+
+            const response = await fetch(`${apiBaseUrl}/api/user/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    gender,
+                    birthDate,
+                    email,
+                    phone,
+                    password,
+                    occupation: '未設定'
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('註冊成功！請使用新帳號登入');
+                showLoginForm();
+            } else {
+                alert(data.message || '註冊失敗');
+            }
+        } catch (error) {
+            console.error('註冊錯誤:', error);
+            alert('註冊失敗，請稍後重試');
+        }
+    }
+    
+    // 登入功能
+    async function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (!username || !password) {
+            alert('請輸入帳號和密碼');
+            return;
+        }
+
+        try {
+            // 根據當前訪問的URL判斷使用哪個API地址
+            const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000'
+                : 'http://20.57.128.97:8080';
+
+            const response = await fetch(`${apiBaseUrl}/api/user/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: username,
+                    password: password
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.user) {
+                sessionStorage.setItem('userEmail', username);
+                sessionStorage.setItem('userName', data.user.name || data.user.nickname || '用戶');
+                sessionStorage.setItem('user', JSON.stringify(data.user));
+                sessionStorage.setItem('isGuest', 'false');
+                
+                alert('登入成功！');
+                document.getElementById('loginModal').style.display = 'none';
+                window.location.reload();
+            } else {
+                alert(data.message || '登入失敗');
+            }
+        } catch (error) {
+            console.error('登入錯誤:', error);
+            alert('登入失敗，請稍後重試');
+        }
+    }
+    </script>
+</body>
+</html> 

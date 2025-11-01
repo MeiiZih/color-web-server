@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用戶反饋 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/data.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+    <main class="main-content">
+        <a href="admin.html" class="back-button" aria-label="返回">
+            <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
+            <span class="back-text">後臺管理</span>
+        </a>
+        
+        <div class="tab-btns">
+            <button class="tab-btn" id="testTab">測驗結果</button>
+            <button class="tab-btn active" id="feedbackTab">用戶反饋</button>
+        </div>
+    
+    <div class="data-management-container">
+        <div class="content-wrapper">
+        <div class="main-content-area">
+            <div class="total-count" style="margin-bottom:24px;">
+                反饋總數: <span class="count-label" id="feedbackTotalCount">-</span>
+            </div>
+            <div id="feedbackListView">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>序號</th>
+                                <th>建議內容</th>
+                                <th>姓名</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackTableBody">
+                            <tr><td colspan="4" class="loading">載入中...</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="feedbackPagination"></div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </main>
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+    <script>
+    document.getElementById('testTab').onclick = function() {
+        location.href = 'data.html';
+    };
+    // 載入用戶反饋(分頁)
+    let feedbackTotalPages = 1;
+    function loadFeedbacks(page = 1) {
+        document.getElementById('feedbackTableBody').innerHTML = '<tr><td colspan="4">載入中...</td></tr>';
+        fetch(`/api/admin/feedbacks?page=${page}&limit=10`)
+        .then(res=>res.json()).then(data=>{
+            const list = data.records || [];
+            feedbackTotalPages = data.totalPages || 1;
+            document.getElementById('feedbackTotalCount').textContent = data.totalRecords || list.length;
+            if(list.length===0){
+                document.getElementById('feedbackTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center;">無資料</td></tr>';
+            } else {
+                document.getElementById('feedbackTableBody').innerHTML = list.map((row,idx)=>(`
+                    <tr>
+                        <td>${((page-1)*10+idx+1).toString().padStart(2,'0')}</td>
+                        <td style="white-space:pre-line;max-width:320px;word-break:break-all;">${row.description ? row.description.replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''}</td>
+                        <td>${row.name ? row.name.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '-'}</td>
+                        <td>${row.email ? row.email.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '-'}</td>
+                    </tr>  
+                `)).join('');
+            }
+            // 分頁
+            const pagin = document.getElementById('feedbackPagination');
+            pagin.innerHTML = '';
+            for(let i=1;i<=feedbackTotalPages;i++) {
+                const btn = document.createElement('button');
+                btn.className = `page-btn ${(i===page)? 'active':''}`;
+                btn.textContent = i;
+                btn.onclick = ()=>{loadFeedbacks(i);};
+                pagin.appendChild(btn);
+            }
+        }).catch(()=>{
+            document.getElementById('feedbackTableBody').innerHTML = '<tr><td colspan="4">載入失敗</td></tr>';
+        });
+    }
+    document.addEventListener('DOMContentLoaded',function(){
+        document.getElementById('testTab').classList.remove('active');
+        document.getElementById('feedbackTab').classList.add('active');
+        loadFeedbacks(1);
+    });
+    </script>
+</body>
+</html>

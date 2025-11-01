@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測驗結果 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/result.css">
+    <script src="../js/navbar.js"></script>
+    <script src="../js/test-api.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.plugin.standard_fonts_metrics.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* 隱藏次要顏色和測驗分數部分 */
+        .secondary-color, .result-section:last-of-type {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首頁</a>
+            <a href="test.html" class="nav-link active">測驗系統</a>
+            <a href="../main/about.html" class="nav-link">關於我們</a>
+            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="../main/user/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="result-card">
+            <div class="action-buttons">
+                <button class="action-button active">測驗報告</button>
+                <button class="action-button" onclick="goToInformation()">問卷回饋</button>
+                <button class="action-button" onclick="downloadReport()">下載報告</button>
+                <button class="action-button" onclick="shareResult()">分享小卡</button>
+            </div>
+            <div class="content-section">
+                <h2 class="result-title">色彩性格測驗</h2>
+                
+                <div class="result-type">
+                    <p class="mbti-type">您的 MBTI 類型：<span id="mbti-result">INFJ</span></p>
+                    <p class="color-type secondary-color">
+                        <span>次要色彩：</span>
+                        <span class="color-badge" id="secondary-color-badge"></span>
+                        <span id="secondary-color-result">黃 - 活力的探險家</span>
+                    </p>
+                </div>
+                
+                <div class="description">
+                    <p>藍象徵深邃冷靜，洞察力與內在智慧。INFJ 以其強大的共感能力和遠見卓識著稱，能在混亂中找到秩序，並運用深刻的思考影響世界。</p>
+                </div>
+                
+                <div class="result-section">
+                    <h3 class="section-title">您的個性解析</h3>
+                    <ul class="trait-list">
+                        <li class="trait-item">核心特質：<span id="trait-core">內向但充滿熱情，擁有深度思維能力。</span></li>
+                        <li class="trait-item">思維方式：<span id="trait-thinking">善感但保持客觀，喜歡從全局看問題。</span></li>
+                        <li class="trait-item">情感特點：<span id="trait-emotion">情感豐富且具目標感，常替他人著想。</span></li>
+                        <li class="trait-item">行動模式：<span id="trait-action">傾向計劃與組織，堅決完成理想目標。</span></li>
+                    </ul>
+                </div>
+                
+                <div class="result-section">
+                    <h3 class="section-title">您的測驗分數</h3>
+                    <div class="score-container">
+                        <div class="mbti-scores">
+                            <div class="score-item">
+                                <span class="score-label">外向(E):</span>
+                                <span class="score-value" id="score-e">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">內向(I):</span>
+                                <span class="score-value" id="score-i">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">直覺(N):</span>
+                                <span class="score-value" id="score-n">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">感覺(S):</span>
+                                <span class="score-value" id="score-s">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">情感(F):</span>
+                                <span class="score-value" id="score-f">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">思考(T):</span>
+                                <span class="score-value" id="score-t">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">判斷(J):</span>
+                                <span class="score-value" id="score-j">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">感知(P):</span>
+                                <span class="score-value" id="score-p">0</span>
+                            </div>
+                        </div>
+                        <div class="color-scores">
+                            <div class="score-item">
+                                <span class="score-label">紅:</span>
+                                <span class="score-value" id="score-red">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">黃:</span>
+                                <span class="score-value" id="score-yellow">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">綠:</span>
+                                <span class="score-value" id="score-green">0</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="score-label">藍:</span>
+                                <span class="score-value" id="score-blue">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="navigation-buttons">
+        <button class="back-button" onclick="window.location.href='select.html'">測驗列表</button>
+        <button class="nav-button" onclick="window.location.href='color-test-intro.html'">再測一次</button>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        // 下載報告功能
+        function downloadReport() {
+            // 取得當前測驗結果
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const guestId = urlParams.get('guestId');
+            const testType = urlParams.get('testType');
+            const timestamp = urlParams.get('timestamp');
+            let resultData = null;
+
+            if (testType && timestamp && (email || guestId)) {
+                // 這裡可根據實際情況取得 resultData
+                resultData = window.currentTestResult || null;
+            } else {
+                resultData = JSON.parse(localStorage.getItem('currentTestResult'));
+            }
+
+            if (!resultData) {
+                alert('無法取得測驗結果，請重新進行測驗。');
+                return;
+            }
+
+            const mbtiType = resultData.mbtiResult || resultData.mbtiType;
+            const scores = resultData.scores;
+            const colorResult = resultData.colorResult;
+
+            if (!mbtiType || (!scores && !colorResult)) {
+                alert('測驗結果資料不完整，無法下載報告。');
+                return;
+            }
+
+            // 獲取最高分顏色組合
+            let topColors = [];
+            if (colorResult && colorResult.primary && Array.isArray(colorResult.primary)) {
+                topColors = parseTopColorsFromColorResult(colorResult);
+            } else if (scores) {
+                topColors = getTopColors(scores);
+            }
+            if (!Array.isArray(topColors) || topColors.length === 0 || !topColors[0].en || !topColors[0].zh) {
+                alert('無法確定顏色組合，請重新進行測驗。');
+                return;
+            }
+
+            // ====== PDF 連結根目錄與組合規則 ======
+            // 所有240個詳細報告的Dropbox共享網址
+            
+            // 根據顏色數量選擇對應的Dropbox資料夾網址
+            const colorCount = topColors.length;
+            let pdfUrl = '';
+            
+            if (colorCount === 1) {
+                // 單色組合 - 16個MBTI類型 × 4種顏色 = 64個網址
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                const colorName = sortedColors[0].en;
+                const fileName = getFileName(mbtiType, topColors).replace('.txt', '.pdf');
+                
+                // 單色網址對應表 - 請替換為您的實際網址
+                const oneColorUrls = {
+                    'Green': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/y2xut6wemy1yfd4qab5bh/ENFJ-x.pdf?rlkey=e3ew5fd81n7vtr7u4ypqi86sb&st=brgg0l1r&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/org2h7lpv6e88vk2coyrt/ENFP-x.pdf?rlkey=a0xtatf4c3sx2r73lfeong1s8&st=7nsaj8zk&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/mxcbxkcegsaqpv2sx7rfc/ENTJ-x.pdf?rlkey=qw1p0c0jzmbhmh6oft09sdhki&st=2hmtrvie&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/t90q7zuquhll0snfnwe4z/ENTP-x.pdf?rlkey=ozj3b9ngksnupzds1vv6xcsk4&st=3h4z5tok&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/kmpl8bssj76x3to08sdob/ESFJ-x.pdf?rlkey=y13dyqfhr9igx1uv5vic7e6fn&st=74wj4iym&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/dtzlx176p8hbyivwn33qf/ESFP-x.pdf?rlkey=jdljcqhjtzhecdwy186qki9d9&st=qj6c0zw3&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/t2c90sogtaxpgirp3cm7v/ESTJ-x.pdf?rlkey=24q06p2km8848ewejx8gdftq6&st=g3kvax1x&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/k9ca25cg2zuu9jgxk256w/ESTP-x.pdf?rlkey=qxnnhm72rj2wuzoemv6a7owtm&st=zja4wwyg&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/97gr3a4b9ktwga6ewkdhz/INFJ-x.pdf?rlkey=mue4y8ttdrl01dyd854ohvcj3&st=7esxrw5d&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/0upy1xk2vb94vhr8lgvue/INFP-x.pdf?rlkey=55bg0kvggzthein8uwfmo7g0t&st=4wzkxbaf&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/n7ygzmfkdx1kk0zbk0sif/INTJ-x.pdf?rlkey=6ef2gheyf3rkb02z0c0x2l6hh&st=8vxqlhm2&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/al1xqfz5cgi8yq7w77ipk/INTP-x.pdf?rlkey=t3jpo390fb49us3722cv08mzk&st=ce8lqthn&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/68o7mmo4wohgom8ge714h/ISFJ-x.pdf?rlkey=0z2x8kk1at0is9qtsly6722r4&st=5i5dj5g3&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/r6pgfheggvj9zq03uhu9l/ISFP-x.pdf?rlkey=lcrzsawea16z4kedr5svikrwz&st=b16b58mi&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/ovkizp1aix45pqu1ywomp/ISTJ-x.pdf?rlkey=l4cnr3zpyvxx1pfy740uhajm1&st=rsn61vg8&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/tcosa1hd3pkivvv3hlftt/ISTP-x.pdf?rlkey=sfaotaeq9fneioytsnzu7x0h5&st=i62pys97&dl=0'
+                    },
+                    'Blue': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/u7v2onc9xcnblp53jiv9j/ENFJ-x.pdf?rlkey=5jz9guapw99y661t0pyp7ekyi&st=r4taoiop&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/x8uickhmir78voij1voie/ENFP-x.pdf?rlkey=185rz82s6k2sler2lgxncjdo4&st=tmhrda1w&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/1t1vwtsjm7n6q5fvpfom3/ENTJ-x.pdf?rlkey=hmko4xf5yxmj2csk0y756axd1&st=qzq1s8yr&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/1s5wy55cncsj2x5n0ugey/ENTP-x.pdf?rlkey=grxodvk8rgbe8h85nc3p81xw2&st=sx3mc9ec&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/e6w1v2laf43758vd50h5j/ESFJ-x.pdf?rlkey=4bzlkfvldh0f25k1v5s5maocf&st=lsqc8z9w&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/e9mio3o5rdfsti8wp6fz1/ESFP-x.pdf?rlkey=iwuljczunhy606juymz7oymbx&st=l8dwjuvq&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/s2pnfn8xewzqjmpmqbjim/ESTJ-x.pdf?rlkey=actl3jnihvtmn31m96j16mzev&st=5t69ycaj&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/io1iw98ph0g2q67anmx7m/ESTP-x.pdf?rlkey=6cmasja41yzhth2jb7mqu6tnv&st=osrwaalg&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/9iq2mqfq57digek96huvd/INFJ-x.pdf?rlkey=ul1y1yycbmo3picuvpqsl89wt&st=qylnsvd9&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/1h55xdv60244n5htrk49s/INFP-x.pdf?rlkey=qgn9kb0cvulhe2r7grv5x9815&st=kz31nsa7&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/nq0a8uzbittsysava1yy7/INTJ-x.pdf?rlkey=zofyxkn6beuajia2ifl0xt2hr&st=1epswiju&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/ycg1zc9uyh0oy3httdx46/INTP-x.pdf?rlkey=d130okwxdv0fh7xxbtxgshfgt&st=hm0brbhh&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/gor9jrjg2wql3nx5gyzz9/ISFJ-x.pdf?rlkey=3oa9jnwel2yrk1dbw35uzjjqk&st=o315dnej&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/n52s17nxigpcxek2tnkrz/ISFP-x.pdf?rlkey=052s93fm4em7rtwjt0oquh5rj&st=wlujj4iz&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/nc7x7sk9a1ncxze7y8j6l/ISTJ-x.pdf?rlkey=a4xgb4o65iyw8kp7s3r3fxfxo&st=gwwlab1o&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/p843ai7ajqkglqk240a02/ISTP-x.pdf?rlkey=78058al704kuv563dihvd87pi&st=3gndtkrc&dl=0'
+                    },
+                    'Red': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/06o8n8w8hflh9z76xmdvi/ENFJ-x.pdf?rlkey=d4dzoo4epz3t05btx83ingbko&st=sgbxx393&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/jt9mc8iqnmywznwq9mnxh/ENFP-x.pdf?rlkey=oim8acfs09bi63iwujrjr0hfr&st=lxhqd4dx&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/a4yp3wocwbmwc9d367pfo/ENTJ-x.pdf?rlkey=s8xw1u0jzxoqz4usvh2zxlagn&st=4zn1fgc6&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/e9o686esukm3kgxwia6mn/ENTP-x.pdf?rlkey=hdn6xu17vayzia2pvcafj553v&st=ztu62gph&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/4v4p6amv4s8g7b5b20mwr/ESFJ-x.pdf?rlkey=if2ftgl082bjhyihgygo909rk&st=3v7tfjp1&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/2ojf3n69bfaueyucrlj5s/ESFP-x.pdf?rlkey=egvtfmmy7wn5v7ho9k6bajuei&st=1vkpl138&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/2jt5nsxj8vv1eu74c53q5/ESTJ-x.pdf?rlkey=3v1hgdfr1q666vymml2eb8bv5&st=a1yuuis2&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/io191wy989pu1ndmwjeg1/ESTP-x.pdf?rlkey=vd75nxjljp4icw628qnn7w40q&st=frhx6n0l&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/qcikvvsjjrncvjy9r6ai4/INFJ-x.pdf?rlkey=k62zvrj35fe0rx5tz0gxgcxl0&st=gpu8f7y9&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/9dovu62tiphwcmxhxwb33/INFP-x.pdf?rlkey=r059gy72bnx9ifwywki89fmm1&st=cz5tu9tb&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/arq2qawli1rutygx3tq2c/INTJ-x.pdf?rlkey=681zwbhafnomh6umediebs3iz&st=hgf0z9r8&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/sv9s39b310k3qtu9ub9jx/INTP-x.pdf?rlkey=e0r1wxpi9hw1kphwze8gnjns4&st=1a7zxtnd&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/zwq5dal08d5oshw40rv85/ISFJ-x.pdf?rlkey=81zwnldrswrspuczo4gluftt3&st=b8geak66&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/r83zivwf6ypmnz8zyltti/ISFP-x.pdf?rlkey=ovbqvoqzki4rmst4ucngncfqk&st=ila9r95v&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/eof2wyexrrsjq9fv91pw5/ISTJ-x.pdf?rlkey=xw9ksny8aei40kbfqy0oibynn&st=gnxzak0v&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/a20z6c2zk4ifcug5ymnz1/ISTP-x.pdf?rlkey=qak0jnhyy53ya9qowrzimavt1&st=plkvvel7&dl=0'
+                    },
+                    'Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/vfbi7bt0ftvg7wn9bzaqc/ENFJ-x.pdf?rlkey=859tv3c4f2q3qqagunhzr3qmt&st=wd98rzvx&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/pjeuls2tvk04zu2nbsdc2/ENFP-x.pdf?rlkey=ay4xe9z78fqexrzldnfggyoxk&st=vy3xe27a&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/gh5pdz27h2494ccjojnlv/ENTJ-x.pdf?rlkey=gblgzobm0hfde7hl0sqthsmu5&st=obohc7ax&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/x42vqspev4o740lilw8ns/ENTP-x.pdf?rlkey=nbsv1f3hd8wpy0bfz77vfxytz&st=dlbh3385&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/865wb1aj91mj6ooyti3ao/ESFJ-x.pdf?rlkey=sidnkegqq7bn6tnnj9ln9tfeb&st=dzrpzxg0&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/0g8frtf141ief32jakdbj/ESFP-x.pdf?rlkey=6jp39fg5dwqv3mnyxeedbxlhx&st=oa8dlmxs&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/3bd2jfr92qsfokfl2u8g2/ESTJ-x.pdf?rlkey=vz4m2tt6921d0qqf2n1k4bgu3&st=rz7ft21k&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/pc5nkrhuadmizwyo8mcgs/ESTP-x.pdf?rlkey=dj21p5gixg4qao58k0am7vc6d&st=84kh44z5&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/d2yb8449fuem6jrxy6bcy/INFJ-x.pdf?rlkey=0plijy30ep7wchul0sa5z27e1&st=he38p3tp&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/hfuo0lgghi4r80elbnayb/INFP-x.pdf?rlkey=bz9hsrqn76zgr6gwqk5c3zfy7&st=d8w8dahd&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/gxvqy84ohvcwlruokheme/INTJ-x.pdf?rlkey=51tcvce8ydfr686359brbx2bx&st=62f0fr1n&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/xqo0yblih3sh3jc0yig0r/INTP-x.pdf?rlkey=o4bbfv7goegxuu1ldm3lzs2oc&st=tagf6t1w&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/100vmijpzb7lma53mbtje/ISFJ-x.pdf?rlkey=desb1x3yx0ptykybgc8mm1qpd&st=llkpfa3s&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/s87vz4hfvbe1m54wxoasu/ISFP-x.pdf?rlkey=teapxutkapugo2lsyqbm7jswu&st=qk31j61h&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/2ktifrttq5mzbsx6ohwxe/ISTJ-x.pdf?rlkey=2ouq2ghwrg7jw9j2w3pqdw07u&st=6r4rdipf&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/o55k9v69ks2lmonru43jg/ISTP-x.pdf?rlkey=apxbn0yt07ctbd8u85w5vjrs7&st=32phcj7p&dl=0'
+                    }
+                };
+                
+                pdfUrl = oneColorUrls[colorName] && oneColorUrls[colorName][mbtiType] 
+                    ? oneColorUrls[colorName][mbtiType] 
+                    : null;
+                    
+            } else if (colorCount === 2) {
+                // 雙色組合 - 16個MBTI類型 × 6種顏色組合 = 96個網址
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                const colorCombination = `${sortedColors[0].en} x ${sortedColors[1].en}`;
+                
+                // 雙色網址對應表 - 請替換為您的實際網址
+                const twoColorUrls = {
+                    'Blue x Green': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/6bvuyk5ckds0wk2zzd30k/ENFJ-x.pdf?rlkey=vle9wm1wbt82x0p4ax4r2w973&st=c20qxsz7&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/4kqs00y79woqalf0mo4kh/ENFP-x.pdf?rlkey=a9xzzz2f8ghl1gwj21nmq4ev0&st=jdps2252&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/7lyqm897ravnn04co928j/ENTJ-x.pdf?rlkey=ig26jv0qae40m0gvaerbz45od&st=nrvpfvhg&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/roo1ljg6vhbawgk9sroae/ENTP-x.pdf?rlkey=852bstj4u5n2xfuowl7ajvb7i&st=6xymymip&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/sehts37wzu0vofjkh8ydu/ESFJ-x.pdf?rlkey=dxlx0u0ewionfs5ig38iepjgy&st=gc3txl91&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/ta6ig9s86k5wg825f9xtr/ESFP-x.pdf?rlkey=it3208btbhxh2n3jupc8xewjz&st=2im6uhux&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/pczcco7yri32bfci8a6xu/ESTJ-x.pdf?rlkey=g5z20xq2mbki84ny5r429pipt&st=zbt8bd77&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/g2t7a3xriqp43dk42ldm9/ESTP-x.pdf?rlkey=gg7cjxlm0kz4jwpr1qkbhgzyu&st=y6wk3ytg&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/wduxnakxhzneyeiwtowmn/INFJ-x.pdf?rlkey=w7ho7a2lyq5dmz4x9ynq8pj09&st=plyxaqog&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/ahj4zq3677k3mknvnt63s/INFP-x.pdf?rlkey=89d9n3t13hkcpx4tzm526xxh0&st=rr3osg8c&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/6h01qzdrktm74opi66glu/INTJ-x.pdf?rlkey=p17t7z4uf52kc9eliff1tswnr&st=sauf3d3v&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/st0pt217932d2anj622tu/INTP-x.pdf?rlkey=m7zi65pcqicrwlue07cudr7h1&st=cmhbm6mk&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/gfhdopg2kgz8pclui8lw4/ISFJ-x.pdf?rlkey=vgsbm3f1sazu2f7fsebcpslog&st=awlj4l8q&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/pjj5hxdsv3ijun60z4owd/ISFP-x.pdf?rlkey=6q16mnrvlue2pel39gmocvgka&st=azt4pbqp&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/obtajbpr5o9cfkz0ajgf4/ISTJ-x.pdf?rlkey=2c21kq5e9mww1jzovbzhoqgrk&st=lhfiib6s&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/u8ng6wlwlnp19f907asjb/ISTP-x.pdf?rlkey=mniskccq4mj00adr7t2yp6ao5&st=1tb30o38&dl=0'
+                    },
+                    'Blue x Red': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/pj1muewxvj53ebw6soacd/ENFJ-x.pdf?rlkey=x0nvn5klgac0c416dzlm2bz4v&st=lfm3n6yg&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/1ljwvv62q4q2blid9x5i0/ENFP-x.pdf?rlkey=h9xl1f53n4xcir8yeu2roplqh&st=wskdtvkq&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/i3x4xrbvwm0s6apxs3ga5/ENTJ-x.pdf?rlkey=ey2y9va2bcqi8s2v9cfhhqr2t&st=0gues56v&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/bmhhlhy57q6iegbtb744i/ENTP-x.pdf?rlkey=yokhtii6ybehc21ldgk2gv4jz&st=9wuxcy7l&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/69a6fangb6r51df4epv6g/ESFJ-x.pdf?rlkey=v8qporbkw44h424gno5j3tb9r&st=szkioa37&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/u5yrbcb5jeb4gefy2w0lm/ESFP-x.pdf?rlkey=82rxo121q0x4lo0po2g2mo3jq&st=lisrds04&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/k58ivgky5nt9zimd15fnk/ESTJ-x.pdf?rlkey=ibzle704jpax0md0kfknlpyrc&st=axwjjo6e&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/ciw721rwnyjy5vlc575pq/ESTP-x.pdf?rlkey=jw0enmnaiv7t8sey2bo702g6k&st=05cndbvk&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/18xouaanpwfopebe1n6hj/INFJ-x.pdf?rlkey=5jy95f68680x2qf8n65kd6n0q&st=dlbeylhu&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/4f8y2opcurx4a8s234q5e/INFP-x.pdf?rlkey=nvkuvyu73sn2n5jtqy08tl5ki&st=oed08htn&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/d8um1lqs1bz29b2gtkzb6/INTJ-x.pdf?rlkey=q2538fnoqi6s9834psf66nm3w&st=m8zs9a07&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/1b8yx18wyyobspatep1hy/INTP-x.pdf?rlkey=hxri8ue1sz3zpha5j2uh7bgsu&st=2iwehfey&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/o6xfjnvpta7vu75al2aci/ISFJ-x.pdf?rlkey=u77dv2pcj62yd8ecq42lu52ph&st=htaqj564&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/qvd7izg4f2zid7dar4ucg/ISFP-x.pdf?rlkey=p36e5cnngdgzkqvejt5mo8vl9&st=u1an0oei&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/zja5hx41qr3p5qlciwa4r/ISTJ-x.pdf?rlkey=4pengtdyri97qf96kumbsvsuu&st=wxznb7gj&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/xnnmsglljr5wav6d2ef4d/ISTP-x.pdf?rlkey=7rmf8cj14r9fo1lgw35f0gjaq&st=zn80ymkd&dl=0'
+                    },
+                    'Blue x Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/iep207oggcbb41wkcirsk/ENFJ-x.pdf?rlkey=piqd0zow7l9exrblx2740yj6b&st=rse7hejd&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/l6fnk6f22v5s9wuao8wdz/ENFP-x.pdf?rlkey=5bkn66bpysw8jap5yhakdq9wu&st=pw6oyjb7&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/wibk7qyvvxqns99ej0tmm/ENTJ-x.pdf?rlkey=c7c4e4u40jc7wz9cflrr0mjmw&st=86ikdgcs&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/1ow63au9j9o9vtt2mbv28/ENTP-x.pdf?rlkey=z4wdzy5fk5319xw6kky6uv669&st=mig8bbwq&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/1y2dptfiol6l4xi7yspul/ESFJ-x.pdf?rlkey=pqigxjd0g1cckayq4marahuuz&st=cvp9kfxz&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/mifo1zz1lxfp00ebqymtr/ESFP-x.pdf?rlkey=viaqcm3wmdada80vipu196lyc&st=6pztgobu&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/yyow7y13b93623e3zedof/ESTJ-x.pdf?rlkey=4xn5tc112e37si6euvr6wir17&st=cbxi5uhr&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/a8ffc4n4ks0twfkiwiy9i/ESTP-x.pdf?rlkey=9anm6exp89jdzsq13tuqj52tv&st=7lx8zpq2&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/sthj5utbe1pb8wir4pp2u/INFJ-x.pdf?rlkey=2ip78uwsz849h5xll3xveu6k9&st=pkl396xq&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/auce65n46smac0guel4cv/INFP-x.pdf?rlkey=zrkr1p6v6vy8ag7wk3z8w7zmz&st=9ifhb5ri&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/nxl11fqcirhdpd13tfbiq/INTJ-x.pdf?rlkey=adk1nylnx9n9uf15wjnx9ns7r&st=ftpgpuaq&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/f2jucnrswk1bkbo4viqx9/INTP-x.pdf?rlkey=fsb2genda2cnbw6kif1nzn3i1&st=b7dwqp6r&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/fxquyn9m4pjlslquapf2c/ISFJ-x.pdf?rlkey=2hasltpbghr2796hf1q3eb9bx&st=c9k9vzgf&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/ohtkfq2fq33ezgtrno0aq/ISFP-x.pdf?rlkey=mc3r54qllzxctf04tvb5owtum&st=r60a0gqj&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/juhxmlikli262gy21ykjk/ISTJ-x.pdf?rlkey=7z1130ure0d0648dhmvgwqctp&st=luaikax1&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/ownreuuy29atf1mn4ztcu/ISTP-x.pdf?rlkey=w5cle4po0fuftfyz5o8fw3a5i&st=mjcr32je&dl=0'
+                    },
+                    'Green x Red': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/1c225lsdx2yk65i2y1y93/ENFJ-x.pdf?rlkey=74pv746wfzlkdg71ln5rq04pu&st=h9mhhl6r&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/lq4zsp5ic9ziv4mbd7pvn/ENFP-x.pdf?rlkey=g5d6m09bx8ah3aazeduhq41mg&st=vtlyezb7&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/w0t9gw9af8k8c7f100r7r/ENTJ-x.pdf?rlkey=cgbxbbp8yus6fi7q6117ontdb&st=2egti44m&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/rf5nx0rbnohzkj9xu9kb5/ENTP-x.pdf?rlkey=l5vmtve3l6ycsgd80qlcnxasj&st=6hw48ecy&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/4gi9rmrkawl6e60gtpwul/ESFJ-x.pdf?rlkey=pamuosr4eh1x6zawdnp1sm1xb&st=2to6b6e5&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/1lk4c817aa0acpkzfts4t/ESFP-x.pdf?rlkey=73v8hqtr047copleneiv9gwic&st=pfnpv1wi&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/9dm8b3zc666v0hs05vqrz/ESTJ-x.pdf?rlkey=d2iaj86bpjkq105vyxp3xqgjr&st=lsm4n2ts&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/xwxcloii75lbrs1kqi42i/ESTP-x.pdf?rlkey=h5miod5tn2ypnf029d71tpgwp&st=i3fc8snh&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/5f01qxux9wv4pndyusa7i/INFJ-x.pdf?rlkey=kh0bmope8fok9vfos71yytcn3&st=s429ceux&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/pomxon8cjrxjfmkylwz5a/INFP-x.pdf?rlkey=29013uhx60srhq2p7ymrz2so3&st=78k120yz&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/6mzrdjtf5cbr7brl0n5ep/INTJ-x.pdf?rlkey=fdzqx8pyd9qfp7pr0tw3lbjdc&st=dbo3d46u&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/h0s71udxcmy0skxomygiq/INTP-x.pdf?rlkey=uleulcocw5c4u3h2a05ctgfoy&st=682txxk1&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/8x0i2u7niq583nwwgp3o8/ISFJ-x.pdf?rlkey=x9mlk27iowa23mmi4x52xny08&st=bl5kea2w&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/1hz7wy32y47i221ve8hur/ISFP-x.pdf?rlkey=xodd2crvv0g611lm9v7dim4ih&st=u1ueg7eh&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/zlzxuawnqsej4wg2nmhl9/ISTJ-x.pdf?rlkey=2cn2nojs75r54iaon6rczri5k&st=ykswh93d&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/3woa4tlh0c3mj60d6b6g4/ISTP-x.pdf?rlkey=05t29jqeuhd47d1091ktpcu8m&st=zszhbv5u&dl=0'
+                    },
+                    'Green x Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/13ammv07cyo5e4zk10kjy/ENFJ-x.pdf?rlkey=1rk9lm8q2hhxetloww8r3x39a&st=oz4lh1ky&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/8sugua1sryimdnckkp83a/ENFP-x.pdf?rlkey=hlnzn1tyicte1yfl47xbivbnw&st=8cczror1&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/bg4pcxntlgxgsjgm4vr4f/ENTJ-x.pdf?rlkey=2qora14p4j51b7u08j5u3o3sv&st=379xxe8x&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/k3pamkmnis4fs64kv43wg/ENTP-x.pdf?rlkey=m6yu5378thfj4hwe4y4g92wzc&st=tllp9q3o&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/mlxe83s1k5up2vfh0j7q1/ESFJ-x.pdf?rlkey=7avrt774pejniy7f5qcqpma9d&st=wo2jvqau&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/nmiveg2otdbxjr098yof4/ESFP-x.pdf?rlkey=j8ocoih8idqavnjlgy4c09hbp&st=9kpzkamn&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/gg9sujhebknusv1fagiiz/ESTJ-x.pdf?rlkey=vb1b5j7dgmm0rgneuji4m8egw&st=4x4phl4p&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/xone37ps1ffh0sz81m97j/ESTP-x.pdf?rlkey=i3z6cr178zh3qoyn5h7rmux4c&st=ilcb91gy&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/dogljjbf257xvab9l6zil/INFJ-x.pdf?rlkey=y2rrb76veemq30xw04n2xr8gj&st=s628dt3u&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/g6kb0unvu0jl1mt0ikg3s/INFP-x.pdf?rlkey=lt7h447v8gdllutzqu0ngm3gd&st=ysd121wp&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/sq1lur3eqx8fkaw90pjq0/INTJ-x.pdf?rlkey=t5u7vzyenhrey3chwwcpay5k2&st=bw4sxtqv&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/j4y2m3g4s7ulks6ra7e7z/INTP-x.pdf?rlkey=mvdrel1i0qhzdoypiyp0l9qg1&st=grx2o9xh&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/9es3zerik5qzyxxkplllp/ISFJ-x.pdf?rlkey=na3s79uxgukl6wprfmc1fdtak&st=ruapuy6y&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/8eecv377icj6zql7waymw/ISFP-x.pdf?rlkey=yua4lblim8vnmf1oa074rak6s&st=5jzhuj3w&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/w4st2sae2mhq3ern1yyd6/ISTJ-x.pdf?rlkey=eaizec3c95esz4wreu2cy0moz&st=ecurlt6q&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/nlkg10f1losqijq0utqm3/ISTP-x.pdf?rlkey=klu7u39ydwjjgeskxad27lzkx&st=4oj6objo&dl=0'
+                    },
+                    'Red x Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/0eyftc6o72ak4d4rco4fn/ENFJ-x.pdf?rlkey=5navzjz4cbv66yk95kcir1udf&st=h5ix7ccq&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/pky61vtz2udraklt3kf6e/ENFP-x.pdf?rlkey=w2vf8ro8az5yi3rsoqbuqqw6u&st=b34tgjta&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/jexbmyomluutg6d1ghgnm/ENTJ-x.pdf?rlkey=l8zu2dotjtwwdo4kfdcnkj8a4&st=xor0c57e&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/e4mucd6lfeah9wiqf4p4x/ENTP-x.pdf?rlkey=61k5m6yd8rov2h85g1lc1i0v0&st=pq391hbl&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/58bd7hsc3w46q10mvl2ux/ESFJ-x.pdf?rlkey=smdephyhx2jdj9ttntxxkujl0&st=w8r8l387&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/i52lmsolexkgyyj22g95h/ESFP-x.pdf?rlkey=pbnv8euvjgdy4db2vvry8hqzr&st=cs6ixqci&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/mktwj419kvmj6n2l2bznw/ESTJ-x.pdf?rlkey=as4rmh4kg8eqiv7c50u0mpob1&st=l52l7gja&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/9vwvx694601kp3958sbij/ESTP-x.pdf?rlkey=j7avqsfymin1v0llj8ypqfbxi&st=rr1tze6q&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/t29flnheo8knqoo1omwkk/INFJ-x.pdf?rlkey=fdd0edfpzblh34d4pnfp6mjh7&st=h6rs8xr7&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/tfai44nr3ovlkujb364ai/INFP-x.pdf?rlkey=f1lopunrmmhytfdqoioqmiv5j&st=q5z2xv59&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/2cplhmfp4fuvuygjxjcz2/INTJ-x.pdf?rlkey=rym3ncamxyk7b3oa396eoyc8j&st=kv9ot1l1&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/955qp3y77i87u3973h26n/INTP-x.pdf?rlkey=v1wr0prilps8evzdmlc460jmv&st=fyarkw18&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/x79441n9fpvplnt6czo89/ISFJ-x.pdf?rlkey=uhkwv3640a2dfcg5l6qbo5fen&st=ygy160nd&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/dt99bo1klgz9uio5o6428/ISFP-x.pdf?rlkey=i39l6avrhd71dct7g8sdgcceb&st=j1a1vol6&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/7eeezcyn9o8qcrtnlj2s4/ISTJ-x.pdf?rlkey=hlpp2p89j5rvdkfvlmyl2m7w2&st=845z7drl&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/qpevyqwn7ewkwyrdximqt/ISTP-x.pdf?rlkey=tggi2wxcnfnl7edu83000rdkz&st=vtb13o8c&dl=0'
+                    }
+                };
+                
+                pdfUrl = twoColorUrls[colorCombination] && twoColorUrls[colorCombination][mbtiType] 
+                    ? twoColorUrls[colorCombination][mbtiType] 
+                    : null;
+                    
+            } else if (colorCount === 3) {
+                // 三色組合 - 16個MBTI類型 × 4種顏色組合 = 64個網址
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                const colorCombination = `${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
+                
+                // 三色網址對應表 - 請替換為您的實際網址
+                const threeColorUrls = {
+                    'Blue x Green x Red': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/qclf2ol89guedu02hstq7/ENFJ-x.pdf?rlkey=cd57d8bmh34zw0j5sx6iwh87r&st=atldaho4&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/2l3gyhzg36vvfv2g0wju9/ENFP-x.pdf?rlkey=fk41plju4x8bk5akzeo1p7nb5&st=4c6n0osd&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/wl5ekmyrztdwthlhu4sgl/ENTJ-x.pdf?rlkey=p53k1yghsyn7h8gj39qfs2eaf&st=evsh4359&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/lx956npdl7ei694fnq3oe/ENTP-x.pdf?rlkey=fbc1bo1sjj4ykjb5fudclbk2x&st=lzxxy3ln&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/uc19ix7xyjrxs1w8t6jga/ESFJ-x.pdf?rlkey=7oz2pfqgkowzi8oy1mwjl8tff&st=nbomb7w3&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/h0ce5l3lkvb68vjgzzupo/ESFP-x.pdf?rlkey=jvj6dacmbyjwmeh3s7d6ghue9&st=lyx8l3s9&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/mkxqla1jp0rcrfmtwrf4s/ESTJ-x.pdf?rlkey=pvxciswpelojxf1ik34xjtuwa&st=72287md2&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/mf42jtb2ievaodv9fw7l3/ESTP-x.pdf?rlkey=ac0ovncdanwdzr9js4kcafnu2&st=dcq8yw1o&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/tvhpb5nie8i5kv73cj2fb/INFJ-x.pdf?rlkey=9jyj0tmxxv0k7mnd0nm7vpax2&st=sw70tgno&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/q4z9jikgwvob4d07pjkjf/INFP-x.pdf?rlkey=wmtla3l24zsg6eausc0ulq6y8&st=il43ehkq&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/fkifud8m8q0396iwk0rvu/INTJ-x.pdf?rlkey=ila3jjyg96yvpz4vz3i9butwp&st=gu3mmaeu&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/zr9wq3qy0j2leymdfas1z/INTP-x.pdf?rlkey=2fx4bv3kl9ff6gbpp5si4mdvu&st=jc38cof4&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/amshkqf0rlwezks6th529/ISFJ-x.pdf?rlkey=80ycm5y9jg8m73rkdgt9bmvvm&st=fznf48uf&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/8wazs3libhjdlzilksua0/ISFP-x.pdf?rlkey=48138y3y81fclv9oiscpl94ds&st=ge8rwbfu&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/1rs7xnbdevj8ldgv0sqyh/ISTJ-x.pdf?rlkey=f4d4vherjfdrasdxplqdievqo&st=jg8v9pv0&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/9s51v3hosahr7q1e94xek/ISTP-x.pdf?rlkey=86xelwwwvju2hbpw0txi0z1gr&st=nr8d3lgn&dl=0'
+                    },
+                    'Blue x Green x Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/rp5358dey4dvi8ldr98ws/ENFJ-x.pdf?rlkey=c7gk963xj1dwqw5qo0zvg08s2&st=gue3knrr&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/dwo98kv4smh349ars5iia/ENFP-x.pdf?rlkey=lg1jbrszn37iig4j1eewz7r67&st=0sthx90h&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/gcj9nl3psyo36zul31j85/ENTJ-x.pdf?rlkey=p0h1y8kvswjaeqbqp2tkja0jz&st=5hv14ox1&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/z6fx77e93d3gbsw9ewp8z/ENTP-x.pdf?rlkey=nmbhakpwy451nh4pip1n4tbdc&st=kqexb2wz&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/tt3wpw4bzlmt8q6pclfdp/ESFJ-x.pdf?rlkey=3qdiw8adfj9vhqff3xrawczgm&st=p2ftqinl&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/8cn53z6t12rcuflhi6rmu/ESFP-x.pdf?rlkey=dsdke0vaz6ssn0m6546dkytq4&st=l1wt0n90&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/130erhpad6n0t8e5mt3nk/ESTJ-x.pdf?rlkey=wb45hr4x79g16oopso1ruc794&st=g9wl6vfc&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/2zoa8crdsbqh86q0k3bxy/ESTP-x.pdf?rlkey=ag6hnba2s362f4r8j1kru96a1&st=iiz4jxh6&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/jjba48632e1oklck091wr/INFJ-x.pdf?rlkey=qew6sz9reerc3ghbss87lwwur&st=tko34gl1&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/78qqcxqu6mpqmc4ao443u/INFP-x.pdf?rlkey=8npji7y4yezfpzimp063976gx&st=tt20nc6t&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/dw3yrurf29objzqburiqk/INTJ-x.pdf?rlkey=4w52ywfrtc2idhh4bdv1cxycw&st=f0c896oh&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/6690m0lbjx2a0m7k5u1f7/INTP-x.pdf?rlkey=8817nqim3o8g9nzyo14dc6bo1&st=y4g48tar&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/lva1wnp32kh1b1xxj7f0f/ISFJ-x.pdf?rlkey=6edst6xhyg3xdovvnyl6knunc&st=oi329291&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/h81cdyti5wt7vnrze0ex0/ISFP-x.pdf?rlkey=gq2dozt5nodk5tqimi29v6962&st=jj9kao0i&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/7z7jumxmls6uiogkxim9e/ISTJ-x.pdf?rlkey=9yjfk79vtae0kpj40d2dt2gea&st=ggafb8am&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/cs03rbsc1nn4bw6z615p8/ISTP-x.pdf?rlkey=l228jziq5mfcd0pd3u1cutr93&st=68l2cfaj&dl=0'
+                    },
+                    'Blue x Red x Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/li2u3xuk4eln20djin2rf/ENFJ-x.pdf?rlkey=2n0i1kgpzvzga20i0gnb1ub3z&st=4jhcslnw&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/11dnce5s5o9o4vxxp2863/ENFP-x.pdf?rlkey=yt9y9w4od83qqkabgw4wzbkw2&st=emm5wrd6&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/3891squo7w9ecxlggv55f/ENTJ-x.pdf?rlkey=8qaqs8tuao3pt1swmcl2dv4mf&st=ff9y2lso&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/z7zs3odrq9yqdggy8fg7v/ENTP-x.pdf?rlkey=64v55tnzm9njr2g2fl5k0axjm&st=uz8hdui0&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/cdt4ixbvsbpaqfi6ioky9/ESFJ-x.pdf?rlkey=wdsk92g38qfjl61ogoe7rtxxi&st=lq0fhzfp&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/3f2rp7llwu1wgz17d9mbw/ESFP-x.pdf?rlkey=xcq8qtphbn24g2m7bpn1gabcg&st=8sv2tupd&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/220lzz0z0a3nmgowxklm3/ESTJ-x.pdf?rlkey=vao3ocvlfs8g5x5y39rdcatj8&st=tl4q7e2y&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/93060hfgips0ljykey6fb/ESTP-x.pdf?rlkey=b5q6qwwfg8hxbcgj3b4vjs8rj&st=bp2at26o&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/ez6d3n6l5i5016ws1wcod/INFJ-x.pdf?rlkey=9455zrrn1g0butp04jios84e7&st=6u36j9lt&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/xlo0s23a3e0ngkm1br5xd/INFP-x.pdf?rlkey=jko6hmjzfli1235tw68pk9u21&st=e0igcrh0&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/xgl1o79e16r20jnsyja3g/INTJ-x.pdf?rlkey=f4kwjq84an9xaq46lcv65umvf&st=bvqzdkn3&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/a17sy668e6fippqboq8a5/INTP-x.pdf?rlkey=gvxbz5wkhoza5walbj3htmimg&st=zal0n704&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/g4keeomdw3oaeodqrg9jc/ISFJ-x.pdf?rlkey=umyeov1elcs0vqv6oeuxo2yz7&st=zxco9klo&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/u0p0n3juj4q0tb2ms1zcv/ISFP-x.pdf?rlkey=k3bo0b1ff2sszjkltz7iowq6j&st=2yfkbmkk&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/xf7eyyafthgzu9wttk5pu/ISTJ-x.pdf?rlkey=k10zhif2oso5n5rfvnibwnt5x&st=hkbvrrko&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/p9wtrl74sh8y3shqw37z0/ISTP-x.pdf?rlkey=90twvza0izfrwfse5ioz39o9k&st=sc636v4a&dl=0'
+                    },
+                    'Green x Red x Yellow': {
+                        'ENFJ': 'https://www.dropbox.com/scl/fi/xh9yivtr3hg1i629qz2mx/ENFJ-x.pdf?rlkey=wgrq09uc2a2sompj1ojg6la89&st=pn7um1k0&dl=0',
+                        'ENFP': 'https://www.dropbox.com/scl/fi/0ag2yf1du2pwutt3xi48z/ENFP-x.pdf?rlkey=x7j4k6jdjfiv5ms3e1lma92hv&st=t33bpj1a&dl=0',
+                        'ENTJ': 'https://www.dropbox.com/scl/fi/bxa2u2017smyu0hf0tof3/ENTJ-x.pdf?rlkey=rxmy8blr5kty0qggzk8qarjz5&st=bxiei2ic&dl=0',
+                        'ENTP': 'https://www.dropbox.com/scl/fi/1kfwgr0m626mjeosbbi0g/ENTP-x.pdf?rlkey=1bh6fbyvkc9tzrk3rw2s5oima&st=n20qf33f&dl=0',
+                        'ESFJ': 'https://www.dropbox.com/scl/fi/zmncap0sd6isflp0n88a4/ESFJ-x.pdf?rlkey=ms4kz4sxfycr5lps51f7gby8l&st=q88hbr2g&dl=0',
+                        'ESFP': 'https://www.dropbox.com/scl/fi/69fq78i56utr0b0xj1t44/ESFP-x.pdf?rlkey=whzbyvo4f9pr861jlvh1kjhyd&st=h5gqlfn8&dl=0',
+                        'ESTJ': 'https://www.dropbox.com/scl/fi/xh0ziwjr1ev394biupjb7/ESTJ-x.pdf?rlkey=qfjk9fffzztqpxvwwioq2om7c&st=khcebcmn&dl=0',
+                        'ESTP': 'https://www.dropbox.com/scl/fi/hitfysl4lt9oiv446rs7z/ESTP-x.pdf?rlkey=lw9t7uk00iq7upp3wx6cvjqlq&st=gqhiaaao&dl=0',
+                        'INFJ': 'https://www.dropbox.com/scl/fi/1lne0xtsb9gf18d8g1q9m/INFJ-x.pdf?rlkey=rts3t8kukb2rfh8ia4jg635fd&st=n7o86x1q&dl=0',
+                        'INFP': 'https://www.dropbox.com/scl/fi/m7on9mi2cgcyi0iy2d555/INFP-x.pdf?rlkey=l67fd88zx5g50ohrw4flwxpky&st=vjkl8q5d&dl=0',
+                        'INTJ': 'https://www.dropbox.com/scl/fi/y2521p4ct0gbu8kjd8c0a/INTJ-x.pdf?rlkey=amfu5nydbr0o03rj2qs8a066p&st=tkggufkf&dl=0',
+                        'INTP': 'https://www.dropbox.com/scl/fi/1xnswmx5lj4lpl59dzfg9/INTP-x.pdf?rlkey=df6dudcdy6klp95nzwpgj02kl&st=4p9062ku&dl=0',
+                        'ISFJ': 'https://www.dropbox.com/scl/fi/e040p3ov8a60g95lpkdsy/ISFJ-x.pdf?rlkey=guxguxyonpb75uj3fradshiem&st=3871y7p5&dl=0',
+                        'ISFP': 'https://www.dropbox.com/scl/fi/iuhh3z5ek672dx60j7zqm/ISFP-x.pdf?rlkey=0l18605u8m4og117hs1aldcoz&st=kqeqlwm7&dl=0',
+                        'ISTJ': 'https://www.dropbox.com/scl/fi/zdx16tbs541rdo4cpw5ou/ISTJ-x.pdf?rlkey=nucjjgxufbmi70dqcjhw7obin&st=2yjjwpdw&dl=0',
+                        'ISTP': 'https://www.dropbox.com/scl/fi/zno83kvcxqiih9590clpx/ISTP-x.pdf?rlkey=33omyvc1ntpu6g8lfjozh0dbq&st=2aon67d9&dl=0'
+                    }
+                };
+                
+                pdfUrl = threeColorUrls[colorCombination] && threeColorUrls[colorCombination][mbtiType] 
+                    ? threeColorUrls[colorCombination][mbtiType] 
+                    : null;
+                    
+            } else if (colorCount === 4) {
+                // 四色組合 - 16個MBTI類型 × 1種顏色組合 = 16個網址
+                const fourColorUrls = {
+                    'ENFJ': 'https://www.dropbox.com/scl/fi/wjinqan13kkqs3j8mhhhh/ENFJ-x.pdf?rlkey=uhg7envek7udpd0afx26yeqov&st=mo36teig&dl=0',
+                    'ENFP': 'https://www.dropbox.com/scl/fi/6pm5iufmv62usk2fncn5h/ENFP-x.pdf?rlkey=apvonoo5gr8tgq76cs3o6lyvl&st=8zlglfyf&dl=0',
+                    'ENTJ': 'https://www.dropbox.com/scl/fi/20im6f8r0ijz5pqjelxxu/ENTJ-x.pdf?rlkey=84vwrgro9kfkzypnrdet85dz9&st=nntzblo6&dl=0',
+                    'ENTP': 'https://www.dropbox.com/scl/fi/f62j9b9tk1t44v95dvje6/ENTP-x.pdf?rlkey=o5h486p0pu31qh1s6qudxg28d&st=874n09sk&dl=0',
+                    'ESFJ': 'https://www.dropbox.com/scl/fi/5373914mtqkafakhnupi0/ESFJ-x.pdf?rlkey=s34yv9xehifgdafi4sbjzu5lv&st=3h93ch4m&dl=0',
+                    'ESFP': 'https://www.dropbox.com/scl/fi/3fdqm6434nkkxeuckoh4r/ESFP-x.pdf?rlkey=xs5sldqjirt7jsk1097l3ai2s&st=dtlp6vmd&dl=0',
+                    'ESTJ': 'https://www.dropbox.com/scl/fi/bllunxna5tarrgkfhso2r/ESTJ-x.pdf?rlkey=t8qjr9j25ushbqqv9hmnztsyu&st=mixp3uwc&dl=0',
+                    'ESTP': 'https://www.dropbox.com/scl/fi/0eqy04l3hwf1m40pl759f/ESTP-x.pdf?rlkey=w77j950bztq03x7iszbk511jd&st=ls2v9jm8&dl=0',
+                    'INFJ': 'https://www.dropbox.com/scl/fi/wsid64oul9mna082ke9xr/INFJ-x.pdf?rlkey=v4rzm3x9qgvyymm3jp3m92hwv&st=98fyotop&dl=0',
+                    'INFP': 'https://www.dropbox.com/scl/fi/gprnhp9525omnad11v7zp/INFP-x.pdf?rlkey=u4dy6u1hs1j00kzojuaqe1kv0&st=c56eoezh&dl=0',
+                    'INTJ': 'https://www.dropbox.com/scl/fi/98z6x6tiziftvck2c7hym/INTJ-x.pdf?rlkey=4dsalp4boasmjrtfuulj4x1lw&st=9cj0ig6l&dl=0',
+                    'INTP': 'https://www.dropbox.com/scl/fi/tar0k3tir61gvyvvyt4qm/INTP-x.pdf?rlkey=mpn6yl3i1bo702so4k7jhwxcc&st=6ldki6i6&dl=0',
+                    'ISFJ': 'https://www.dropbox.com/scl/fi/q3atvja9rtjkv5lv6wqld/ISFJ-x.pdf?rlkey=p2k1ppd2rvwxn5ldipa8seonm&st=vesrfzxu&dl=0',
+                    'ISFP': 'https://www.dropbox.com/scl/fi/vbl20596nk5d6y4iermu8/ISFP-x.pdf?rlkey=hkvo9jd1turqssi4eqlfgkvos&st=txvq9pjz&dl=0',
+                    'ISTJ': 'https://www.dropbox.com/scl/fi/f5tjm8sih3fuxaemaxolw/ISTJ-x.pdf?rlkey=53mem6a5dz11yrpd9t2uu0e91&st=dr7ugnd9&dl=0',
+                    'ISTP': 'https://www.dropbox.com/scl/fi/0zhfmikdah3hapdrdb4w9/ISTP-x.pdf?rlkey=s5cthw3japlrvaukx35ppcfwo&st=bgqiscmg&dl=0'
+                };
+                
+                pdfUrl = fourColorUrls[mbtiType] || null;
+            }
+            
+            // 如果找不到對應的網址，顯示錯誤訊息
+            if (!pdfUrl) {
+                alert('找不到對應的PDF報告，請聯繫管理員。');
+                return;
+            }
+            // ======================================
+
+            // 開啟下載連結
+            window.open(pdfUrl, '_blank');
+        }
+        
+        // 分享結果功能
+        function shareResult() {
+            // 取得當前測驗結果
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const guestId = urlParams.get('guestId');
+            const testType = urlParams.get('testType');
+            const timestamp = urlParams.get('timestamp');
+            let resultData = null;
+
+            if (testType && timestamp && (email || guestId)) {
+                resultData = window.currentTestResult || null;
+            } else {
+                resultData = JSON.parse(localStorage.getItem('currentTestResult'));
+            }
+
+            if (!resultData) {
+                alert('無法取得測驗結果，請重新進行測驗。');
+                return;
+            }
+
+            const mbtiType = resultData.mbtiResult || resultData.mbtiType;
+            const scores = resultData.scores;
+            const colorResult = resultData.colorResult;
+
+            if (!mbtiType || (!scores && !colorResult)) {
+                alert('測驗結果資料不完整，無法顯示小卡。');
+                return;
+            }
+
+            // 獲取最高分顏色組合
+            let topColors = [];
+            if (colorResult && colorResult.primary && Array.isArray(colorResult.primary)) {
+                topColors = parseTopColorsFromColorResult(colorResult);
+            } else if (scores) {
+                topColors = getTopColors(scores);
+            }
+            if (!Array.isArray(topColors) || topColors.length === 0 || !topColors[0].en || !topColors[0].zh) {
+                alert('無法確定顏色組合，請重新進行測驗。');
+                return;
+            }
+
+            // 生成小卡圖片路徑
+            const cardImagePath = getCardImagePath(topColors, mbtiType);
+            // 顯示小卡彈窗
+            showCardModal(cardImagePath);
+        }
+        
+        // 根據顏色組合和MBTI類型生成小卡圖片路徑
+        function getCardImagePath(topColors, mbtiType) {
+            const colorCount = topColors.length;
+            let folderPath = '';
+            let fileName = '';
+            
+            if (colorCount === 1) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderPath = `Full-report/one color/${sortedColors[0].en}`;
+                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+            } else if (colorCount === 2) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderPath = `Full-report/two color/${sortedColors[0].en} x ${sortedColors[1].en}`;
+                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+            } else if (colorCount === 3) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderPath = `Full-report/three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
+                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+            } else if (colorCount === 4) {
+                folderPath = `Full-report/four color/Red x Yellow x Blue x Green`;
+                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+            }
+            
+            return `${folderPath}/${fileName}`;
+        }
+        
+        // 顯示小卡彈窗
+        function showCardModal(imagePath) {
+            // 創建彈窗遮罩
+            const modal = document.createElement('div');
+            modal.className = 'card-modal-overlay';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            
+            // 創建彈窗內容
+            const modalContent = document.createElement('div');
+            modalContent.className = 'card-modal-content';
+            modalContent.style.cssText = `
+                position: relative;
+                max-width: 100vw;
+                max-height: 100vh;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                overflow: auto;
+                transform: scale(0.8);
+                transition: transform 0.3s ease;
+                padding: 0;
+            `;
+            
+            // 創建關閉按鈕
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '×';
+            closeButton.className = 'card-modal-close';
+            closeButton.style.cssText = `
+                position: absolute;
+                top: 10px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 30px;
+                color: #666;
+                cursor: pointer;
+                z-index: 10001;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s ease;
+            `;
+            
+            // 創建圖片元素
+            const cardImage = document.createElement('img');
+            cardImage.src = imagePath;
+            cardImage.alt = '測驗結果小卡';
+            cardImage.style.cssText = `
+                display: block;
+                max-width: 98vw;
+                max-height: 90vh;
+                width: 100%;
+                height: auto;
+                object-fit: contain;
+                margin: 0;
+            `;
+            
+            // 錯誤處理
+            cardImage.onerror = function() {
+                modalContent.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #666;">
+                        <h3>小卡圖片載入失敗</h3>
+                        <p>抱歉，找不到對應的小卡圖片。</p>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                style="margin-top: 20px; padding: 10px 20px; background: #FF677D; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            關閉
+                        </button>
+                    </div>
+                `;
+            };
+            
+            // 組裝彈窗
+            modalContent.appendChild(closeButton);
+            modalContent.appendChild(cardImage);
+            modal.appendChild(modalContent);
+            
+            // 添加到頁面
+            document.body.appendChild(modal);
+            
+            // 動畫顯示
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modalContent.style.transform = 'scale(1)';
+            }, 10);
+            
+            // 關閉功能
+            function closeModal() {
+                modal.style.opacity = '0';
+                modalContent.style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        modal.parentNode.removeChild(modal);
+                    }
+                }, 300);
+            }
+            
+            // 綁定關閉事件
+            closeButton.onclick = closeModal;
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            };
+            
+            // ESC 鍵關閉
+            const handleEsc = function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+            
+            // 關閉按鈕懸停效果
+            closeButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                this.style.color = '#333';
+            });
+            
+            closeButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = 'transparent';
+                this.style.color = '#666';
+            });
+        }
+        
+        // 跳轉到相關資訊頁，帶參數
+        function goToInformation() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const guestId = urlParams.get('guestId');
+            const testType = urlParams.get('testType');
+            const timestamp = urlParams.get('timestamp');
+            let target = 'information.html';
+            if (testType && timestamp) {
+                target += `?testType=${encodeURIComponent(testType)}&timestamp=${encodeURIComponent(timestamp)}`;
+                if (email) {
+                    target += `&email=${encodeURIComponent(email)}`;
+                } else if (guestId) {
+                    target += `&guestId=${encodeURIComponent(guestId)}`;
+                }
+            }
+            window.location.href = target;
+        }
+        
+        // 設置顏色徽章
+        function setColorBadge(elementId, colorName) {
+            const badge = document.getElementById(elementId);
+            if (badge) {
+                let colorCode = '';
+                
+                switch (colorName) {
+                    case 'red':
+                        colorCode = '#ff6b6b';
+                        break;
+                    case 'yellow':
+                        colorCode = '#ffd93d';
+                        break;
+                    case 'green':
+                        colorCode = '#6bcb77';
+                        break;
+                    case 'blue':
+                        colorCode = '#4d96ff';
+                        break;
+                    default:
+                        colorCode = '#cccccc';
+                }
+                
+                badge.style.backgroundColor = colorCode;
+            }
+        }
+        
+        // 根據顏色名稱獲取顏色翻譯和描述
+        function getColorInfo(colorName) {
+            switch (colorName) {
+                case 'red':
+                    return { text: '紅 - 熱情的行動者', description: '紅色代表活力、熱情和行動力。喜歡直接面對挑戰，追求立即的成果。', zh: '紅', en: 'Red' };
+                case 'yellow':
+                    return { text: '黃 - 活力的探險家', description: '黃色代表陽光、樂觀與能量。喜歡自由和變化，靈活的適應能力和享受當下的態度。', zh: '黃', en: 'Yellow' };
+                case 'green':
+                    return { text: '綠 - 穩健的守護者', description: '綠色象徵和諧、平衡與成長。重視傳統和秩序，具有可靠、負責和務實的態度。', zh: '綠', en: 'Green' };
+                case 'blue':
+                    return { text: '藍 - 神秘的理想主義者', description: '藍象徵深邃冷靜，洞察力與內在智慧。具有強大的共感能力和遠見卓識。', zh: '藍', en: 'Blue' };
+                default:
+                    return { text: '未知', description: '未知顏色類型', zh: '未知', en: 'Unknown' };
+            }
+        }
+
+        // 獲取最高分顏色組合（支援1-4種顏色並列）
+        function getTopColors(scores) {
+            if (!scores) return [];
+            
+            const colorScores = [
+                { color: 'red', score: scores.red || 0 },
+                { color: 'yellow', score: scores.yellow || 0 },
+                { color: 'green', score: scores.green || 0 },
+                { color: 'blue', score: scores.blue || 0 }
+            ];
+            
+            // 找出最高分
+            const maxScore = Math.max(...colorScores.map(c => c.score));
+            
+            // 找出所有等於最高分的顏色
+            const topColors = colorScores
+                .filter(c => c.score === maxScore)
+                .map(c => {
+                    const info = getColorInfo(c.color);
+                    return {
+                        color: c.color,
+                        zh: info.zh,
+                        en: info.en,
+                        text: info.text,
+                        description: info.description
+                    };
+                });
+            
+            return topColors;
+        }
+
+        // 根據顏色組合生成資料夾路徑
+        function getFolderPath(topColors) {
+            const colorCount = topColors.length;
+            let folderName = '';
+            
+            if (colorCount === 1) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `one color/${sortedColors[0].en}`;
+            } else if (colorCount === 2) {
+                // 排序顏色確保一致性
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `two color/${sortedColors[0].en} x ${sortedColors[1].en}`;
+            } else if (colorCount === 3) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
+            } else if (colorCount === 4) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `four color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en} x ${sortedColors[3].en}`;
+            }
+            
+            return `Full-report/${folderName}`;
+        }
+
+        // 根據MBTI類型和顏色組合生成檔案名稱
+        function getFileName(mbtiType, topColors) {
+            const mbtiNames = {
+                'ENFJ': 'ENFJ主人公',
+                'ENFP': 'ENFP競選者',
+                'ENTJ': 'ENTJ指揮官',
+                'ENTP': 'ENTP辯論家',
+                'ESFJ': 'ESFJ執政官',
+                'ESFP': 'ESFP表演者',
+                'ESTJ': 'ESTJ總經理',
+                'ESTP': 'ESTP企業家',
+                'INFJ': 'INFJ提倡者',
+                'INFP': 'INFP調停者',
+                'INTJ': 'INTJ建築師',
+                'INTP': 'INTP邏輯學家',
+                'ISFJ': 'ISFJ守衛者',
+                'ISFP': 'ISFP探險家',
+                'ISTJ': 'ISTJ物流師',
+                'ISTP': 'ISTP鑑賞家'
+            };
+            
+            const mbtiName = mbtiNames[mbtiType] || mbtiType;
+            const colorString = topColors.map(c => c.zh).join('');
+            
+            return `${mbtiName}x${colorString}.txt`;
+        }
+
+        // 獲取顏色代碼
+        function getColorCode(colorName) {
+            switch (colorName) {
+                case 'red':
+                    return '#ff6b6b';
+                case 'yellow':
+                    return '#ffd93d';
+                case 'green':
+                    return '#6bcb77';
+                case 'blue':
+                    return '#4d96ff';
+                default:
+                    return '#cccccc';
+            }
+        }
+
+        // 動態載入並呈現顏色報告（支援1-4種顏色組合）
+        async function loadColorReport(scores, mbtiType, colorResult = null) {
+            try {
+                let topColors = [];
+                
+                // 優先使用 colorResult 參數（新格式）
+                if (colorResult && colorResult.primary && Array.isArray(colorResult.primary)) {
+                    topColors = parseTopColorsFromColorResult(colorResult);
+                } else if (scores) {
+                    // 回退到舊的 scores 計算方式
+                    topColors = getTopColors(scores);
+                }
+                
+                if (topColors.length === 0) {
+                    console.warn('無法獲取顏色組合');
+                    renderBasicReport(mbtiType, scores);
+                    return;
+                }
+
+                // 生成資料夾路徑和檔案名稱
+                const folderPath = getFolderPath(topColors);
+                const fileName = getFileName(mbtiType, topColors);
+                const fullPath = `${folderPath}/${fileName}`;
+
+                console.log('=== 報告載入調試信息 ===');
+                console.log('topColors:', topColors);
+                console.log('mbtiType:', mbtiType);
+                console.log('folderPath:', folderPath);
+                console.log('fileName:', fileName);
+                console.log('fullPath:', fullPath);
+                console.log('正在載入報告:', fullPath);
+                
+                const res = await fetch(fullPath);
+                if (!res.ok) {
+                    console.error(`找不到報告檔案: ${fullPath} (HTTP ${res.status})`);
+                    renderBasicReport(mbtiType, scores, topColors);
+                    return;
+                }
+                const text = await res.text();
+
+                const section = extractMbtiSection(text, mbtiType);
+                if (!section) {
+                    console.warn('無法提取 MBTI 報告段落');
+                    renderBasicReport(mbtiType, scores, topColors);
+                    return;
+                }
+
+                renderReportSection(section, topColors, mbtiType);
+            } catch (error) {
+                console.error('載入報告時發生錯誤:', error);
+                renderBasicReport(mbtiType, scores);
+            }
+        }
+
+        // 新增函數：從 colorResult 對象解析 topColors
+        function parseTopColorsFromColorResult(colorResult) {
+            console.log('=== parseTopColorsFromColorResult 調試信息 ===');
+            console.log('colorResult:', colorResult);
+            
+            const colorKeyToZh = { red: '紅', yellow: '黃', green: '綠', blue: '藍' };
+            const colorKeyToEn = { red: 'Red', yellow: 'Yellow', green: 'Green', blue: 'Blue' };
+            let topColors = [];
+            
+            if (colorResult && colorResult.primary && Array.isArray(colorResult.primary)) {
+                console.log('colorResult.primary:', colorResult.primary);
+                for (const color of colorResult.primary) {
+                    const info = getColorInfo(color);
+                    topColors.push({
+                        color: color,
+                        zh: colorKeyToZh[color] || color,
+                        en: colorKeyToEn[color] || color,
+                        text: info.text,
+                        description: info.description
+                    });
+                }
+            } else {
+                console.log('colorResult 結構不符合預期:', {
+                    hasColorResult: !!colorResult,
+                    hasPrimary: !!(colorResult && colorResult.primary),
+                    isArray: !!(colorResult && colorResult.primary && Array.isArray(colorResult.primary))
+                });
+            }
+            
+            console.log('解析後的 topColors:', topColors);
+            return topColors;
+        }
+        
+        // 顯示基本報告（當無法載入完整報告時）
+        function renderBasicReport(mbtiType, scores, topColors = null) {
+            const container = document.querySelector('.content-section');
+            if (!container) return;
+
+            let report = document.getElementById('color-report');
+            if (!report) {
+                report = document.createElement('div');
+                report.id = 'color-report';
+                report.className = 'result-section report';
+                const anchor = container.querySelector('.description');
+                if (anchor && anchor.parentNode) {
+                    anchor.parentNode.insertBefore(report, anchor.nextSibling);
+                } else {
+                    container.appendChild(report);
+                }
+            } else {
+                report.innerHTML = '';
+                report.classList.add('report');
+            }
+
+            // 如果沒有提供 topColors，從 scores 計算
+            if (!topColors && scores) {
+                topColors = getTopColors(scores);
+            }
+
+            // 顯示基本資訊
+            const basicInfo = document.createElement('div');
+            basicInfo.className = 'section';
+            basicInfo.style.cssText = `
+                background: #f8f9fa;
+                border-radius: 12px;
+                padding: 24px;
+                margin: 20px 0;
+            `;
+
+            const title = document.createElement('h3');
+            title.textContent = `您的 MBTI 類型：${mbtiType}`;
+            title.style.cssText = 'color: #333; margin-bottom: 16px;';
+            basicInfo.appendChild(title);
+
+            if (topColors && topColors.length > 0) {
+                const colorInfo = document.createElement('p');
+                colorInfo.textContent = `您的代表色彩：${topColors.map(c => c.text).join('、')}`;
+                colorInfo.style.cssText = 'color: #666; font-size: 16px; line-height: 1.6;';
+                basicInfo.appendChild(colorInfo);
+            }
+
+            const notice = document.createElement('p');
+            notice.textContent = '詳細的個性分析報告正在載入中，請稍候...';
+            notice.style.cssText = 'color: #999; font-size: 14px; margin-top: 12px; font-style: italic;';
+            basicInfo.appendChild(notice);
+
+            report.appendChild(basicInfo);
+        }
+
+        function extractMbtiSection(fullText, mbtiType) {
+            if (!fullText || !mbtiType) return null;
+            const lines = fullText.split(/\r?\n/);
+            const headerRegex = new RegExp(`^🧭\\s*.*\\(${mbtiType}\\)`);
+            let start = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (headerRegex.test(lines[i])) {
+                    start = i;
+                    break;
+                }
+            }
+            if (start === -1) return null;
+            let end = lines.length;
+            for (let j = start + 1; j < lines.length; j++) {
+                if (/^_{6,}/.test(lines[j])) { // 找到分隔線
+                    end = j;
+                    break;
+                }
+            }
+            const sectionLines = lines.slice(start, end).filter(l => l.trim().length > 0);
+            return sectionLines.join('\n');
+        }
+
+        function renderReportSection(sectionText, topColors, mbtiType) {
+            if (!sectionText) return;
+            const container = document.querySelector('.content-section');
+            if (!container) return;
+
+            let report = document.getElementById('color-report');
+            if (!report) {
+                report = document.createElement('div');
+                report.id = 'color-report';
+                report.className = 'result-section report';
+                const anchor = container.querySelector('.description');
+                if (anchor && anchor.parentNode) {
+                    anchor.parentNode.insertBefore(report, anchor.nextSibling);
+                } else {
+                    container.appendChild(report);
+                }
+            } else {
+                report.innerHTML = '';
+                report.classList.add('report');
+            }
+
+            // 顯示多色組合資訊
+            if (topColors && topColors.length > 0) {
+                const colorInfoDiv = document.createElement('div');
+                colorInfoDiv.className = 'color-combination-info';
+                colorInfoDiv.style.cssText = `
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin-bottom: 24px;
+                    border-left: 4px solid #007bff;
+                `;
+                
+                const title = document.createElement('h3');
+                title.textContent = '您的專屬色彩組合';
+                title.style.cssText = 'margin: 0 0 12px 0; color: #495057; font-size: 18px;';
+                colorInfoDiv.appendChild(title);
+                
+                const colorList = document.createElement('div');
+                colorList.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
+                
+                topColors.forEach(color => {
+                    const colorBadge = document.createElement('span');
+                    colorBadge.style.cssText = `
+                        background: ${getColorCode(color.color)};
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        margin: 2px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    `;
+                    colorBadge.textContent = `${color.zh} ${color.en}`;
+                    colorList.appendChild(colorBadge);
+                });
+                
+                colorInfoDiv.appendChild(colorList);
+                report.appendChild(colorInfoDiv);
+            }
+
+            // 解析段落
+            const lines = sectionText.split(/\r?\n/);
+            const sections = [];
+            let current = null;
+            let headerLineText = '';
+
+            function startSection(icon, title) {
+                if (current) sections.push(current);
+                current = { icon, title, content: [] };
+            }
+
+            for (const raw of lines) {
+                const line = raw.trim();
+                if (!line) continue;
+                if (line.startsWith('🧭')) { 
+                    headerLineText = line.replace(/^🧭\s*/, '');
+                    startSection('🧭', `你的 MBTI 人格解析 — ${mbtiType}`); 
+                    continue; 
+                }
+                if (line.startsWith('🌼')) { 
+                    let colorDisplay = '';
+                    if (topColors && topColors.length > 0) {
+                        if (topColors.length === 1) {
+                            colorDisplay = `${topColors[0].zh} (${topColors[0].en})`;
+                        } else {
+                            const colorNames = topColors.map(c => `${c.zh} (${c.en})`).join(' × ');
+                            colorDisplay = colorNames;
+                        }
+                    } else {
+                        colorDisplay = '未知顏色';
+                    }
+                    startSection('🌼', `你的專屬顏色 — ${colorDisplay}`); 
+                    continue; 
+                }
+                if (line.startsWith('🌈')) { startSection('🌈', 'MBTI × 色彩學的專屬結合'); continue; }
+                if (line.startsWith('💡')) { startSection('💡', '給你的生活小建議'); continue; }
+                if (line.startsWith('✨')) { startSection('✨', '專屬一句話'); continue; }
+
+                if (!current) startSection('🧭', '你的 MBTI 人格解析');
+                // 替換四個小標題
+                let modLine = line;
+                ['【人際關係中】','【工作或學業中】','【情感關係中】','【自我成長中】'].forEach(key=>{
+                  modLine = modLine.replace(new RegExp(key, 'g'), `<span class='summary-strong'>${key}</span>`);
+                });
+                current.content.push(modLine);
+            }
+            if (current) sections.push(current);
+
+            // 不再顯示頂部標題，直接從內容開始
+
+            sections.forEach((sec) => {
+                const sectionEl = document.createElement('div');
+                sectionEl.className = 'section';
+
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                const iconEl = document.createElement('span');
+                iconEl.className = 'icon' + (sec.icon === '💡' ? ' icon-bulb' : sec.icon === '✨' ? ' icon-sparkles' : '');
+                iconEl.textContent = sec.icon;
+                const titleEl = document.createElement('span');
+                titleEl.textContent = sec.title;
+                header.appendChild(iconEl);
+                header.appendChild(titleEl);
+                sectionEl.appendChild(header);
+
+                const hr = document.createElement('hr');
+                hr.className = 'divider';
+                sectionEl.appendChild(hr);
+
+                let ulEl = null;
+                let subUl = null;
+                let isInReminders = false;
+                let reminderItemCount = 0;
+                
+                sec.content.forEach((text, index) => {
+                    if (text.startsWith('•')) {
+                        if (!ulEl) {
+                            ulEl = document.createElement('ul');
+                            sectionEl.appendChild(ulEl);
+                        }
+                        const li = document.createElement('li');
+                        li.textContent = text.replace(/^•\s*/, '');
+                        ulEl.appendChild(li);
+                        subUl = null;
+                        
+                        // 如果在小提醒區塊中，計算項目數量
+                        if (isInReminders) {
+                            reminderItemCount++;
+                        }
+                    } else if (text.startsWith('○')) {
+                        if (!ulEl) {
+                            ulEl = document.createElement('ul');
+                            sectionEl.appendChild(ulEl);
+                        }
+                        if (!subUl) {
+                            subUl = document.createElement('ul');
+                            ulEl.appendChild(subUl);
+                        }
+                        const li2 = document.createElement('li');
+                        li2.textContent = text.replace(/^○\s*/, '');
+                        subUl.appendChild(li2);
+                    } else {
+                        // 檢查是否結束小提醒區塊
+                        if (isInReminders && ulEl && reminderItemCount >= 4) {
+                            // 在小提醒的四個要點後加入分隔線
+                            const separator = document.createElement('hr');
+                            separator.className = 'divider';
+                            separator.style.margin = '20px 0';
+                            sectionEl.appendChild(separator);
+                            isInReminders = false;
+                            reminderItemCount = 0;
+                        }
+                        
+                        ulEl = null;
+                        subUl = null;
+                        const p = document.createElement('p');
+                        p.textContent = text;
+                        
+                        // 根據內容添加相應的樣式類別
+                        if (text.startsWith('特質關鍵字：')) {
+                            p.className = 'trait-keywords';
+                        } else if (text.startsWith('你的優勢：')) {
+                            p.className = 'strengths-title';
+                        } else if (text.startsWith('小提醒：')) {
+                            p.className = 'reminders-title';
+                            isInReminders = true;
+                            reminderItemCount = 0;
+                        } else if (text.startsWith('在你的性格中的展現：') || text.startsWith('生活提醒：')) {
+                            p.className = 'bold-subtitle';
+                            p.style.fontWeight = 'bold';
+                            p.style.fontSize = '16px';
+                            p.style.margin = '20px 0 10px 0';
+                            p.style.color = '#333';
+                        } else if (text.startsWith('深度思考：')) {
+                            p.className = 'deep-thinking';
+                            p.style.fontWeight = 'bold';
+                            p.style.fontSize = '16px';
+                            p.style.margin = '20px 0 10px 0';
+                            p.style.color = '#333';
+                        }
+                        
+                        sectionEl.appendChild(p);
+                    }
+                });
+
+                report.appendChild(sectionEl);
+            });
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // 載入完整的報告內容
+        async function loadFullReportContent(primaryColor, mbtiType) {
+            try {
+                const colorMap = {
+                    'red': 'Red',
+                    'yellow': 'Yellow', 
+                    'green': 'Green',
+                    'blue': 'Blue'
+                };
+                const colorName = colorMap[primaryColor];
+                const filePath = `Full-report/${colorName}/${colorName}-${mbtiType}.txt`;
+
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    // 如果找不到完整報告，顯示錯誤訊息
+                    console.error(`找不到 ${colorName}-${mbtiType}.txt 報告文件`);
+                    alert('發生錯誤');
+                    return null;
+                }
+                
+                return await response.text();
+            } catch (error) {
+                console.error('載入報告內容時發生錯誤:', error);
+                alert('發生錯誤');
+                return null;
+            }
+        }
+        
+        // 生成基本報告（當找不到完整報告文件時）
+        function generateBasicReport(primaryColor, mbtiType) {
+            const colorInfo = getColorInfo(primaryColor);
+            const mbtiDescription = getMbtiDescription(mbtiType);
+            
+            return `🧭 你的 MBTI 人格解析 — ${mbtiType}
+${mbtiDescription}，具有獨特的人格特質和行為模式。
+
+特質關鍵字：${getBasicTraitKeywords(mbtiType)}
+
+你的優勢：
+● 具有獨特的個人魅力
+● 能夠發揮個人潛能
+● 在不同情境下展現適應力
+
+小提醒：
+● 注意平衡個人需求與他人期望
+● 保持自我認同的穩定性
+● 適時尋求支持與建議
+
+🌼 你的專屬顏色 — ${colorInfo.text}
+${colorInfo.description}
+
+這個顏色的象徵：${getColorSymbols(primaryColor)}
+
+在你的性格中的展現：
+● 展現出該顏色的核心特質
+● 在決策中體現色彩性格
+● 與他人互動時呈現獨特風格
+
+深度思考：這個顏色代表了你內在的核心價值觀，影響著你的思考模式和行為方式。
+
+生活提醒：
+● 善用你的色彩特質
+● 保持內心的平衡
+● 與不同性格的人建立良好關係
+
+🌈 MBTI × 色彩學的專屬結合
+● ${mbtiType} 與 ${primaryColor} 的結合創造了獨特的人格組合
+● 這種組合讓你在特定領域具有優勢
+● 理解這種結合有助於個人成長
+
+💡 給你的生活小建議
+1. 深入了解自己的 MBTI 特質
+2. 發揮色彩性格的優勢
+3. 在工作和生活中應用這些洞察
+4. 持續學習和成長
+
+✨ 專屬一句話
+「你是獨一無二的 ${mbtiType}，擁有 ${primaryColor} 的獨特魅力。」`;
+        }
+        
+        // 獲取基本特質關鍵字
+        function getBasicTraitKeywords(mbtiType) {
+            const keywords = {
+                'ENFJ': '領導、同理、激勵、理想',
+                'ENFP': '熱情、創意、靈活、樂觀',
+                'ENTJ': '決斷、領導、策略、效率',
+                'ENTP': '創新、辯論、靈活、好奇',
+                'ESFJ': '關懷、合作、負責、傳統',
+                'ESFP': '活潑、友善、實用、享受',
+                'ESTJ': '組織、責任、傳統、效率',
+                'ESTP': '行動、實用、靈活、冒險',
+                'INFJ': '理想、洞察、創造、獨立',
+                'INFP': '理想、忠誠、適應、好奇',
+                'INTJ': '獨立、決斷、自信、好奇',
+                'INTP': '創新、好奇、靈活、邏輯',
+                'ISFJ': '保護、負責、忠誠、體貼',
+                'ISFP': '靈活、迷人、敏感、好奇',
+                'ISTJ': '實事求是、負責、冷靜、堅定',
+                'ISTP': '靈活、迷人、好奇、實用'
+            };
+            return keywords[mbtiType] || '獨特、適應、成長';
+        }
+        
+        // 獲取顏色象徵
+        function getColorSymbols(primaryColor) {
+            const symbols = {
+                'red': '熱情・行動・領導・勇氣・力量・決心',
+                'yellow': '樂觀・創意・自由・活力・快樂・創新',
+                'green': '平衡・成長・和諧・穩定・自然・希望',
+                'blue': '冷靜・智慧・信任・深度・忠誠・和平'
+            };
+            return symbols[primaryColor] || '獨特・個性・魅力';
+        }
+
+        // 生成 PDF 報告
+        async function generatePDF(reportContent, topColors, mbtiType) {
+            try {
+                // 取得 colorReport
+                const colorReport = document.getElementById('color-report');
+                if (!colorReport) {
+                    alert('找不到報告內容，請重新載入頁面後再試。');
+                    return;
+                }
+                // 區塊標題與內容輔助函數
+                function getSectionHtml(idx) {
+                    const icons = ['🧭','🌼','🌈','💡','✨'];
+                    const titles = [
+                        '你的 MBTI 人格解析',
+                        '你的專屬顏色',
+                        'MBTI × 色彩學的專屬結合',
+                        '給你的生活小建議',
+                        '專屬一句話'
+                    ];
+                    const block = colorReport.querySelector(`.pdf-green-section-block[data-section="${idx}"]`);
+                    if (!block) {
+                        // fallback: 若找不到分區，直接用 colorReport 全部內容
+                        if (idx === 0) return `<div class=\"pdf-green-section-title\"><span class=\"icon-circle\">🧭</span><span class=\"section-text\">你的 MBTI 人格解析</span></div><div class=\"pdf-green-section-body\">${colorReport.innerHTML}</div>`;
+                        return '';
+                    }
+                    return `<div class=\"pdf-green-section-title\"><span class=\"icon-circle\">${icons[idx]}</span><span class=\"section-text\">${titles[idx]}</span></div><div class=\"pdf-green-section-body\">${block.innerHTML}</div>`;
+                }
+
+                // 創建一個隱藏的 div 來渲染報告內容
+                const reportDiv = document.createElement('div');
+                reportDiv.style.position = 'absolute';
+                reportDiv.style.left = '-9999px';
+                reportDiv.style.top = '0';
+                reportDiv.style.width = '794px'; // A4 寬度 (210mm)
+                reportDiv.style.minHeight = '1123px'; // A4 高度 (297mm)
+                reportDiv.style.padding = '0';
+                reportDiv.style.backgroundColor = '#ffffff';
+                reportDiv.style.fontFamily = 'Microsoft JhengHei, PingFang TC, Arial, sans-serif';
+                reportDiv.style.lineHeight = '1.6';
+                reportDiv.style.color = '#333333';
+                reportDiv.style.fontSize = '14px';
+                
+                // 設定顏色主題（根據主要顏色）
+                const primaryColor = topColors && topColors.length > 0 ? topColors[0].color : 'green';
+                const colorThemes = {
+                    'green': {
+                        primary: '#4CAF50',
+                        secondary: '#8BC34A',
+                        light: '#E8F5E8',
+                        dark: '#2E7D32',
+                        gradient: 'linear-gradient(135deg, #4CAF50 0%, #8BC34A 50%, #C8E6C9 100%))'
+                    },
+                    'red': {
+                        primary: '#F44336',
+                        secondary: '#FF5722',
+                        light: '#FFEBEE',
+                        dark: '#C62828',
+                        gradient: 'linear-gradient(135deg, #F44336 0%, #FF5722 50%, #FFCDD2 100%)'
+                    },
+                    'yellow': {
+                        primary: '#FFC107',
+                        secondary: '#FFD54F',
+                        light: '#FFFDE7',
+                        dark: '#F57F17',
+                        gradient: 'linear-gradient(135deg, #FFC107 0%, #FFD54F 50%, #FFF9C4 100%)'
+                    },
+                    'blue': {
+                        primary: '#2196F3',
+                        secondary: '#42A5F5',
+                        light: '#E3F2FD',
+                        dark: '#1565C0',
+                        gradient: 'linear-gradient(135deg, #2196F3 0%, #42A5F5 50%, #BBDEFB 100%)'
+                    }
+                };
+
+                const theme = colorThemes[primaryColor] || colorThemes['green'];
+                
+                // 新增CSS樣式
+                const style = document.createElement('style');
+                style.textContent = `
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+                    * { box-sizing: border-box; }
+                    .pdf-green-container {
+                        background: #F8FBF7;
+                        font-family: 'Microsoft JhengHei', 'PingFang TC', Arial, sans-serif;
+                        color: #2c3e50;
+                        font-size: 16px;
+                        padding: 0;
+                        min-height: 100vh;
+                    }
+                    .pdf-green-header {
+                        padding: 48px 0 24px 0;
+                        text-align: center;
+                        margin-bottom: 0;
+                    }
+                    .pdf-green-title {
+                        color: #388E3C;
+                        font-size: 48px;
+                        font-weight: 900;
+                        letter-spacing: 2px;
+                        margin: 0;
+                        text-shadow: 1px 2px 8px #E8F5E9;
+                    }
+                    .pdf-green-title-divider {
+                        width: 120px;
+                        height: 6px;
+                        background: #4CAF50;
+                        border-radius: 3px;
+                        margin: 24px auto 0 auto;
+                    }
+                    .pdf-green-content {
+                        padding: 0 32px 32px 32px;
+                    }
+                    .pdf-green-page {
+                        page-break-after: always;
+                        padding: 0 0 0 0;
+                    }
+                    .pdf-green-page.page-break {
+                        page-break-before: always;
+                    }
+                    .pdf-green-section {
+                        background: #fff;
+                        border-radius: 18px;
+                        box-shadow: 0 2px 16px #A5D6A733;
+                        padding: 36px 36px 24px 36px;
+                        margin: 48px 0 48px 0;
+                    }
+                    .pdf-green-section-title {
+                        display: flex;
+                        align-items: center;
+                        font-size: 28px;
+                        font-weight: 900;
+                        color: #4CAF50;
+                        margin-bottom: 12px;
+                        margin-top: 0;
+                        position: relative;
+                        letter-spacing: 1px;
+                        text-align: left;
+                    }
+                    .pdf-green-section-title .icon-circle {
+                        width: 52px; height: 52px;
+                        background: #E8F5E9;
+                        border-radius: 50%;
+                        display: flex; align-items: center; justify-content: center;
+                        margin-right: 18px;
+                        font-size: 28px;
+                        box-shadow: 0 2px 8px #A5D6A755;
+                    }
+                    .pdf-green-section-title .section-text {
+                        font-weight: 900;
+                        color: #4CAF50;
+                        font-size: 28px;
+                        letter-spacing: 1px;
+                    }
+                    .pdf-green-section-title::after {
+                        content: '';
+                        display: block;
+                        position: absolute;
+                        left: 0; right: 0; bottom: -10px;
+                        height: 4px;
+                        background: #4CAF50;
+                        border-radius: 2px;
+                        width: 100%;
+                    }
+                    .pdf-green-section p, .pdf-green-section ul, .pdf-green-section ol {
+                        font-size: 17px;
+                        line-height: 2.0;
+                        margin: 18px 0;
+                    }
+                    .pdf-green-section ul {
+                        padding-left: 24px;
+                    }
+                    .pdf-green-section ul li {
+                        position: relative;
+                        margin-bottom: 10px;
+                        padding-left: 18px;
+                    }
+                    .pdf-green-section ul li::before {
+                        content: '';
+                        display: inline-block;
+                        width: 8px; height: 8px;
+                        background: #4CAF50;
+                        border-radius: 50%;
+                        position: absolute;
+                        left: 0; top: 0.7em;
+                    }
+                    .pdf-green-section strong, .pdf-green-section b {
+                        color: #1B5E20;
+                        font-weight: 900;
+                        background: linear-gradient(90deg, #E8F5E9 60%, transparent 100%);
+                        padding: 0 2px;
+                        border-radius: 2px;
+                    }
+                    .pdf-green-section-block {
+                        margin-bottom: 48px; /* 確保每個區塊之間有足夠間距 */
+                    }
+                    .pdf-green-section-body {
+                        padding-top: 12px; /* 確保內容與標題之間有間距 */
+                    }
+                `;
+                reportDiv.appendChild(style);
+                
+                // 設定顏色名稱映射
+                const colorNameMap = {
+                    'red': '紅色',
+                    'yellow': '黃色', 
+                    'green': '綠色',
+                    'blue': '藍色'
+                };
+                
+                const primaryColorName = colorNameMap[primaryColor] || primaryColor;
+                
+                // 生成多色組合顯示名稱
+                let colorCombinationName = '';
+                if (topColors && topColors.length > 0) {
+                    if (topColors.length === 1) {
+                        colorCombinationName = topColors[0].zh;
+                    } else {
+                        colorCombinationName = topColors.map(c => c.zh).join(' × ');
+                    }
+                }
+                
+                // 獲取 MBTI 類型描述
+                function getMbtiDescription(mbtiType) {
+                    const descriptions = {
+                        'ENFJ': '主人公 (The Protagonist)',
+                        'ENFP': '競選者 (The Campaigner)',
+                        'ENTJ': '指揮官 (The Commander)',
+                        'ENTP': '辯論家 (The Debater)',
+                        'ESFJ': '執政官 (The Consul)',
+                        'ESFP': '娛樂家 (The Entertainer)',
+                        'ESTJ': '總經理 (The Executive)',
+                        'ESTP': '企業家 (The Entrepreneur)',
+                        'INFJ': '提倡者 (The Advocate)',
+                        'INFP': '調停者 (The Mediator)',
+                        'INTJ': '建築師 (The Architect)',
+                        'INTP': '思想家 (The Thinker)',
+                        'ISFJ': '守衛者 (The Protector)',
+                        'ISFP': '探險家 (The Adventurer)',
+                        'ISTJ': '物流師 (The Logistician)',
+                        'ISTP': '鑒賞家 (The Virtuoso)'
+                    };
+                    return descriptions[mbtiType] || '未知類型';
+                }
+                
+                // 提取項目符號列表的輔助函數
+                function extractBulletPoints(lines, startIndex) {
+                    const points = [];
+                    for (let j = startIndex; j < lines.length; j++) {
+                            const nextLine = lines[j].trim();
+                            if (nextLine.startsWith('●')) {
+                            points.push(nextLine.replace(/^●\s*/, ''));
+                        } else if (nextLine.startsWith('🌼') || nextLine.startsWith('🌈') || nextLine.startsWith('💡') || nextLine.startsWith('✨') || nextLine.startsWith('深度思考：') || nextLine.startsWith('生活提醒：')) {
+                                break;
+                            }
+                        }
+                    return points;
+                }
+                
+                // 生成 HTML 內容 - 綠色主題美化PDF設計
+                let htmlContent = `
+                    <div class="pdf-green-container">
+                        <div class="pdf-green-page">
+                            <div class="pdf-green-header">
+                                <h1 class="pdf-green-title">✨ 專屬人格色彩報告 ✨</h1>
+                                <div class="pdf-green-title-divider"></div>
+                            </div>
+                            <div class="pdf-green-section">
+                                ${getSectionHtml(0)}
+                            </div>
+                        </div>
+                        <div class="pdf-green-page page-break">
+                            <div class="pdf-green-section">
+                                ${getSectionHtml(1)}
+                            </div>
+                        </div>
+                        <div class="pdf-green-page page-break">
+                            <div class="pdf-green-section">
+                                ${getSectionHtml(2)}
+                            </div>
+                            <div class="pdf-green-section">
+                                ${getSectionHtml(3)}
+                            </div>
+                            <div class="pdf-green-section">
+                                ${getSectionHtml(4)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                reportDiv.innerHTML = htmlContent;
+                document.body.appendChild(reportDiv);
+                
+                // 使用 html2canvas 轉換為圖片
+                const canvas = await html2canvas(reportDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 794,
+                    height: reportDiv.scrollHeight
+                });
+                
+                // 創建 PDF
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                const imgWidth = 210; // A4 寬度
+                const pageHeight = 297; // A4 高度
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // 計算需要多少頁
+                const totalPages = Math.ceil(imgHeight / pageHeight);
+                
+                for (let i = 0; i < totalPages; i++) {
+                    if (i > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    const yOffset = -i * pageHeight;
+                    pdf.addImage(imgData, 'PNG', 0, yOffset, imgWidth, imgHeight);
+                }
+                
+                // 移除臨時 div
+                document.body.removeChild(reportDiv);
+                
+                // 下載 PDF - 使用新的檔案名稱格式
+                const fileName = getFileName(mbtiType, topColors).replace('.txt', '完整報告.pdf');
+                pdf.save(fileName);
+                
+            } catch (error) {
+                console.error('生成 PDF 時發生錯誤:', error);
+                alert('生成 PDF 時發生錯誤，請稍後再試。');
+            }
+        }
+        
+        // 更新性格特徵描述
+        function updateTraitDescription(mbtiType, topColors) {
+            // 核心特質
+            let coreDescription = '';
+            if (mbtiType.startsWith('E')) {
+                coreDescription = '外向且充滿活力，容易與人交流。';
+            } else {
+                coreDescription = '內向但充滿深度，喜歡獨處思考。';
+            }
+            
+            // 思維方式
+            let thinkingStyle = '';
+            if (mbtiType.includes('N')) {
+                thinkingStyle = '直覺型思維，看重可能性，善於發現模式和意義。';
+            } else {
+                thinkingStyle = '實際型思維，注重現實事實，關注細節和經驗。';
+            }
+            
+            // 情感特點
+            let emotionalStyle = '';
+            if (mbtiType.includes('F')) {
+                emotionalStyle = '基於情感和價值觀做決定，注重人際和諧。';
+            } else {
+                emotionalStyle = '邏輯和客觀分析為首，注重公平和真相。';
+            }
+            
+            // 行動模式
+            let actionStyle = '';
+            if (mbtiType.includes('J')) {
+                actionStyle = '喜歡計劃和組織，追求確定性和決斷。';
+            } else {
+                actionStyle = '保持彈性和適應性，享受探索和各種可能性。';
+            }
+            
+            // 根據顏色組合調整描述
+            if (topColors && topColors.length > 0) {
+                const colorNames = topColors.map(c => c.color);
+                
+                if (colorNames.includes('red')) {
+                    coreDescription += ' 行動力強，具有領導特質。';
+                    actionStyle += ' 做事果斷，勇於突破。';
+                }
+                if (colorNames.includes('yellow')) {
+                    coreDescription += ' 樂觀開朗，擅長創新思考。';
+                    emotionalStyle += ' 樂於分享情感，帶動氣氛。';
+                }
+                if (colorNames.includes('green')) {
+                    thinkingStyle += ' 系統化思考，尋求穩定。';
+                    actionStyle += ' 行事有條理，重視流程和品質。';
+                }
+                if (colorNames.includes('blue')) {
+                    thinkingStyle += ' 深度思考，尋求意義和價值。';
+                    emotionalStyle += ' 情感敏銳，富有同理心。';
+                }
+            }
+            
+            const traitCore = document.getElementById('trait-core');
+            const traitThinking = document.getElementById('trait-thinking');
+            const traitEmotion = document.getElementById('trait-emotion');
+            const traitAction = document.getElementById('trait-action');
+            
+            if (traitCore) traitCore.textContent = coreDescription;
+            if (traitThinking) traitThinking.textContent = thinkingStyle;
+            if (traitEmotion) traitEmotion.textContent = emotionalStyle;
+            if (traitAction) traitAction.textContent = actionStyle;
+        }
+        
+        // 更新分數顯示
+        function updateScores(scores) {
+            if (!scores) return;
+            
+            // 更新MBTI分數
+            if (scores.E !== undefined) {
+                const element = document.getElementById('score-e');
+                if (element) element.textContent = scores.E;
+            }
+            if (scores.I !== undefined) {
+                const element = document.getElementById('score-i');
+                if (element) element.textContent = scores.I;
+            }
+            if (scores.N !== undefined) {
+                const element = document.getElementById('score-n');
+                if (element) element.textContent = scores.N;
+            }
+            if (scores.S !== undefined) {
+                const element = document.getElementById('score-s');
+                if (element) element.textContent = scores.S;
+            }
+            if (scores.F !== undefined) {
+                const element = document.getElementById('score-f');
+                if (element) element.textContent = scores.F;
+            }
+            if (scores.T !== undefined) {
+                const element = document.getElementById('score-t');
+                if (element) element.textContent = scores.T;
+            }
+            if (scores.J !== undefined) {
+                const element = document.getElementById('score-j');
+                if (element) element.textContent = scores.J;
+            }
+            if (scores.P !== undefined) {
+                const element = document.getElementById('score-p');
+                if (element) element.textContent = scores.P;
+            }
+            
+            // 更新顏色分數
+            if (scores.red !== undefined) {
+                const element = document.getElementById('score-red');
+                if (element) element.textContent = scores.red;
+            }
+            if (scores.yellow !== undefined) {
+                const element = document.getElementById('score-yellow');
+                if (element) element.textContent = scores.yellow;
+            }
+            if (scores.green !== undefined) {
+                const element = document.getElementById('score-green');
+                if (element) element.textContent = scores.green;
+            }
+            if (scores.blue !== undefined) {
+                const element = document.getElementById('score-blue');
+                if (element) element.textContent = scores.blue;
+            }
+        }
+        
+        function checkPageAccess() {
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userName = sessionStorage.getItem('userName');
+            const isGuest = sessionStorage.getItem('isGuest') === 'true';
+            const guestId = sessionStorage.getItem('guestId');
+            if (!(adminEmail && adminName) && !(userEmail && userName) && !(isGuest && guestId)) {
+                window.location.href = '../main/login-user.html';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', async function() {
+            checkPageAccess();
+            if (typeof updateNavbar === 'function') updateNavbar();
+
+            // 取得 URL 參數
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const guestId = urlParams.get('guestId');
+            const testType = urlParams.get('testType');
+            const timestamp = urlParams.get('timestamp');
+            let resultData = null;
+
+            if (testType && timestamp && (email || guestId)) {
+                // 用複合條件查詢
+                resultData = await fetchTestDetailByInfo(email, testType, timestamp, guestId);
+                if (!resultData) {
+                    alert('查無此測驗紀錄，請返回歷史紀錄頁面。');
+                    window.location.href = 'history.html';
+                    return;
+                }
+                // 修正：這裡同步設全域變數與 localStorage，讓後續功能都抓到正確資料
+                window.currentTestResult = resultData;
+                localStorage.setItem('currentTestResult', JSON.stringify(resultData));
+            } else {
+                // 沒有複合條件，顯示最近一次
+                resultData = JSON.parse(localStorage.getItem('currentTestResult'));
+                if (!resultData) {
+                    alert('無法顯示測驗結果，請重新進行測驗。');
+                    window.location.href = 'test.html';
+                    return;
+                }
+            }
+
+            // 顯示MBTI類型
+            if (resultData.mbtiResult || resultData.mbtiType) {
+                const mbtiElement = document.getElementById('mbti-result');
+                if (mbtiElement) {
+                    mbtiElement.textContent = resultData.mbtiResult || resultData.mbtiType;
+                }
+            }
+            // 主要顏色信息現在在動態報告中顯示，不需要在這裡設定
+            // 顯示次要顏色
+            if (resultData.colorResult && resultData.colorResult.secondary) {
+                const secondaryColorInfo = getColorInfo(resultData.colorResult.secondary);
+                const secondaryElement = document.getElementById('secondary-color-result');
+                if (secondaryElement) {
+                    secondaryElement.textContent = secondaryColorInfo.text;
+                }
+                setColorBadge('secondary-color-badge', resultData.colorResult.secondary);
+            } else if (resultData.secondaryColor) {
+                const secondaryColorInfo = getColorInfo(resultData.secondaryColor);
+                const secondaryElement = document.getElementById('secondary-color-result');
+                if (secondaryElement) {
+                    secondaryElement.textContent = secondaryColorInfo.text;
+                }
+                setColorBadge('secondary-color-badge', resultData.secondaryColor);
+            }
+            // 隱藏上方資訊：頁面標題、MBTI 類型與描述，只保留「主要色彩」這一行
+            const pageTitle = document.querySelector('.result-title');
+            if (pageTitle) pageTitle.style.display = 'none';
+            const mbtiTypeEl = document.querySelector('.mbti-type');
+            if (mbtiTypeEl) mbtiTypeEl.style.display = 'none';
+            const descEl = document.querySelector('.description');
+            if (descEl) descEl.style.display = 'none';
+            // 更新特質描述
+            if ((resultData.mbtiResult || resultData.mbtiType) && resultData.scores) {
+                const topColors = getTopColors(resultData.scores);
+                updateTraitDescription(resultData.mbtiResult || resultData.mbtiType, topColors);
+            }
+            // 更新分數
+            if (resultData.scores) {
+                updateScores(resultData.scores);
+            }
+
+            // 載入顏色專屬報告（支援1-4種顏色組合）
+            const mbti = resultData.mbtiResult || resultData.mbtiType;
+            const scores = resultData.scores;
+            const colorResult = resultData.colorResult;
+            
+            if ((scores || colorResult) && mbti) {
+                await loadColorReport(scores, mbti, colorResult);
+                // 隱藏預設的分析/分數區塊，保留動態插入的報告
+                const sections = document.querySelectorAll('.result-section');
+                sections.forEach(sec => {
+                    if (sec.id !== 'color-report') {
+                        sec.style.display = 'none';
+                    }
+                });
+            }
+        });
+        
+        // 將測驗結果保存到歷史記錄
+        async function saveResultToHistory(resultData) {
+            if (!resultData) return;
+            
+            const mbtiType = document.getElementById('mbti-result').textContent;
+            const colorType = document.getElementById('color-result').textContent;
+            
+            // 創建歷史記錄對象
+            const historyItem = {
+                id: generateTestId(),
+                date: new Date().toISOString(),
+                testType: '我在色彩學中的MBTI',
+                result: `${mbtiType} - ${colorType}`,
+                details: '查看詳情'
+            };
+            
+            // 保存到資料庫和本地
+            // await saveTestRecord(historyItem);  // 這個函數已經在測驗完成時被調用過，這裡不需要再次調用
+        }
+        
+        // 產生唯一ID
+        function generateTestId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+    </script>
+</body>
+</html> 

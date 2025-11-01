@@ -1,0 +1,141 @@
+body {
+    font-family: Arial, sans-serif;
+    background-image: url('https://images.unsplash.com/photo-1517841905240-472988babdf9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxMTc3M3wwfDF8c2VhcmNofDF8fGJsdXUlMjB3aGl0ZXxlbnwwfHx8fDE2MjY0MjY0Mjg'); /* 使用 Unsplash 的圖片 */
+    background-size: cover;
+    background-position: center;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    animation: backgroundAnimation 30s ease infinite; /* 背景動畫 */
+}
+
+.container {
+    max-width: 800px; /* 增加容器的最大寬度 */
+    margin: auto; /* 使容器水平居中 */
+    background: rgba(255, 255, 255, 0.9); /* 更加透明的白色背景 */
+    padding: 40px; /* 增加內邊距 */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative; /* 使容器相對定位 */
+    text-align: left; /* 左對齊內容 */
+    display: flex; /* 使用 Flexbox */
+    flex-direction: column; /* 垂直排列 */
+    justify-content: center; /* 垂直居中 */
+    height: 100vh; /* 設置容器高度為視口高度 */
+}
+
+.cute-icon {
+    display: block; /* 使圖片為塊級元素 */
+    margin: 20px auto; /* 使圖片水平居中 */
+    width: 150px; /* 設置圖片寬度 */
+    height: auto; /* 自動調整高度 */
+}
+
+.question-container {
+    display: flex; /* 使用 Flexbox */
+    flex-direction: column; /* 垂直排列 */
+    align-items: flex-start; /* 左對齊 */
+    justify-content: center; /* 垂直居中 */
+    background: rgba(255, 255, 255, 0.8); /* 問題容器的背景 */
+    border: 2px solid #4CAF50; /* 邊框顏色 */
+    border-radius: 10px; /* 圓角邊框 */
+    padding: 20px; /* 內邊距 */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* 陰影效果 */
+    margin: 20px auto; /* 使容器水平居中 */
+    width: 90%; /* 設置容器寬度 */
+    max-width: 800px; /* 設置最大寬度 */
+    opacity: 0; /* 初始透明度 */
+    transform: translateY(-20px); /* 初始位置 */
+    animation: fadeInUp 0.5s forwards; /* 添加進入動畫 */
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1; /* 最終透明度 */
+        transform: translateY(0); /* 最終位置 */
+    }
+}
+
+h1 {
+    text-align: center; /* 標題置中 */
+    font-size: 2.5em; /* 增加標題字體大小 */
+    margin-bottom: 30px; /* 增加標題下方的間距 */
+}
+
+p {
+    font-size: 2em; /* 增加問題字體大小 */
+    line-height: 1.5; /* 增加行高 */
+    margin: 10px 0; /* 增加上下邊距 */
+}
+
+label {
+    font-size: 1.5em; /* 增加選項字體大小 */
+    line-height: 1.5; /* 增加行高 */
+    margin: 10px 0; /* 增加上下邊距 */
+    width: 100%; /* 使選項寬度為100% */
+    text-align: left; /* 左對齊 */
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 15px; /* 增加按鈕內邊距 */
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.5em; /* 增加按鈕字體大小 */
+    margin-top: 20px; /* 增加上邊距 */
+    transition: background-color 0.3s; /* 添加過渡效果 */
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:disabled {
+    background-color: #ccc; /* 禁用狀態的顏色 */
+    cursor: not-allowed; /* 禁用狀態的游標 */
+}
+
+@keyframes backgroundAnimation {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+/* 共用的導覽列樣式 */
+.nav-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.page-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* 共用的 footer 樣式 */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}

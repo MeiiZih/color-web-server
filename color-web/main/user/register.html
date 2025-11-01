@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建立帳號 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/register.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+        </div>
+        <div class="nav-links">
+            <a href="main/common.html" class="nav-link">首頁</a>
+            <a href="../../test/test.html" class="nav-link">測驗系統</a>
+            <a href="about.html" class="nav-link">關於我們</a>
+            <a href="login-user.html" class="nav-link">登入</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="register-container">
+            <h2 class="register-title">建立帳號</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="regName">
+                        <img src="../../assets/icons/name.png" alt="姓名" class="input-icon">
+                        姓名：
+                    </label>
+                    <input type="text" id="regName" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <img src="../../assets/icons/gender.png" alt="性別" class="input-icon">
+                        性別：
+                    </label>
+                    <div class="gender-options">
+                        <input type="radio" id="male" name="gender" value="男" required>
+                        <label for="male">男</label>
+                        <input type="radio" id="female" name="gender" value="女" required>
+                        <label for="female">女</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <img src="../../assets/icons/calendar.png" alt="出生日期" class="input-icon">
+                        出生日期：
+                    </label>
+                    <div class="date-inputs">
+                        <select id="year" required></select>
+                        <select id="month" required></select>
+                        <select id="day" required></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">
+                        <img src="../../assets/icons/email.png" alt="電子郵件" class="input-icon">
+                        電子郵件：
+                    </label>
+                    <input type="email" id="regEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPhone">
+                        <img src="../../assets/icons/phone.png" alt="行動電話" class="input-icon">
+                        行動電話：
+                    </label>
+                    <input type="text" id="regPhone" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">
+                        <img src="../../assets/icons/password.png" alt="密碼" class="input-icon">
+                        密碼：
+                    </label>
+                    <input type="password" id="regPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">
+                        <img src="../../assets/icons/check.png" alt="確認密碼" class="input-icon">
+                        確認密碼：
+                    </label>
+                    <input type="password" id="regConfirmPassword" required>
+                </div>
+                <button type="submit" class="register-button">建立帳號</button>
+                <div class="login-link">
+                    <a href="../login-user.html">已有帳號？立即登入</a>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        // 根據當前訪問的URL判斷使用哪個API地址
+        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'http://20.57.128.97:8080';
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('regName').value;
+            const gender = document.querySelector('input[name="gender"]:checked')?.value;
+            const year = document.getElementById('year').value;
+            const month = document.getElementById('month').value;
+            const day = document.getElementById('day').value;
+            const email = document.getElementById('regEmail').value;
+            const phone = document.getElementById('regPhone').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            // 清除之前的錯誤訊息
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+
+            // 驗證所有欄位都已填寫
+            if (!name || !gender || !year || !month || !day || !email || !phone || !password || !confirmPassword) {
+                showError('請填寫所有欄位');
+                return;
+            }
+
+            // 驗證密碼
+            if (password !== confirmPassword) {
+                showError('密碼與確認密碼不符');
+                return;
+            }
+
+            // 驗證密碼長度
+            if (password.length < 6) {
+                showError('密碼長度至少需要6個字元');
+                return;
+            }
+
+            const birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+            try {
+                // 先檢查電子郵件是否已經被註冊
+                const checkEmailResponse = await fetch(`${apiBaseUrl}/api/user/check-email?email=${encodeURIComponent(email)}`);
+                const checkEmailData = await checkEmailResponse.json();
+                
+                if (!checkEmailResponse.ok || checkEmailData.exists) {
+                    showError('此電子郵件已經被註冊，請使用其他電子郵件');
+                    return;
+                }
+                
+                // 電子郵件未被註冊，繼續註冊流程
+                const response = await fetch(`${apiBaseUrl}/api/user/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name,
+                        gender,
+                        birthDate,
+                        email,
+                        phone,
+                        password,
+                        occupation: '未設定' // 預設職業，稍後可在個人資料頁面中修改
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('註冊成功！正在同步訪客測驗記錄...');
+                    
+                    // 同步訪客測驗記錄到新註冊的帳號
+                    await syncGuestRecords(email);
+                    
+                    setTimeout(() => {
+                        window.location.href = '../login-user.html';
+                    }, 3000);
+                } else {
+                    showError(data.message || '註冊失敗');
+                }
+            } catch (error) {
+                console.error('註冊錯誤:', error);
+                showError('註冊失敗，請稍後重試');
+            }
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+        }
+
+        // 同步訪客測驗記錄到新註冊的帳號
+        async function syncGuestRecords(newEmail) {
+            const guestId = sessionStorage.getItem('guestId');
+            const isGuest = sessionStorage.getItem('isGuest') === 'true';
+            
+            if (!isGuest || !guestId) {
+                console.log('沒有訪客記錄需要同步');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/api/user/sync-guest-records`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        guestId: guestId,
+                        newEmail: newEmail
+                    }),
+                });
+                
+                if (response.ok) {
+                    console.log('訪客測驗記錄同步成功');
+                    // 清除訪客狀態
+                    sessionStorage.removeItem('isGuest');
+                    sessionStorage.removeItem('guestId');
+                } else {
+                    console.log('訪客測驗記錄同步失敗，但不影響註冊');
+                }
+            } catch (error) {
+                console.error('同步訪客記錄時發生錯誤:', error);
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+
+        // 初始化出生日期下拉選單
+        function initializeDateSelects() {
+            const yearSelect = document.getElementById('year');
+            const monthSelect = document.getElementById('month');
+            const daySelect = document.getElementById('day');
+            const currentYear = new Date().getFullYear();
+            
+            // 填充年份選單（1900 到今年）
+            yearSelect.innerHTML = '<option value="">選擇年份</option>';
+            for (let year = currentYear; year >= 1900; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+            
+            // 填充月份選單
+            monthSelect.innerHTML = '<option value="">選擇月份</option>';
+            for (let month = 1; month <= 12; month++) {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = month + '月';
+                monthSelect.appendChild(option);
+            }
+            
+            // 填充日期選單
+            updateDayOptions();
+            
+            // 當月份或年份改變時，更新日期選項
+            monthSelect.addEventListener('change', updateDayOptions);
+            yearSelect.addEventListener('change', updateDayOptions);
+        }
+        
+        // 更新日期選項
+        function updateDayOptions() {
+            const yearSelect = document.getElementById('year');
+            const monthSelect = document.getElementById('month');
+            const daySelect = document.getElementById('day');
+            
+            const year = yearSelect.value;
+            const month = monthSelect.value;
+            
+            // 清空現有選項
+            daySelect.innerHTML = '<option value="">選擇日期</option>';
+            
+            // 如果沒有選擇年月，顯示1-31
+            if (!year || !month) {
+                for (let day = 1; day <= 31; day++) {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day;
+                    daySelect.appendChild(option);
+                }
+            } else {
+                // 計算該月的天數
+                const daysInMonth = new Date(year, month, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day;
+                    daySelect.appendChild(option);
+                }
+            }
+        }
+        
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', initializeDateSelects);
+    </script>
+</body>
+</html> 

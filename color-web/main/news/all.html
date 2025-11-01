@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一般資訊 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/all.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <a href="/index.html" class="site-title">ColorMind Lab</a>
+        </div>
+        <div class="nav-links">
+            <a href="main/common.html" class="nav-link">首頁</a>
+            <a href="../../test/test.html" class="nav-link user-only">測驗系統</a>
+            <a href="../../main/about.html" class="nav-link user-only">關於我們</a>
+            <a href="#" class="nav-link admin-only" style="display: none;">首頁管理</a>
+            <a href="../../main/admin/admin.html" class="nav-link admin-only" style="display: none;">後臺管理</a>
+            <a href="../../main/login-user.html" class="nav-link" id="loginButton">登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName">用戶</a>
+                <div class="dropdown-content">
+                    <a href="../../main/admin/profile-admin.html" class="admin-only" style="display: none;">個人資料</a>
+                    <a href="../../main/user/profile.html" class="user-only">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <h1 class="page-title">一般資訊</h1>
+        <div class="info-grid" id="all-list"></div>
+    </main>
+
+    <div class="back-section">
+        <a href="../common.html" class="back-button">返回</a>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script src="../../js/all-list.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('all.html 頁面加載');
+            
+            // 檢查登入狀態
+            const adminToken = sessionStorage.getItem('adminToken');
+            const userToken = sessionStorage.getItem('token');
+            
+            if (adminToken) {
+                try {
+                    // 驗證管理員token
+                    const tokenPayload = JSON.parse(atob(adminToken.split('.')[1]));
+                    if (tokenPayload.role === 'admin') {
+                        // 如果是管理員，顯示管理員選項，隱藏用戶選項
+                        document.querySelectorAll('.user-only').forEach(el => el.style.display = 'none');
+                        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
+                        checkAdminLoginStatus();
+                        return; // 如果是管理員就直接返回，不需要檢查用戶登入
+                    }
+                } catch (error) {
+                    console.error('管理員Token驗證錯誤:', error);
+                }
+            }
+            
+            if (userToken) {
+                // 如果有用戶token，顯示用戶選項
+                document.querySelectorAll('.user-only').forEach(el => el.style.display = 'inline-block');
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                checkLoginStatus();
+            } else {
+                // 未登入狀態
+                document.querySelectorAll('.user-only').forEach(el => el.style.display = 'inline-block');
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                // 確保登入按鈕可見
+                const loginButton = document.getElementById('loginButton');
+                if (loginButton) {
+                    loginButton.style.display = 'inline-block';
+                }
+                // 確保用戶下拉選單隱藏
+                const userDropdown = document.getElementById('userDropdown');
+                if (userDropdown) {
+                    userDropdown.style.display = 'none';
+                }
+            }
+            
+            // 每30秒刷新一次導航欄，確保登入狀態最新
+            setInterval(function() {
+                if (adminToken) {
+                    checkAdminLoginStatus();
+                } else if (userToken) {
+                    checkLoginStatus();
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html> 

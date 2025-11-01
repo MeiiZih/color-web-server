@@ -1,0 +1,569 @@
+/* 共用樣式 */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+/* 用戶下拉選單樣式 */
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.user-icon {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+    color: #333;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #f9f9f9;
+    min-width: 120px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #333;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+    font-size: 14px;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+    color: #FF677D;
+}
+
+.user-dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* 響應式下拉選單 */
+@media (max-width: 768px) {
+    .dropdown-content {
+        width: 100%;
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 60px;
+    }
+    
+    .dropdown-content a {
+        text-align: center;
+        padding: 15px;
+    }
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.main-content {
+    padding: 80px 20px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 管理員下拉菜單樣式 */
+.admin-dropdown {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.admin-dropdown .user-icon {
+    font-size: 1.2rem;
+    padding: 8px 12px;
+    color: #fff;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.admin-dropdown .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #fff;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: 4px;
+}
+
+.admin-dropdown .dropdown-item {
+    color: #333;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+}
+
+.admin-dropdown .admin-name {
+    color: #4a6fa5;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-dropdown .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.admin-dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+/* 輪播圖區域 */
+.carousel-section {
+    padding: 30px 20px 60px;
+    background-color: #fff;
+}
+
+.section-header {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px 20px;
+    text-align: center;
+}
+
+.section-header h2 {
+    font-size: 28px;
+    color: #333;
+    margin: 10px;
+    position: relative;
+    display: inline-block;
+}
+
+.section-header h2:after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: #FF677D;
+    border-radius: 2px;
+}
+
+/* 原有橫向滾動輪播保留給其他用途 */
+.carousel-container {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+    overflow: hidden;
+}
+
+.carousel {
+    display: flex;
+    gap: 40px;
+    will-change: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-slide {
+    min-width: calc(25% - 30px);
+    flex: 0 0 calc(25% - 30px);
+    height: 500px;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.carousel-slide:hover img {
+    transform: scale(1.05);
+}
+
+/* 單張圖輪播樣式 */
+.single-carousel-container {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 60px;
+    overflow: hidden;
+}
+
+.single-carousel {
+    position: relative;
+    height: 400px;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.news-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.news-slide.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.news-slide.prev {
+    transform: translateX(-100%);
+}
+
+.news-slide a {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+}
+
+.news-slide img {
+    width: 100%;
+    height: 70%;
+    object-fit: cover;
+    transition: transform 0.8s ease;
+}
+
+.news-slide.active img {
+    transform: scale(1.05);
+}
+
+.news-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    color: white;
+    padding: 40px 30px 30px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease 0.3s;
+}
+
+.news-slide.active .news-content {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.news-content h3 {
+    font-size: 24px;
+    margin: 0 0 10px 0;
+    font-weight: bold;
+}
+
+.news-content p {
+    font-size: 16px;
+    margin: 0;
+    line-height: 1.4;
+    opacity: 0.9;
+}
+
+.carousel-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    font-size: 18px;
+    color: #666;
+}
+
+.carousel-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #ccc;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.indicator.active {
+    background-color: #FF677D;
+}
+
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: #333;
+    z-index: 100;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.carousel-arrow:hover {
+    background-color: #FF677D;
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-arrow.prev {
+    left: 10px;
+}
+
+.carousel-arrow.next {
+    right: 10px;
+}
+
+/* info-section 橫向滑動樣式 */
+.info-section {
+    background-color: #E6F3FF;
+    padding: 50px 0 60px;
+    min-height: 100vh;
+    text-align: center;
+    position: relative;
+}
+
+.info-carousel-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: hidden;
+    position: relative;
+    padding: 0 60px 100px 60px; /* 下方預留空間給按鈕 */
+}
+
+.info-carousel {
+    display: flex;
+    gap: 40px;
+    will-change: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+}
+.info-carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.info-card {
+    min-width: 300px;
+    max-width: 300px;
+    flex: 0 0 300px;
+    min-height: 400px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    background-clip: padding-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.info-card img.info-image {
+    width: 100%;
+    height: 200px;
+    object-fit: contain;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.info-card .info-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #222;
+}
+
+.info-card .info-desc {
+    font-size: 16px;
+    color: #444;
+    line-height: 1.7;
+}
+
+/* Carousel Arrow 按鈕樣式 */
+.info-carousel-arrows {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 20px;
+    z-index: 10;
+    pointer-events: none;
+}
+.info-carousel-arrow {
+    width: 42px;
+    height: 42px;
+    background: #f5b6bf;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s;
+    pointer-events: auto;
+}
+.info-carousel-arrow:hover {
+    background: #FF677D;
+}
+
+@media (max-width: 900px) {
+    .info-card {
+        min-width: 260px;
+        max-width: 260px;
+        flex: 0 0 260px;
+        min-height: 400px;
+    }
+    .info-carousel-container {
+        padding: 0 10px 90px 10px;
+    }
+}
+
+.section-title {
+    text-align: center;
+    font-size: 28px;
+    color: #333;
+    margin: 0 auto 30px;
+    position: relative;
+    display: inline-block;
+}
+
+
+
+.view-more-button {
+    display: block;
+    width: fit-content;
+    margin: 40px auto;
+    padding: 15px 40px;
+    background-color: #FF677D;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.view-more-button:hover {
+    background-color: #ff4d67;
+}
+
+/* 導覽列樣式（由all.css移動） */
+.nav-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 192, 203, 0.95);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.nav-link {
+    color: #333;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: #ff4d67;
+    color: white;
+}
+
+.nav-link.active {
+    background-color: #FF677D;
+    color: white;
+}
+
+.site-title {
+    color: #333;
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none !important;
+}
+
+.site-logo-title {
+    display: flex;
+    align-items: center;
+}
+
+.site-logo {
+    height: 40px;
+    max-height: 100%;
+    margin-right: 10px;
+} 

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測驗端登入 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/login-user.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+        </div>
+        <div class="nav-links">
+            <a href="main/common.html" class="nav-link">首頁</a>
+            <a href="../test/test.html" class="nav-link">測驗系統</a>
+            <a href="about.html" class="nav-link">關於我們</a>
+            <a href="login-user.html" class="nav-link active" id="loginButton">登入</a>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <a href="#" onclick="history.back()" class="back-button" aria-label="返回">
+          <img src="../assets/icons/back-button.png" alt="返回" class="back-img">
+          <span class="back-text">返回</span>
+        </a>
+        <div class="login-container">
+            <h2 class="login-title">登入</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="email" placeholder="帳號" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="密碼" required>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+                <button type="submit" class="login-button">登入</button>
+                <div class="action-row">
+                  <a href="#" class="guest-link" id="guestLoginBtn">訪客登入</a>
+                  <a href="user/register.html" class="register-link">建立帳號</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 訪客登入注意事項彈窗 -->
+    <div class="guest-notice-modal" id="guestNoticeModal" style="display: none;">
+        <div class="guest-notice-container">
+            <h3>訪客登入注意事項</h3>
+            <div class="notice-content">
+                <p>請注意，訪客登入不會儲存本次的測驗紀錄及結果，請妥善保存此次的測驗紀錄，若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。</p>
+                <div class="checkbox-container">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="guestNoticeCheckbox">
+                        <span class="checkmark"></span>
+                        我已瞭解上述事項
+                    </label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeGuestNoticeModal()">取消</button>
+                <button class="confirm-btn" id="confirmGuestBtn" onclick="proceedGuestLogin()" disabled>確認訪客登入</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script src="../js/navbar.js"></script>
+
+    <script>
+        // 根據當前訪問的URL判斷使用哪個API地址
+        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'http://20.57.128.97:8080';
+
+        let redirectTarget = null;
+        document.addEventListener('DOMContentLoaded', function() {
+            // 取得 redirectTarget 參數
+            const urlParams = new URLSearchParams(window.location.search);
+            redirectTarget = urlParams.get('redirectTarget');
+            const guestBtn = document.getElementById('guestLoginBtn');
+            if (guestBtn) {
+                guestBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showGuestNoticeModal();
+                });
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            try {
+                // 先查 users 資料表
+                let userOk = false;
+                let userData = {};
+                try {
+                    const userResponse = await fetch(`${apiBaseUrl}/api/user/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    userData = await userResponse.json();
+                    if (userResponse.ok && userData.user) {
+                        sessionStorage.setItem('userEmail', email);
+                        sessionStorage.setItem('userName', userData.user.name || userData.user.nickname || '用戶');
+                        sessionStorage.setItem('user', JSON.stringify(userData.user));
+                        successMessage.textContent = '登入成功！正在跳轉...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            if (redirectTarget) {
+                                window.location.href = redirectTarget;
+                            } else {
+                                window.location.href = 'common.html';
+                            }
+                        }, 1000);
+                        return;
+                    }
+                } catch (err) {
+                    // user login 失敗不影響 admin login
+                }
+                // 查詢 admin 資料表
+                let adminData = {};
+                try {
+                    const adminResponse = await fetch(`${apiBaseUrl}/api/admin/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    adminData = await adminResponse.json();
+                    if (adminResponse.ok && adminData.user) {
+                        sessionStorage.setItem('adminEmail', email);
+                        sessionStorage.setItem('adminName', adminData.user.name || '管理員');
+                        sessionStorage.setItem('admin', JSON.stringify(adminData.user));
+                        sessionStorage.setItem('adminToken', adminData.token);
+                        localStorage.setItem('adminEmail', email);
+                        localStorage.setItem('adminName', adminData.user.name || '管理員');
+                        localStorage.setItem('admin', JSON.stringify(adminData.user));
+                        localStorage.setItem('adminToken', adminData.token);
+                        successMessage.textContent = '管理端登入成功！正在跳轉...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = 'admin/admin.html';
+                        }, 1000);
+                        return;
+                    }
+                } catch (err) {
+                    // admin login 失敗
+                }
+                // 兩者都失敗
+                errorMessage.textContent = (userData && userData.message) || (adminData && adminData.message) || '登入失敗，請檢查帳號密碼';
+                errorMessage.style.display = 'block';
+            } catch (error) {
+                console.error('登入錯誤:', error);
+                errorMessage.textContent = '登入失敗，請檢查網路連接';
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        // 顯示訪客注意事項彈窗
+        function showGuestNoticeModal() {
+            document.getElementById('guestNoticeModal').style.display = 'flex';
+            // 重置 checkbox 狀態
+            document.getElementById('guestNoticeCheckbox').checked = false;
+            document.getElementById('confirmGuestBtn').disabled = true;
+            
+            // 監聽 checkbox 變化
+            document.getElementById('guestNoticeCheckbox').addEventListener('change', function() {
+                document.getElementById('confirmGuestBtn').disabled = !this.checked;
+            });
+        }
+
+        // 關閉訪客注意事項彈窗
+        function closeGuestNoticeModal() {
+            document.getElementById('guestNoticeModal').style.display = 'none';
+        }
+
+        // 確認訪客登入
+        function proceedGuestLogin() {
+            const checkbox = document.getElementById('guestNoticeCheckbox');
+            if (!checkbox.checked) {
+                alert('請先勾選「我已瞭解上述事項」');
+                return;
+            }
+            
+            // 生成 guestID0001 格式的 ID
+            const randomNum = Math.floor(Math.random() * 1000);
+            const guestId = `guestID${String(randomNum).padStart(4, '0')}`;
+            
+            sessionStorage.setItem('isGuest', 'true');
+            sessionStorage.setItem('guestId', guestId);
+            sessionStorage.setItem('userEmail', guestId); // 使用 guestID 作為 email
+            sessionStorage.setItem('userName', '訪客');
+            sessionStorage.setItem('guestNoticeAccepted', 'true'); // 標記已接受注意事項
+            
+            closeGuestNoticeModal();
+            window.location.href = '../test/select.html';
+        }
+    </script>
+
+    <!-- 修改登出邏輯，所有登出都回到 common.html -->
+    <script>
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'common.html';
+        }
+    </script>
+</body>
+</html> 

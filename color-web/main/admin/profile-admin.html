@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理員個人資料 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/profile-admin.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+
+    <div class="main-content">
+        <div class="profile-container">
+            <h2 class="profile-title">基本個人資料</h2>
+            <form id="adminProfileForm" class="profile-form" onsubmit="event.preventDefault(); saveAdminProfile();">
+                <div class="form-row">
+                    <div class="form-icon">👤</div>
+                    <div class="form-label">姓名：</div>
+                    <div class="form-value">
+                        <input type="text" id="adminName" class="form-input" required disabled>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-icon">🏢</div>
+                    <div class="form-label">處室：</div>
+                    <div class="form-value">
+                        <input type="text" id="adminDepartment" class="form-input" required disabled>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-icon">📱</div>
+                    <div class="form-label">電話：</div>
+                    <div class="form-value">
+                        <input type="tel" id="adminPhone" class="form-input" disabled>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-icon">✉️</div>
+                    <div class="form-label">電子郵件：</div>
+                    <div class="form-value">
+                        <input type="email" id="adminEmail" class="form-input" readonly>
+                    </div>
+                </div>
+
+                <div class="form-row password-fields" style="display: none;">
+                    <div class="form-icon">🔒</div>
+                    <div class="form-label">新密碼：</div>
+                    <div class="form-value">
+                        <input type="password" id="adminPassword" class="form-input" minlength="6" placeholder="請輸入新密碼" disabled>
+                    </div>
+                </div>
+
+                <div class="form-row password-fields" style="display: none;">
+                    <div class="form-icon">🔒</div>
+                    <div class="form-label">確認密碼：</div>
+                    <div class="form-value">
+                        <input type="password" id="confirmPassword" class="form-input" placeholder="再次輸入新密碼" disabled>
+                    </div>
+                </div>
+
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+
+                <div class="button-container">
+                    <button type="button" class="cancel-button" onclick="window.location.href='admin.html'">返回</button>
+                    <button type="button" id="editButton" class="edit-button" onclick="toggleEditMode()">編輯</button>
+                    <button type="submit" id="saveButton" class="save-button" style="display: none;">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        let isEditMode = false;
+        // API base url 自動判斷
+        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'http://20.57.128.97:8080';
+
+        // 自動同步 localStorage 與 sessionStorage
+        (function syncAdminSession() {
+            if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
+                sessionStorage.setItem('adminToken', localStorage.getItem('adminToken'));
+                sessionStorage.setItem('adminEmail', localStorage.getItem('adminEmail'));
+                sessionStorage.setItem('adminName', localStorage.getItem('adminName'));
+                sessionStorage.setItem('admin', localStorage.getItem('admin'));
+            }
+        })();
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const inputs = document.querySelectorAll('.form-input:not([readonly])');
+            const editButton = document.getElementById('editButton');
+            const saveButton = document.getElementById('saveButton');
+            const passwordFields = document.querySelectorAll('.password-fields');
+            inputs.forEach(input => {
+                input.disabled = !isEditMode;
+            });
+            if (isEditMode) {
+                editButton.style.display = 'none';
+                saveButton.style.display = 'block';
+                passwordFields.forEach(field => field.style.display = 'flex');
+            } else {
+                editButton.style.display = 'block';
+                saveButton.style.display = 'none';
+                passwordFields.forEach(field => field.style.display = 'none');
+                // 重置表單
+                loadAdminData();
+            }
+        }
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+        function showSuccess(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+        // 從後端 API 取得管理員資料
+        function loadAdminData() {
+            const adminToken = sessionStorage.getItem('adminToken');
+            if (!adminToken) return;
+            fetch(`${apiBaseUrl}/api/admin/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('無法取得管理員資料');
+                return response.json();
+            })
+            .then(data => {
+                const admin = data.user;
+                document.getElementById('adminName').value = admin.name || '';
+                document.getElementById('adminDepartment').value = admin.department || '';
+                document.getElementById('adminPhone').value = admin.phone || '';
+                document.getElementById('adminEmail').value = admin.email || '';
+                // 同步 sessionStorage
+                sessionStorage.setItem('admin', JSON.stringify(admin));
+                sessionStorage.setItem('adminName', admin.name);
+                sessionStorage.setItem('adminEmail', admin.email);
+            })
+            .catch(error => {
+                showError(error.message || '載入管理員資料失敗');
+            });
+        }
+        // 儲存管理員個人資料
+        function saveAdminProfile() {
+            const name = document.getElementById('adminName').value.trim();
+            const department = document.getElementById('adminDepartment').value.trim();
+            const phone = document.getElementById('adminPhone').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            hideMessages();
+            if (!name) return showError('請輸入姓名');
+            if (!department) return showError('請輸入處室');
+            if (password) {
+                if (password.length < 6) return showError('密碼長度必須至少6個字符');
+                if (password !== confirmPassword) return showError('兩次輸入的密碼不一致');
+            }
+            const adminToken = sessionStorage.getItem('adminToken');
+            if (!adminToken) return showError('找不到管理員資料，請重新登入');
+            const updateData = { name, department, phone };
+            if (password) updateData.password = password;
+            const saveButton = document.getElementById('saveButton');
+            saveButton.disabled = true;
+            saveButton.textContent = '儲存中...';
+            fetch(`${apiBaseUrl}/api/admin/update-profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => { throw new Error(data.message || '更新個人資料失敗'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showSuccess('個人資料已成功更新');
+                // 更新 sessionStorage
+                const admin = data.user;
+                sessionStorage.setItem('admin', JSON.stringify(admin));
+                sessionStorage.setItem('adminName', admin.name);
+                sessionStorage.setItem('adminEmail', admin.email);
+                toggleEditMode();
+                if (typeof updateNavbar === 'function') updateNavbar();
+            })
+            .catch(error => {
+                showError(error.message || '更新個人資料時發生錯誤');
+            })
+            .finally(() => {
+                saveButton.disabled = false;
+                saveButton.textContent = '儲存';
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // 僅允許管理員進入
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const adminToken = sessionStorage.getItem('adminToken');
+            if (!adminEmail || !adminName || !adminToken) {
+                window.location.href = '../../main/login-user.html';
+                return;
+            }
+            if (typeof updateNavbar === 'function') updateNavbar();
+            loadAdminData();
+        });
+    </script>
+</body>
+</html> 

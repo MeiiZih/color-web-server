@@ -1,0 +1,355 @@
+.main-content {
+    margin: 120px auto 2rem;
+}
+
+.back-button {
+    position: absolute;
+    left: 80px;
+    top: 100px;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    padding: 0;
+    text-decoration: none;
+}
+
+.back-img {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    display: block;
+    transition: filter 0.2s;
+}
+
+.back-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: 2px;
+    transition: color 0.2s;
+    line-height: 1;
+    user-select: none;
+}
+
+.back-button:hover .back-img {
+    filter: brightness(0) saturate(100%) invert(36%) sepia(97%) saturate(749%) hue-rotate(312deg) brightness(102%) contrast(101%);
+}
+
+.back-button:hover .back-text {
+    color: #FF677D;
+}
+
+.tab-btns {
+    display: flex;
+    justify-content: flex-end;
+    margin: 20px 0 30px;
+    gap: 15px;
+    width: 1080px;
+    margin: 0 auto;
+    margin-bottom: 18px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #e9ecef;
+}
+
+.tab-btn.active {
+    background: #FF677D;
+    color: white;
+    border-color: #FF677D;
+}
+
+.tab-btn:hover:not(.active) {
+    background: #e9ecef;
+    color: #333;
+}
+
+.profile-card {
+    width: 1010px;
+    min-height: 280px;
+    background: #e9e8e8;
+    border-radius: 18px;
+    padding: 40px 40px 60px 40px;
+    box-shadow: 0 2px 8px #0001;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.edit-btn {
+    position: absolute;
+    right: 32px;
+    bottom: 24px;
+    background: #fff6f0;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #222;
+    box-shadow: 1px 2px 0 #e0d2d2;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.edit-btn:hover {
+    background: #FFB6C1;
+    color: #fff;
+}
+
+
+
+@media (max-width: 1100px) {
+    .profile-card { width: 100%; }
+}
+
+footer {
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    width:100%;
+    background:#fff;
+    z-index:10;
+}
+
+.upf-info-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px 60px;
+    width: 90%;
+    max-width: 900px;
+    margin: 24px 0 32px 0;
+}
+
+.upf-info-row {
+    display: flex;
+    align-items: center;
+    font-size: 1.08rem;
+    color: #222;
+    gap: 10px;
+    min-width: 0;
+}
+
+.upf-info-icon {
+    width: 26px;
+    height: 26px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.upf-info-label {
+    font-weight: 600;
+    min-width: 90px;
+    color: #333;
+    margin-right: 6px;
+}
+
+.upf-info-value {
+    color: #444;
+    font-size: 1.08rem;
+    word-break: break-all;
+}
+
+.upf-edit-btn {
+    position: absolute;
+    right: 32px;
+    bottom: 24px;
+    background: #fff6f0;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #222;
+    box-shadow: 1px 2px 0 #e0d2d2;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.upf-edit-btn:hover {
+    background: #FFB6C1;
+    color: #fff;
+}
+
+/* 編輯模式下的輸入框樣式 */
+.upf-edit-input, .upf-edit-select {
+    background: transparent;
+    border: none;
+    color: #444;
+    font-size: 1.08rem;
+    font-family: inherit;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    min-width: 100px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.upf-edit-input:focus, .upf-edit-select:focus {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.upf-edit-input:hover, .upf-edit-select:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+/* 儲存和取消按鈕樣式 */
+.upf-save-btn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(40px);
+    bottom: 24px;
+    background: #4CAF50;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    box-shadow: 1px 2px 0 #45a049;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    margin-left: 10px;
+}
+
+.upf-save-btn:hover {
+    background: #45a049;
+}
+
+.upf-cancel-btn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-140px);
+    bottom: 24px;
+    background: #f44336;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: white;
+    box-shadow: 1px 2px 0 #d32f2f;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    margin-right: 10px;
+}
+
+.upf-cancel-btn:hover {
+    background: #d32f2f;
+}
+
+@media (max-width: 900px) {
+    .upf-info-list {
+        grid-template-columns: 1fr;
+        max-width: 98vw;
+    }
+    
+    .edit-form {
+        padding: 20px;
+    }
+    
+    .upf-edit-input, .upf-edit-select {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .upf-save-btn, .upf-cancel-btn {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        margin-top: 20px;
+        margin-right: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        max-width: 100vw;
+        width: 100vw;
+        padding: 10px 0 80px 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+    .back-button {
+        left: 20px;
+        top: 80px;
+        position: static;
+        margin-bottom: 18px;
+        display: flex;
+        align-items: center;
+    }
+    .tab-btns {
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+        margin: 20px 0 15px;
+        align-items: stretch;
+    }
+    .tab-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .profile-card {
+        width: 100%;
+        min-width: 0;
+        padding: 20px 10px 40px 10px;
+        box-sizing: border-box;
+    }
+    .upf-info-list {
+        grid-template-columns: 1fr;
+        gap: 18px 0;
+        max-width: 98vw;
+        width: 100%;
+        margin: 12px 0 18px 0;
+    }
+    .upf-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        font-size: 1rem;
+    }
+    .upf-info-label {
+        min-width: auto;
+        margin-right: 0;
+    }
+    .upf-info-icon {
+        margin-right: 0;
+        margin-bottom: 4px;
+    }
+    .upf-edit-btn, .upf-save-btn, .upf-cancel-btn {
+        position: relative;
+        right: auto;
+        left: auto;
+        bottom: auto;
+        margin-top: 20px;
+        margin-right: 10px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+}

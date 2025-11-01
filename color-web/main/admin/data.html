@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數據管理 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/data.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+    
+    <main class="main-content">
+        <a href="admin.html" class="back-button" aria-label="返回">
+            <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
+            <span class="back-text">後臺管理</span>
+        </a>
+        
+        <div class="tab-btns">
+            <button class="tab-btn active" id="testTab">測驗結果</button>
+            <button class="tab-btn" id="feedbackTab">用戶反饋</button>
+        </div>
+    
+    <div class="data-management-container">
+        <div class="content-wrapper">
+        <div class="sidebar">
+            <div class="filter-section">
+                <h4>測驗名稱</h4>
+                <select class="filter-dropdown" id="testTypeFilter">
+                    <option value="">請選擇測驗名稱</option>
+                </select>
+            </div>
+            
+            <div class="filter-section">
+                <h4>MBTI類型</h4>
+                <select class="filter-dropdown" id="mbtiFilter">
+                    <option value="">請選擇人格</option>
+                    <option value="ALL">ALL</option>
+                    <option value="INTJ">INTJ - 建築師</option>
+                    <option value="INTP">INTP - 邏輯學家</option>
+                    <option value="ENTJ">ENTJ - 指揮官</option>
+                    <option value="ENTP">ENTP - 辯論家</option>
+                    <option value="INFJ">INFJ - 提倡者</option>
+                    <option value="INFP">INFP - 調停者</option>
+                    <option value="ENFJ">ENFJ - 主人公</option>
+                    <option value="ENFP">ENFP - 競選者</option>
+                    <option value="ISTJ">ISTJ - 物流師</option>
+                    <option value="ISFJ">ISFJ - 守衛者</option>
+                    <option value="ESTJ">ESTJ - 總經理</option>
+                    <option value="ESFJ">ESFJ - 執政官</option>
+                    <option value="ISTP">ISTP - 鑑賞家</option>
+                    <option value="ISFP">ISFP - 探險家</option>
+                    <option value="ESTP">ESTP - 企業家</option>
+                    <option value="ESFP">ESFP - 表演者</option>
+                </select>
+            </div>
+            
+            <button class="download-btn" onclick="downloadData()">下載</button>
+        </div>
+        
+        <div class="main-content-area">
+            <div class="total-count">
+                總填寫人數: <span class="count-label" id="totalCount">-</span>
+            </div>
+            
+            <div id="listView">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>序號</th>
+                                <th>帳號</th>
+                                <th>MBTI人格</th>
+                                <th>測驗時間</th>
+                                <th>測驗結果</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <tr><td colspan="5" class="loading">請選擇測驗名稱來查看數據</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </main>
+    
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+    
+    <script>
+        let currentFilters = {
+            testType: '',
+            mbtiCategory: ''
+        };
+        let currentPage = 1;
+        let totalPages = 1;
+        let selectedMbtiCategory = '';
+        let isLoading = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 檢查管理員權限
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const adminToken = sessionStorage.getItem('adminToken');
+            
+            if (!adminEmail || !adminName || !adminToken) {
+                window.location.href = '../../main/login-user.html';
+                return;
+            }
+            
+            if (typeof updateNavbar === 'function') updateNavbar();
+            
+            // 載入測驗類型
+            loadTestTypes();
+            setupEventListeners();
+            
+            // 初始化空狀態
+            initializeEmptyState();
+        });
+        
+        function setupEventListeners() {
+            // 測驗類型篩選
+            document.getElementById('testTypeFilter').addEventListener('change', function() {
+                currentFilters.testType = this.value;
+                currentPage = 1; // 重置頁碼
+                checkAndLoadData();
+            });
+            
+            // MBTI類型篩選
+            document.getElementById('mbtiFilter').addEventListener('change', function() {
+                currentFilters.mbtiCategory = this.value;
+                currentPage = 1; // 重置頁碼
+                checkAndLoadData();
+            });
+        }
+        
+        // 檢查是否兩個篩選條件都選擇了，才載入數據
+        function checkAndLoadData() {
+            if (currentFilters.testType && currentFilters.mbtiCategory) {
+                loadTestRecords();
+            } else {
+                initializeEmptyState();
+            }
+        }
+        
+        // 初始化空狀態
+        function initializeEmptyState() {
+            document.getElementById('totalCount').textContent = '-';
+            const tbody = document.getElementById('dataTableBody');
+            let message = '請選擇測驗名稱和MBTI類型來查看數據';
+            
+            if (currentFilters.testType && !currentFilters.mbtiCategory) {
+                message = '請選擇MBTI類型來查看數據';
+            } else if (!currentFilters.testType && currentFilters.mbtiCategory) {
+                message = '請選擇測驗名稱來查看數據';
+            } else if (!currentFilters.testType && !currentFilters.mbtiCategory) {
+                message = '請選擇測驗名稱和MBTI類型來查看數據';
+            }
+            
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">${message}</td></tr>`;
+        }
+        
+        
+        async function loadTestTypes() {
+            try {
+                console.log('正在載入測驗類型...');
+                const adminToken = sessionStorage.getItem('adminToken');
+                console.log('Admin Token:', adminToken ? '存在' : '不存在');
+                
+                const response = await fetch('/api/admin/test-types', {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('API 響應狀態:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('收到的測驗類型資料:', data);
+                    const select = document.getElementById('testTypeFilter');
+                    select.innerHTML = '<option value="">請選擇測驗名稱</option>';
+                    if (data.testTypes && data.testTypes.length > 0) {
+                        data.testTypes.forEach(type => {
+                            const option = document.createElement('option');
+                            option.value = type;
+                            option.textContent = type;
+                            select.appendChild(option);
+                        });
+                    }
+                } else {
+                    const errorData = await response.json();
+                    console.error('API 錯誤:', errorData);
+                    alert('載入測驗類型失敗: ' + (errorData.message || '未知錯誤'));
+                }
+            } catch (error) {
+                console.error('載入測驗類型失敗:', error);
+                alert('載入測驗類型失敗: ' + error.message);
+            }
+        }
+        
+        
+        async function loadTestRecords() {
+            if (isLoading) return; // 防止重複載入
+            
+            isLoading = true;
+            try {
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    limit: 10
+                });
+                
+                // 使用選擇的測驗類型
+                if (currentFilters.testType) {
+                    params.append('testType', currentFilters.testType);
+                }
+                if (currentFilters.mbtiCategory && currentFilters.mbtiCategory !== 'ALL') {
+                    params.append('mbtiResult', currentFilters.mbtiCategory);
+                }
+                
+                console.log('正在載入測驗紀錄，篩選條件:', currentFilters, '頁碼:', currentPage);
+                
+                const response = await fetch(`/api/admin/test-records?${params}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('測驗紀錄 API 響應狀態:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('收到的測驗紀錄資料:', data);
+                    console.log('總筆數 (total):', data.total);
+                    console.log('總頁數 (totalPages):', data.totalPages);
+                    console.log('當前頁 (page):', data.page);
+                    console.log('返回的記錄數:', data.records.length);
+                    updateDataTable(data);
+                } else {
+                    const errorData = await response.json();
+                    console.error('測驗紀錄 API 錯誤:', errorData);
+                    alert('載入測驗紀錄失敗: ' + (errorData.message || '未知錯誤'));
+                }
+            } catch (error) {
+                console.error('載入測驗紀錄失敗:', error);
+                alert('載入測驗紀錄失敗: ' + error.message);
+            } finally {
+                isLoading = false;
+            }
+        }
+        
+        function updateDataTable(data) {
+            const tbody = document.getElementById('dataTableBody');
+            totalPages = data.totalPages;
+            
+            console.log('更新表格數據，總筆數:', data.total, '總頁數:', data.totalPages, '當前頁:', data.page, '當前記錄數:', data.records.length);
+            
+            if (data.records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">無資料</td></tr>';
+                document.getElementById('totalCount').textContent = '0';
+                return;
+            }
+            
+            // 更新總填寫人數 - 使用後端傳來的 total 值
+            document.getElementById('totalCount').textContent = data.total || data.records.length;
+            
+            tbody.innerHTML = data.records.map((record, index) => `
+                <tr>
+                    <td>${((currentPage - 1) * 10 + index + 1).toString().padStart(2, '0')}</td>
+                    <td>${record.email}</td>
+                    <td>${record.mbtiResult}</td>
+                    <td>${formatTimestamp(record.timestamp)}</td>
+                    <td>${formatColorResult(record.colorResult)}</td>
+                </tr>
+            `).join('');
+            
+            updatePagination();
+        }
+        
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function formatColorResult(colorResult) {
+            if (!colorResult) return '-';
+            
+            console.log('原始顏色結果:', colorResult);
+            
+            let primaryColors = [];
+            
+            // 先檢查是否為字串（後端已轉換過）
+            if (typeof colorResult === 'string') {
+                if (colorResult.includes('/')) {
+                    primaryColors = colorResult.split('/').map(color => color.trim());
+                } else {
+                    primaryColors = [colorResult];
+                }
+            }
+            // 如果是陣列
+            else if (Array.isArray(colorResult)) {
+                primaryColors = colorResult;
+            }
+            // 如果是物件，嘗試獲取 primary 欄位
+            else if (typeof colorResult === 'object' && colorResult !== null) {
+                if (colorResult.primary) {
+                    if (Array.isArray(colorResult.primary)) {
+                        primaryColors = colorResult.primary;
+                    } else {
+                        const primaryString = colorResult.primary;
+                        if (primaryString.includes('/')) {
+                            primaryColors = primaryString.split('/').map(color => color.trim());
+                        } else {
+                            primaryColors = [primaryString];
+                        }
+                    }
+                }
+            }
+            
+            console.log('處理後的顏色陣列:', primaryColors);
+            
+            if (primaryColors.length === 0) return '-';
+            
+            // 格式化顏色顯示
+            return primaryColors.map(color => {
+                const colorClass = getColorClass(color);
+                const colorName = getColorName(color);
+                return `<span class="color-indicator color-${colorClass}"></span>${colorName}`;
+            }).join(' ');
+        }
+        
+        function getColorName(color) {
+            if (typeof color === 'string') {
+                if (color.includes('紅') || color.includes('red')) return '紅';
+                if (color.includes('黃') || color.includes('yellow')) return '黃';
+                if (color.includes('綠') || color.includes('green')) return '綠';
+                if (color.includes('藍') || color.includes('blue')) return '藍';
+            }
+            return color || '未知';
+        }
+        
+        function getColorClass(color) {
+            // 處理不同的顏色格式
+            if (typeof color === 'string') {
+                if (color.includes('紅') || color.includes('red')) return 'red';
+                if (color.includes('黃') || color.includes('yellow')) return 'yellow';
+                if (color.includes('綠') || color.includes('green')) return 'green';
+                if (color.includes('藍') || color.includes('blue')) return 'blue';
+            }
+            
+            return 'gray';
+        }
+        
+        function updatePagination() {
+            const container = document.getElementById('pagination');
+            container.innerHTML = '';
+            
+            console.log('更新分頁，總頁數:', totalPages, '當前頁:', currentPage);
+            
+            // 如果只有一頁或沒有數據，不顯示分頁
+            if (totalPages <= 1) {
+                return;
+            }
+            
+            // 如果總頁數少於等於 10 頁，直接顯示所有頁碼
+            if (totalPages <= 10) {
+                for (let i = 1; i <= totalPages; i++) {
+                    const button = document.createElement('button');
+                    button.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                    button.textContent = i;
+                    button.onclick = () => {
+                        currentPage = i;
+                        loadTestRecords();
+                    };
+                    container.appendChild(button);
+                }
+                return;
+            }
+            
+            // 如果總頁數大於 10，使用省略號顯示
+            // 計算要顯示的頁碼範圍（顯示當前頁前後各 3 頁）
+            let startPage = Math.max(1, currentPage - 3);
+            let endPage = Math.min(totalPages, currentPage + 3);
+            
+            // 如果接近開始，調整結束頁碼
+            if (startPage <= 3) {
+                endPage = Math.min(7, totalPages);
+            }
+            
+            // 如果接近結束，調整開始頁碼
+            if (endPage >= totalPages - 2) {
+                startPage = Math.max(1, totalPages - 6);
+            }
+            
+            // 添加第一頁和省略號
+            if (startPage > 1) {
+                const firstBtn = document.createElement('button');
+                firstBtn.className = 'page-btn';
+                firstBtn.textContent = '1';
+                firstBtn.onclick = () => {
+                    currentPage = 1;
+                    loadTestRecords();
+                };
+                container.appendChild(firstBtn);
+                
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.style.padding = '0 5px';
+                    container.appendChild(ellipsis);
+                }
+            }
+            
+            // 添加頁碼按鈕
+            for (let i = startPage; i <= endPage; i++) {
+                const button = document.createElement('button');
+                button.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+                button.textContent = i;
+                button.onclick = () => {
+                    currentPage = i;
+                    loadTestRecords();
+                };
+                container.appendChild(button);
+            }
+            
+            // 添加最後一頁和省略號
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.style.padding = '0 5px';
+                    container.appendChild(ellipsis);
+                }
+                
+                const lastBtn = document.createElement('button');
+                lastBtn.className = 'page-btn';
+                lastBtn.textContent = totalPages;
+                lastBtn.onclick = () => {
+                    currentPage = totalPages;
+                    loadTestRecords();
+                };
+                container.appendChild(lastBtn);
+            }
+        }
+        
+        
+        async function downloadData() {
+            // 檢查是否已選擇篩選條件
+            if (!currentFilters.testType || !currentFilters.mbtiCategory) {
+                alert('請先選擇測驗名稱和MBTI類型');
+                return;
+            }
+            
+            try {
+                // 獲取所有符合條件的數據（不分頁）
+                const params = new URLSearchParams({
+                    page: 1,
+                    limit: 1000 // 設定一個較大的數字來獲取所有數據
+                });
+                
+                if (currentFilters.testType) {
+                    params.append('testType', currentFilters.testType);
+                }
+                if (currentFilters.mbtiCategory && currentFilters.mbtiCategory !== 'ALL') {
+                    params.append('mbtiResult', currentFilters.mbtiCategory);
+                }
+                
+                const response = await fetch(`/api/admin/test-records?${params}`, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('無法獲取數據');
+                }
+                
+                const data = await response.json();
+                
+                // 生成 CSV 內容
+                const csvContent = generateCSV(data.records);
+                
+                // 創建並下載檔案
+                downloadCSV(csvContent, `測驗結果_${currentFilters.testType}_${currentFilters.mbtiCategory}.csv`);
+                
+            } catch (error) {
+                console.error('下載失敗:', error);
+                alert('下載失敗: ' + error.message);
+            }
+        }
+        
+        function generateCSV(records) {
+            // CSV 標題行
+            const headers = ['序號', '帳號', 'MBTI人格', '測驗時間', '測驗結果'];
+            
+            // 生成 CSV 內容
+            let csvContent = headers.join(',') + '\n';
+            
+            records.forEach((record, index) => {
+                const row = [
+                    index + 1,
+                    record.email,
+                    record.mbtiResult,
+                    formatTimestamp(record.timestamp),
+                    formatColorResultForCSV(record.colorResult)
+                ];
+                csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+            });
+            
+            return csvContent;
+        }
+        
+        function formatColorResultForCSV(colorResult) {
+            if (!colorResult) return '-';
+            
+            let primaryColors = [];
+            
+            // 先檢查是否為字串（後端已轉換過）
+            if (typeof colorResult === 'string') {
+                if (colorResult.includes('/')) {
+                    primaryColors = colorResult.split('/').map(color => color.trim());
+                } else {
+                    primaryColors = [colorResult];
+                }
+            }
+            // 如果是陣列
+            else if (Array.isArray(colorResult)) {
+                primaryColors = colorResult;
+            }
+            // 如果是物件，嘗試獲取 primary 欄位
+            else if (typeof colorResult === 'object' && colorResult !== null) {
+                if (colorResult.primary) {
+                    if (Array.isArray(colorResult.primary)) {
+                        primaryColors = colorResult.primary;
+                    } else {
+                        const primaryString = colorResult.primary;
+                        if (primaryString.includes('/')) {
+                            primaryColors = primaryString.split('/').map(color => color.trim());
+                        } else {
+                            primaryColors = [primaryString];
+                        }
+                    }
+                }
+            }
+            
+            if (primaryColors.length === 0) return '-';
+            
+            // 格式化顏色顯示（用於 CSV）
+            return primaryColors.map(color => {
+                const colorName = getColorName(color);
+                return colorName;
+            }).join('/');
+        }
+        
+        function downloadCSV(content, filename) {
+            // 創建 Blob 物件
+            const blob = new Blob(['\ufeff' + content], { type: 'text/csv;charset=utf-8;' });
+            
+            // 創建下載連結
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        document.getElementById('testTab').onclick = function() {
+            // 本頁 reload 重設為默認
+            location.href = 'data.html';
+        }
+        document.getElementById('feedbackTab').onclick = function() {
+            location.href = 'feedback.html';
+        }
+    </script>
+</body>
+</html> 

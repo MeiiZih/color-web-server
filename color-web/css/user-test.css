@@ -1,0 +1,549 @@
+/* 用戶測驗頁面樣式 - 完全基於圖片設計 */
+.main-content {
+    max-width: 1200px;
+    margin: 80px auto 40px;
+    padding: 20px;
+    min-height: calc(100vh - 200px);
+    background: #f5f5f5;
+}
+
+.back-button {
+    position: absolute;
+    left: 80px;
+    top: 100px;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    padding: 0;
+    text-decoration: none;
+}
+
+.back-img {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    display: block;
+    transition: filter 0.2s;
+}
+
+.back-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 2px;
+    transition: color 0.2s;
+    line-height: 1;
+    user-select: none;
+}
+
+.back-button:hover .back-img {
+    filter: brightness(0) saturate(100%) invert(36%) sepia(97%) saturate(749%) hue-rotate(312deg) brightness(102%) contrast(101%);
+}
+
+.back-button:hover .back-text {
+    color: #FF677D;
+}
+
+.tab-btns {
+    display: flex;
+    justify-content: flex-end;
+    margin: 20px 0 30px;
+    gap: 15px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #e9ecef;
+}
+
+.tab-btn.active {
+    background: #FF677D;
+    color: white;
+    border-color: #FF677D;
+}
+
+.tab-btn:hover:not(.active) {
+    background: #e9ecef;
+    color: #333;
+}
+
+.test-main {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+    margin-top: 20px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    min-height: 500px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.test-side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.test-select-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.test-select {
+    padding: 12px 16px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+    width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.test-select:focus {
+    outline: none;
+    border-color: #FF677D;
+}
+
+.test-report {
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    min-height: 400px;
+    border: 1px solid #e9ecef;
+}
+
+.test-result-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.test-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.test-title::before {
+    content: "🎨";
+    font-size: 20px;
+}
+
+.test-date {
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.test-result-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 18px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.result-label {
+    font-weight: 600;
+    color: #666;
+    min-width: 120px;
+    font-size: 14px;
+}
+
+.result-value {
+    font-weight: bold;
+    color: #333;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.result-value.blue::before {
+    content: "💙";
+    font-size: 16px;
+}
+
+.result-value.green::before {
+    content: "💚";
+    font-size: 16px;
+}
+
+.result-value.yellow::before {
+    content: "💛";
+    font-size: 16px;
+}
+
+.result-value.red::before {
+    content: "❤️";
+    font-size: 16px;
+}
+
+.result-description {
+    background: #f8f9fa;
+    padding: 18px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    line-height: 1.6;
+    color: #555;
+    font-size: 14px;
+}
+
+.personality-analysis {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.personality-analysis h3 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #FF677D;
+}
+
+.analysis-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 6px;
+    border-left: 3px solid #FF677D;
+}
+
+.analysis-icon {
+    font-size: 16px;
+    color: #FF677D;
+    margin-top: 1px;
+}
+
+.analysis-text {
+    flex: 1;
+    line-height: 1.5;
+    color: #555;
+    font-size: 14px;
+}
+
+/* 測驗詳情樣式 */
+.test-details {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-top: 20px;
+}
+
+.test-details h3 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #FF677D;
+}
+
+.details-content {
+    background: #fff;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #555;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* 測驗答案樣式 */
+.test-answers {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-top: 20px;
+}
+
+.test-answers h3 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #FF677D;
+}
+
+.answers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.answer-item {
+    background: #fff;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.answer-question {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.answer-answer {
+    color: #666;
+    font-size: 14px;
+    padding-left: 20px;
+}
+
+/* 測驗分數樣式 */
+.test-scores {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-top: 20px;
+}
+
+.test-scores h3 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #FF677D;
+}
+
+.scores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.score-item {
+    background: #fff;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.score-item span:first-child {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.score-item span:last-child {
+    color: #FF677D;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* 載入動畫 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.test-result-content {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* 載入狀態樣式 */
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.loading-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    font-size: 16px;
+}
+
+/* 空狀態樣式 */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.empty-title {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.empty-description {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 錯誤狀態樣式 */
+.error-state {
+    text-align: center;
+    padding: 40px;
+    color: red;
+}
+
+.error-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.error-title {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.error-description {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .main-content {
+        margin: 60px auto 20px;
+        padding: 15px;
+    }
+    
+    .back-button {
+        left: 20px;
+        top: 80px;
+    }
+    
+    .test-main {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 20px;
+    }
+    
+    .test-side {
+        order: 2;
+        padding: 15px;
+    }
+    
+    .test-report {
+        order: 1;
+        min-height: 300px;
+        padding: 20px;
+    }
+    
+    .tab-btns {
+        margin: 20px 0 15px;
+        gap: 10px;
+        justify-content: center;
+    }
+    
+    .tab-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    
+    .test-title {
+        font-size: 20px;
+    }
+    
+    .result-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    
+    .result-label {
+        min-width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 10px;
+    }
+    
+    .test-main {
+        padding: 15px;
+    }
+    
+    .test-report {
+        padding: 15px;
+    }
+    
+    .personality-analysis {
+        padding: 15px;
+    }
+    
+    .analysis-item {
+        padding: 10px;
+    }
+}

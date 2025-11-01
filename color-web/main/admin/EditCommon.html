@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 首頁資訊管理</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/EditCommon.css">
+    <script src="../../js/navbar.js"></script>
+    <script src="../../js/edit-common.js" defer></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+    <main class="main-content">
+        <div class="tabs">
+            <div style="display:flex;gap:2rem;">
+                <button class="tab-btn active" data-type="news">最新資訊</button>
+                <button class="tab-btn" data-type="common">一般資訊</button>
+            </div>
+            <button id="add-btn" class="add-btn" style="margin:0 0 0 auto;">＋ 新增資訊</button>
+        </div>
+        <div id="info-list-section">
+            <!-- JS 動態渲染資訊卡片 -->
+        </div>
+        <div id="edit-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h3 id="modal-title">新增/編輯資訊</h3>
+                <form id="info-form">
+                    <input type="hidden" id="info-id">
+                    <input type="hidden" id="info-type">
+                    <div class="form-row">
+                        <label for="title">標題：</label>
+                        <input type="text" id="title" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="description">說明：</label>
+                        <textarea id="description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label for="link">連結：</label>
+                        <input type="text" id="link" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="image-input">封面海報：</label>
+                        <input type="file" id="image-input" accept="image/*">
+                        <img id="preview-image" src="" style="display:none;max-width:200px;margin-top:10px;">
+                        <input type="hidden" id="imageUrl">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="save-btn" class="save-btn">儲存</button>
+                        <button type="button" id="cancel-btn" class="cancel-btn">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            if (!adminEmail || !adminName) {
+                window.location.href = '../../main/login-user.html';
+            }
+            if (typeof updateNavbar === 'function') updateNavbar();
+        });
+    </script>
+</body>
+</html> 

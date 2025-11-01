@@ -1,0 +1,169 @@
+
+body{
+    margin: 0;
+    padding: 0;
+}
+
+.main-content {
+    margin: 120px auto 2rem;
+}
+
+.account-content {
+    max-width: 1200px;
+    margin: 120px auto 2rem;
+    padding: 0 2rem;
+}
+
+.account-table {
+    background: #f0f0f0;
+    border-radius: 10px;
+    padding: 2rem;
+    overflow-x: auto;
+    font-size: 18px;
+    text-align: center;
+    /* 固定表格高度，確保按鈕位置一致 */
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #f0f0f0;
+    /* 讓表格填滿容器高度 */
+    flex: 1;
+}
+
+th {
+    text-align: center;
+    padding: 1rem;
+    border-bottom: 2px solid #ddd;
+    font-weight: bold;
+    /* 固定標題列高度 */
+    height: 60px;
+}
+
+td {
+    padding: 0.5rem;
+    /* 固定每行高度，確保視覺一致性 */
+    height: 10px;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* 為空資料行添加固定高度，確保視覺一致性 */
+tr td[colspan="5"] {
+    height: 200px;
+    vertical-align: top;
+    text-align: center;
+}
+
+/* 確保表格內容從標題列下方開始 */
+tbody {
+    display: table-row-group;
+}
+
+.detail-btn {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+
+.detail-btn:hover, .delete-btn:hover {
+    color: #333;
+}
+
+.back-section {
+    display: flex;
+    justify-content: center;
+    /* 固定在 footer 上方 */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 70px; /* footer 高度 + 間距 */
+    z-index: 1100;
+    margin-bottom: 0;
+}
+
+.button-group {
+    display: flex;
+    gap: 18px;
+}
+
+.back-button {
+    display: inline-block;
+    padding: 8px 30px;
+    background-color: #FFB6C1;
+    color: #fff;
+    width: 56px;
+    height: 28px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 18px;
+    transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #FF8C9E;
+}
+
+.delete-icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+    transition: filter 0.2s;
+}
+.delete-btn:hover .delete-icon {
+    filter: brightness(0) saturate(100%) invert(36%) sepia(97%) saturate(749%) hue-rotate(312deg) brightness(102%) contrast(101%);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .account-content {
+        padding: 0 1rem;
+    }
+
+    .account-table {
+        padding: 1rem;
+        height: 350px;
+    }
+
+    th, td {
+        padding: 0.75rem;
+        height: 50px;
+    }
+
+    .button-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .back-button {
+        margin-bottom: 0;
+    }
+
+    .back-button:last-child {
+        margin-bottom: 50px;
+    }
+
+    .back-section {
+        bottom: 80px;
+        padding: 0 10px;
+    }
+} 

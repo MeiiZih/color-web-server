@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本個人資料 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/profile.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <a href="/index.html" class="site-title">ColorMind Lab</a>
+        </div>
+        <div class="nav-links">
+            <a href="main/common.html" class="nav-link">首頁</a>
+            <a href="../../test/test.html" class="nav-link">測驗系統</a>
+            <a href="about.html" class="nav-link">關於我們</a>
+            <a href="login-user.html" class="nav-link" id="loginButton">登入</a>
+            <!-- 用戶下拉選單將由js動態添加 -->
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <h2 class="profile-title">個人基本資料</h2>
+        
+        <div class="profile-form">
+            <form id="profileForm">
+                <!-- 基本資料區塊 -->
+                <div class="form-section">
+                    <div class="section-title">基本資料</div>
+                    
+                    <div class="form-row">
+                        <div class="form-icon">👤</div>
+                        <div class="form-label">姓名：</div>
+                        <div class="form-value">
+                            <input type="text" id="userNameInput" class="form-input" disabled>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-icon">🧑</div>
+                        <div class="form-label">性別：</div>
+                        <div class="form-value">
+                            <select id="genderSelect" class="form-select" disabled>
+                                <option value="">請選擇</option>
+                                <option value="男">男</option>
+                                <option value="女">女</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-icon">📅</div>
+                        <div class="form-label">出生日期：</div>
+                        <div class="form-value">
+                            <input type="text" id="birthDateInput" class="form-input" placeholder="YYYY/MM/DD" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 聯絡資訊區塊 -->
+                <div class="form-section">
+                    <div class="section-title">聯絡資訊</div>
+                    
+                    <div class="form-row">
+                        <div class="form-icon">📱</div>
+                        <div class="form-label">行動電話：</div>
+                        <div class="form-value">
+                            <input type="text" id="phoneInput" class="form-input" disabled>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-icon">📧</div>
+                        <div class="form-label">電子郵件：</div>
+                        <div class="form-value">
+                            <input type="email" id="emailInput" class="form-input" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 其他資訊區塊 -->
+                <div class="form-section">
+                    <div class="section-title">其他資訊</div>
+                    
+                    <div class="form-row">
+                        <div class="form-icon">💼</div>
+                        <div class="form-label">職業：</div>
+                        <div class="form-value">
+                            <input type="text" id="occupationInput" class="form-input" disabled>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="button-container">
+                    <button type="button" class="edit-button" id="editButton">編輯</button>
+                    <button type="submit" class="save-button" id="saveButton" style="display: none;">完成</button>
+                    <button type="button" class="cancel-button" id="cancelButton" style="display: none;">取消</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <div id="successMessage" class="success-message" style="display: none;"></div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        // 根據當前訪問的URL判斷使用哪個API地址
+        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'http://20.57.128.97:8080';
+            
+        // 頁面載入時執行
+        window.onload = function() {
+            console.log('profile.html 頁面加載');
+            
+            // 強制更新導航欄，確保登入狀態正確顯示
+            if (typeof updateNavbar === 'function') {
+                updateNavbar();
+            } else if (typeof checkLoginStatus === 'function') {
+                checkLoginStatus();
+            }
+            
+            // 檢查登錄狀態
+            checkLogin();
+            
+            // 每5秒刷新一次導航欄，確保登入狀態最新
+            setInterval(function() {
+                if (typeof updateNavbar === 'function') {
+                    updateNavbar();
+                } else if (typeof checkLoginStatus === 'function') {
+                    checkLoginStatus();
+                }
+            }, 5000);
+        };
+        
+        // 檢查用戶是否登入
+        function checkLogin() {
+            const token = sessionStorage.getItem('token');
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userName = sessionStorage.getItem('userName');
+            let user = null;
+            
+            try {
+                const userStr = sessionStorage.getItem('user');
+                if (userStr) {
+                    user = JSON.parse(userStr);
+                }
+            } catch (e) {
+                console.error('解析user數據時出錯:', e);
+            }
+            
+            console.log('檢測到登入狀態:', {
+                token: token ? '已設置' : '未設置',
+                user: user ? '已設置' : '未設置',
+                userEmail: userEmail || '未設置',
+                userName: userName || '未設置'
+            });
+            
+            // 檢查是否有任何有效的登入狀態
+            if (!userEmail && !user) {
+                // 未登入，重定向到登入頁面
+                console.log('未檢測到登入狀態，重定向到登入頁面');
+                window.location.href = '../login-user.html';
+            } else {
+                // 已登入，顯示用戶資料
+                // 優先使用user對象，如果沒有則創建一個
+                let userObj = user;
+                if (!userObj && userEmail) {
+                    userObj = {
+                        email: userEmail,
+                        name: userName || userEmail.split('@')[0]
+                    };
+                }
+                displayUserInfo(userObj);
+            }
+        }
+        
+        // 顯示用戶資料
+        function displayUserInfo(user) {
+            if (!user) {
+                showError('無法顯示用戶資料');
+                return;
+            }
+            
+            // 優先使用sessionStorage中的userName
+            const sessionUserName = sessionStorage.getItem('userName');
+            const sessionUserEmail = sessionStorage.getItem('userEmail');
+            
+            // 設置姓名
+            document.getElementById('userNameInput').value = sessionUserName || user.name || user.nickname || user.email?.split('@')[0] || '用戶';
+            
+            // 同時更新導航欄中的用戶名顯示
+            const navUserName = document.getElementById('userName');
+            if (navUserName) {
+                navUserName.textContent = sessionUserName || user.name || user.nickname || '用戶';
+            }
+            
+            // 設定性別
+            document.getElementById('genderSelect').value = user.gender || '';
+            
+            // 解析出生日期
+            const birthDate = user.birthDate ? new Date(user.birthDate) : new Date(1991, 3, 14);
+            document.getElementById('birthDateInput').value = `${birthDate.getFullYear()}/${(birthDate.getMonth() + 1).toString().padStart(2, '0')}/${birthDate.getDate().toString().padStart(2, '0')}`;
+            
+            // 設定其他資訊
+            document.getElementById('occupationInput').value = user.occupation || '學生';
+            document.getElementById('phoneInput').value = user.phone || '0912345678';
+            document.getElementById('emailInput').value = sessionUserEmail || user.email || 'example@email.com';
+        }
+
+        // 切換編輯模式
+        function toggleEditMode(isEditing) {
+            const inputs = document.querySelectorAll('.form-input, .date-input, .form-select');
+            
+            inputs.forEach(input => {
+                input.disabled = !isEditing;
+            });
+            
+            // 切換按鈕顯示
+            document.getElementById('editButton').style.display = isEditing ? 'none' : 'inline-block';
+            document.getElementById('saveButton').style.display = isEditing ? 'inline-block' : 'none';
+            document.getElementById('cancelButton').style.display = isEditing ? 'inline-block' : 'none';
+        }
+        
+        // 處理編輯按鈕點擊事件
+        document.getElementById('editButton').addEventListener('click', function() {
+            toggleEditMode(true);
+        });
+        
+        // 處理取消按鈕點擊事件
+        document.getElementById('cancelButton').addEventListener('click', function() {
+            toggleEditMode(false);
+            // 重新載入用戶資料以恢復原始值
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userName = sessionStorage.getItem('userName');
+            let user = null;
+            try {
+                const userStr = sessionStorage.getItem('user');
+                if (userStr) {
+                    user = JSON.parse(userStr);
+                }
+            } catch (e) {
+                console.error('解析user數據時出錯:', e);
+            }
+            
+            let userObj = user;
+            if (!userObj && userEmail) {
+                userObj = {
+                    email: userEmail,
+                    name: userName || userEmail.split('@')[0]
+                };
+            }
+            displayUserInfo(userObj);
+        });
+        
+        // 處理表單提交事件
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // 檢查多種登入狀態
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userName = sessionStorage.getItem('userName');
+            const token = sessionStorage.getItem('token');
+            const user = sessionStorage.getItem('user');
+            
+            // 檢查是否有有效的登入狀態
+            if (!userEmail && !user) {
+                showError('登入狀態已過期，請重新登入');
+                return;
+            }
+
+            const name = document.getElementById('userNameInput').value;
+            const gender = document.getElementById('genderSelect').value;
+            const birthDateStr = document.getElementById('birthDateInput').value;
+            const occupation = document.getElementById('occupationInput').value;
+            const phone = document.getElementById('phoneInput').value;
+            
+            if (!name || !gender || !birthDateStr || !occupation || !phone) {
+                showError('請填寫所有欄位');
+                return;
+            }
+            
+            // 將日期格式從 YYYY/MM/DD 轉換為 YYYY-MM-DD
+            const birthDate = birthDateStr.replace(/\//g, '-');
+            
+            try {
+                // 構建用戶ID - 優先使用userEmail，如果沒有則使用user對象的id
+                let userId = userEmail;
+                if (!userId && user) {
+                    try {
+                        const userObj = JSON.parse(user);
+                        userId = userObj.id || userEmail;
+                    } catch (e) {
+                        userId = userEmail;
+                    }
+                }
+                
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                // 只有在有token的情況下才添加Authorization header
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch(`${apiBaseUrl}/api/user/update-profile`, {
+                    method: 'PUT',
+                    headers: headers,
+                    body: JSON.stringify({
+                        userId: userId,
+                        email: userEmail,
+                        name,
+                        gender,
+                        birthDate,
+                        occupation,
+                        phone
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 更新本地存儲的用戶資料
+                    sessionStorage.setItem('userName', name);
+                    
+                    // 如果有user對象，也更新它
+                    if (user) {
+                        try {
+                            const userObj = JSON.parse(user);
+                            const updatedUser = { ...userObj, name, gender, birthDate, occupation, phone };
+                            sessionStorage.setItem('user', JSON.stringify(updatedUser));
+                        } catch (e) {
+                            console.error('更新user對象時出錯:', e);
+                        }
+                    }
+                    
+                    // 顯示成功訊息
+                    showSuccess('個人資料更新成功');
+                    
+                    // 返回查看模式
+                    toggleEditMode(false);
+                    
+                    // 重新顯示用戶信息
+                    const updatedUserInfo = {
+                        email: userEmail,
+                        name: name,
+                        gender: gender,
+                        birthDate: birthDate,
+                        occupation: occupation,
+                        phone: phone
+                    };
+                    displayUserInfo(updatedUserInfo);
+                } else {
+                    showError(data.message || '更新資料失敗');
+                }
+            } catch (error) {
+                console.error('更新資料錯誤:', error);
+                showError('更新資料失敗，請稍後重試');
+            }
+        });
+        
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+            setTimeout(() => {
+                successElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

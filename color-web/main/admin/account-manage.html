@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帳號管理 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/account-manage.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="account-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>序號</th>
+                        <th>最近登入日期</th>
+                        <th>帳號</th>
+                        <th>詳細</th>
+                        <th>刪除</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- 用戶數據將通過JavaScript動態載入 -->
+                    <tr>
+                        <td colspan="5" style="text-align: center;">正在載入用戶數據...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div class="back-section">
+        <div class="button-group">
+            <a href="admin.html" class="back-button" id="backButton">返回</a>
+            <a href="#" class="back-button" id="prevPageBtn" style="display: none;">上一頁</a>
+            <a href="#" class="back-button" id="nextPageBtn">下一頁</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        // 分頁相關變數
+        let currentPage = 1;
+        const itemsPerPage = 5;
+        let allUsers = [];
+        let totalPages = 1;
+
+        // 自動同步 localStorage 與 sessionStorage
+        (function syncAdminSession() {
+            if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
+                sessionStorage.setItem('adminToken', localStorage.getItem('adminToken'));
+                sessionStorage.setItem('adminEmail', localStorage.getItem('adminEmail'));
+                sessionStorage.setItem('adminName', localStorage.getItem('adminName'));
+                sessionStorage.setItem('admin', localStorage.getItem('admin'));
+            }
+        })();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 檢查管理員登入狀態（需三欄皆有）
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const adminToken = sessionStorage.getItem('adminToken');
+            if (!adminEmail || !adminName || !adminToken) {
+                window.location.href = '../../main/login-user.html';
+                return;
+            }
+            if (typeof updateNavbar === 'function') updateNavbar();
+            
+            // 載入用戶數據
+            loadUserData();
+            
+            // 綁定分頁按鈕事件
+            document.getElementById('nextPageBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayCurrentPage();
+                    updateNavigationButtons();
+                }
+            });
+            
+            document.getElementById('prevPageBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayCurrentPage();
+                    updateNavigationButtons();
+                }
+            });
+        });
+        
+        // 載入用戶數據函數
+        function loadUserData() {
+            const tableBody = document.getElementById('userTableBody');
+            const adminToken = sessionStorage.getItem('adminToken');
+            
+            fetch('/api/admin/users', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('獲取用戶數據失敗');
+                }
+                return response.json();
+            })
+            .then(users => {
+                // 只顯示普通用戶，不顯示管理員
+                allUsers = users.filter(user => user.role !== 'admin');
+                
+                // 計算總頁數
+                totalPages = Math.ceil(allUsers.length / itemsPerPage);
+                
+                // 顯示第一頁
+                currentPage = 1;
+                displayCurrentPage();
+                updateNavigationButtons();
+            })
+            .catch(error => {
+                console.error('獲取用戶數據錯誤:', error);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: red;">
+                            獲取用戶數據失敗: ${error.message || '未知錯誤'}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        
+        // 顯示當前頁面的用戶數據
+        function displayCurrentPage() {
+            const tableBody = document.getElementById('userTableBody');
+            
+            // 清空表格
+            tableBody.innerHTML = '';
+            
+            if (!allUsers || allUsers.length === 0) {
+                // 顯示空資料行
+                const noDataRow = document.createElement('tr');
+                noDataRow.innerHTML = `
+                    <td colspan="5" style="text-align: center;">暫無用戶數據</td>
+                `;
+                tableBody.appendChild(noDataRow);
+                
+                // 如果沒有資料，添加空行來保持表格高度
+                for (let i = 1; i < 5; i++) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = `
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                    `;
+                    tableBody.appendChild(emptyRow);
+                }
+                return;
+            }
+            
+            // 計算當前頁面的起始和結束索引
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, allUsers.length);
+            const currentPageUsers = allUsers.slice(startIndex, endIndex);
+            
+            // 填充表格
+            currentPageUsers.forEach((user, index) => {
+                const row = document.createElement('tr');
+                
+                // 格式化日期
+                let loginDate = '尚未登入';
+                if (user.lastLogin) {
+                    const date = new Date(user.lastLogin);
+                    loginDate = `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                }
+                
+                // 計算實際序號（考慮分頁）
+                const actualIndex = startIndex + index + 1;
+                
+                row.innerHTML = `
+                    <td>${actualIndex.toString().padStart(2, '0')}</td>
+                    <td>${loginDate}</td>
+                    <td>${user.email}</td>
+                    <td><button class="detail-btn" data-id="${user._id}">more</button></td>
+                    <td>
+                        <button class="delete-btn" data-id="${user._id}" style="background:transparent;border:none;cursor:pointer;">
+                            <img src="../../assets/icons/delete.png" alt="刪除" class="delete-icon" style="width:24px;height:24px;">
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 如果當前頁面資料不足5筆，添加空行來保持表格高度一致
+            const remainingRows = itemsPerPage - currentPageUsers.length;
+            for (let i = 0; i < remainingRows; i++) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                `;
+                tableBody.appendChild(emptyRow);
+            }
+            
+            // 綁定詳細信息按鈕事件
+            document.querySelectorAll('.detail-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const row = this.closest('tr');
+                    const emailCell = row.cells[2]; // email 在第3列（索引2）
+                    const userEmail = emailCell.textContent;
+                    window.location.href = `user-profile.html?email=${encodeURIComponent(userEmail)}`;
+                });
+            });
+            
+            // 綁定刪除按鈕事件
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-id');
+                    deleteUser(userId);
+                });
+            });
+        }
+        
+        // 更新導航按鈕狀態
+        function updateNavigationButtons() {
+            const backButton = document.getElementById('backButton');
+            const prevPageBtn = document.getElementById('prevPageBtn');
+            const nextPageBtn = document.getElementById('nextPageBtn');
+            
+            if (currentPage === 1) {
+                // 第一頁：顯示返回按鈕和下一頁按鈕
+                backButton.style.display = 'inline-block';
+                prevPageBtn.style.display = 'none';
+                nextPageBtn.style.display = totalPages > 1 ? 'inline-block' : 'none';
+            } else if (currentPage === totalPages) {
+                // 最後一頁：顯示上一頁按鈕，隱藏下一頁按鈕
+                backButton.style.display = 'none';
+                prevPageBtn.style.display = 'inline-block';
+                nextPageBtn.style.display = 'none';
+            } else {
+                // 中間頁：顯示上一頁和下一頁按鈕
+                backButton.style.display = 'none';
+                prevPageBtn.style.display = 'inline-block';
+                nextPageBtn.style.display = 'inline-block';
+            }
+        }
+        
+        // 顯示用戶詳細信息函數
+        function showUserDetails(userId, users) {
+            const user = users.find(u => u._id === userId);
+            if (!user) {
+                alert('找不到用戶資料');
+                return;
+            }
+            
+            // 格式化日期
+            let birthDate = '未提供';
+            if (user.birthDate) {
+                const date = new Date(user.birthDate);
+                birthDate = `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+            }
+            
+            let lastLogin = '尚未登入';
+            if (user.lastLogin) {
+                const date = new Date(user.lastLogin);
+                lastLogin = `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            }
+            
+            let createdAt = '未知';
+            if (user.createdAt) {
+                const date = new Date(user.createdAt);
+                createdAt = `${date.getFullYear()}/${(date.getMonth()+1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+            }
+            
+            const details = `
+                用戶ID: ${user._id}
+                姓名: ${user.name || '未提供'}
+                電子郵件: ${user.email}
+                性別: ${user.gender === 'unknown' ? '未提供' : user.gender}
+                出生日期: ${birthDate}
+                電話: ${user.phone || '未提供'}
+                職業: ${user.occupation || '未提供'}
+                註冊日期: ${createdAt}
+                最後登入: ${lastLogin}
+            `;
+            
+            alert(details);
+        }
+        
+        // 刪除用戶函數
+        function deleteUser(userId) {
+            if (!confirm('確定要刪除此用戶嗎？此操作不可逆！')) {
+                return;
+            }
+            
+            const adminToken = sessionStorage.getItem('adminToken');
+            
+            fetch(`/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || '刪除用戶失敗');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('用戶已成功刪除');
+                // 重新載入用戶數據
+                loadUserData();
+            })
+            .catch(error => {
+                console.error('刪除用戶錯誤:', error);
+                alert(`刪除用戶失敗: ${error.message}`);
+            });
+        }
+    </script>
+</body>
+</html> 

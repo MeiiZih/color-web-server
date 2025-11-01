@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 色彩性格測驗介紹</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/test-intro.css">
+    <script src="../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首頁</a>
+            <a href="test.html" class="nav-link active">測驗系統</a>
+            <a href="../main/about.html" class="nav-link">關於我們</a>
+            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="../main/user/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <a href="select.html" class="back-button" aria-label="返回">
+        <img src="../assets/icons/back-button.png" alt="返回" class="back-img">
+        <span class="back-text">問卷列表</span>
+    </a>
+
+    <div class="main-container">
+        <div class="intro-card">
+            <div class="intro-header">
+                <h1 class="intro-title">色彩性格測驗</h1>
+            </div>
+            
+            <div class="intro-content">
+                <div class="intro-left">
+                    <div class="survey-image-container" id="surveyImageContainer">
+                        <!-- 圖片將由 JS 動態插入 -->
+                        <div class="image-placeholder">🎨</div>
+                    </div>
+                </div>
+                
+                <div class="intro-right">
+                    <div class="intro-text" id="introText">
+                        <!-- 說明內容將由 JS 動態插入 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="intro-actions">
+                <a href="color-test.html" class="start-test-button">開始測驗</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('color-test-intro.html 頁面加載');
+            
+            // 檢查登入狀態
+            const adminToken = sessionStorage.getItem('adminToken');
+            const userToken = sessionStorage.getItem('token');
+            
+            if (adminToken) {
+                try {
+                    // 驗證管理員token
+                    const tokenPayload = JSON.parse(atob(adminToken.split('.')[1]));
+                    if (tokenPayload.role === 'admin') {
+                        // 如果是管理員，顯示管理員選項，隱藏用戶選項
+                        document.querySelectorAll('.user-only').forEach(el => el.style.display = 'none');
+                        document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
+                        checkAdminLoginStatus();
+                        return; // 如果是管理員就直接返回，不需要檢查用戶登入
+                    }
+                } catch (error) {
+                    console.error('管理員Token驗證錯誤:', error);
+                }
+            }
+            
+            if (userToken) {
+                // 如果有用戶token，顯示用戶選項
+                document.querySelectorAll('.user-only').forEach(el => el.style.display = 'inline-block');
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                checkLoginStatus();
+            } else {
+                // 未登入狀態
+                document.querySelectorAll('.user-only').forEach(el => el.style.display = 'inline-block');
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                // 確保登入按鈕可見
+                const loginButton = document.getElementById('loginButton');
+                if (loginButton) {
+                    loginButton.style.display = 'inline-block';
+                }
+                // 確保用戶下拉選單隱藏
+                const userDropdown = document.getElementById('userDropdown');
+                if (userDropdown) {
+                    userDropdown.style.display = 'none';
+                }
+            }
+
+            // 載入問卷說明
+            try {
+                // 從URL參數獲取測驗ID
+                const urlParams = new URLSearchParams(window.location.search);
+                const testId = urlParams.get('id');
+                
+                let response;
+                if (testId) {
+                    // 如果有ID參數，根據ID查詢
+                    response = await fetch(`/api/test/surveys/${testId}`);
+                } else {
+                    // 如果沒有ID參數，使用預設的測驗類型
+                    response = await fetch(`/api/test/surveys/type/${encodeURIComponent('我在色彩學中的MBTI')}`);
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('載入的問卷數據:', data);
+                
+                // 更新說明文字
+                const introTextElement = document.getElementById('introText');
+                if (introTextElement) {
+                    const desc = data.description || '無法載入問卷說明';
+                    introTextElement.innerHTML = desc.split('\n').map(p => `<p class='intro-paragraph'>${p}</p>`).join('');
+                } else {
+                    console.error('找不到 introText 元素');
+                }
+                
+                // 更新圖片
+                const imageContainer = document.getElementById('surveyImageContainer');
+                if (imageContainer) {
+                    if (data.imgUrl) {
+                        imageContainer.innerHTML = `<img src="${data.imgUrl}" alt="問卷圖片" class="survey-image">`;
+                    } else {
+                        // 如果沒有圖片，顯示預設的顏色色板
+                        imageContainer.innerHTML = `
+                            <div class="color-palette">
+                                <div class="palette-circle red"></div>
+                                <div class="palette-circle yellow"></div>
+                                <div class="palette-circle green"></div>
+                                <div class="palette-circle blue"></div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    console.error('找不到 surveyImageContainer 元素');
+                }
+                
+                // 更新標題
+                const titleElement = document.querySelector('.intro-title');
+                if (titleElement && data.testType) {
+                    titleElement.textContent = data.testType;
+                }
+                
+                // 更新開始測驗按鈕的連結
+                const startButton = document.querySelector('.start-test-button');
+                if (startButton) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const testId = urlParams.get('id');
+                    if (testId) {
+                        startButton.href = `color-test.html?id=${testId}`;
+                    }
+                }
+                
+            } catch (e) {
+                console.error('載入問卷說明失敗:', e);
+                
+                // 確保錯誤處理時不會崩潰
+                const introTextElement = document.getElementById('introText');
+                if (introTextElement) {
+                    introTextElement.innerHTML = '<p class="intro-paragraph">無法載入問卷說明</p>';
+                }
+                
+                // 顯示預設圖片
+                const imageContainer = document.getElementById('surveyImageContainer');
+                if (imageContainer) {
+                    imageContainer.innerHTML = `
+                        <div class="color-palette">
+                            <div class="palette-circle red"></div>
+                            <div class="palette-circle yellow"></div>
+                            <div class="palette-circle green"></div>
+                            <div class="palette-circle blue"></div>
+                        </div>
+                    `;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

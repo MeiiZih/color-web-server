@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>意見反饋 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/information.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首頁</a>
+            <a href="../test/test.html" class="nav-link">測驗系統</a>
+            <a href="../main/about.html" class="nav-link">關於我們</a>
+            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="../main/user/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="main-container">
+        <div class="feedback-container">
+            <h2 class="info-title">意見反饋</h2>
+            <form id="feedbackForm" class="feedback-form">
+                <div class="form-group">
+                    <label for="description">建議或意見 <span style="color:red;">*</span></label>
+                    <textarea id="description" name="description" required placeholder="請輸入您的寶貴建議或意見..." rows="5"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="name">姓名（選填）</label>
+                    <input type="text" id="name" name="name" placeholder="您的名字(選填)">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email（選填）</label>
+                    <input type="email" id="email" name="email" placeholder="您的Email(選填)">
+                </div>
+                <div class="button-group">
+                    <button type="button" class="back-btn" onclick="history.back()">返回</button>
+                    <button class="feedback-btn" type="submit">送出</button>
+                </div>
+            </form>
+            <div class="feedback-success" id="feedbackSuccess" style="display:none;color:#44bba4;margin-top:18px;font-size:18px;font-weight:600;text-align:center;">感謝您的寶貴意見！</div>
+            <div class="privacy-section" style="margin-top:32px;padding:18px 20px 0 20px;border-top:1px solid #eee;font-size:14px;color:#888;">
+                本站重視您的隱私，所有資料僅作意見統計與改進參考，不另作他用。
+            </div>
+        </div>
+    </div>
+    <footer class="footer">國立臺中科技大學－資訊管理系114學年專題</footer>
+    <script src="../js/navbar.js"></script>
+    <script>
+        document.getElementById('feedbackForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const description = document.getElementById('description').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            if (!description) {
+                alert('請輸入您的建議(必填)');
+                return;
+            }
+            const payload = { description, name, email };
+            try {
+                const res = await fetch('/api/user/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    document.getElementById('feedbackSuccess').style.display = 'block';
+                    this.reset();
+                } else {
+                    alert('送出失敗，請稍候再試！');
+                }
+            } catch {
+                alert('系統異常，請稍候再試！');
+            }
+        }
+    </script>
+</body>
+</html> 

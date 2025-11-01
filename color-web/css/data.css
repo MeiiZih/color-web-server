@@ -1,0 +1,236 @@
+/* Data Management Page Styles */
+.data-management-container {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 200px);
+    background-color: #f5f5f5;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.content-wrapper {
+    display: flex;
+    flex: 1;
+}
+
+.sidebar {
+    width: 300px;
+    background-color: #f8f4e6;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    border-radius: 12px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+    color: inherit;
+}
+
+.back-img {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    display: block;
+    transition: filter 0.2s;
+}
+
+.back-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+    line-height: 1;
+    user-select: none;
+}
+
+.back-button:hover .back-text {
+    color: #FF677D;
+}
+
+.back-button:hover .back-img {
+    filter: brightness(0) saturate(100%) invert(58%) sepia(95%) saturate(1500%) hue-rotate(320deg) brightness(100%) contrast(95%);
+}
+
+.view-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.toggle-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #fff;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.toggle-btn.active {
+    background-color: #FF677D;
+    color: white;
+}
+
+.filter-section {
+    margin-bottom: 30px;
+}
+
+.filter-section h4 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.filter-dropdown {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    margin-bottom: 15px;
+}
+
+.filter-list {
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.filter-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.filter-item:hover, .filter-item.active {
+    background-color: #FF677D;
+    color: white;
+}
+
+.download-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #FF677D;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.main-content-area {
+    flex: 1;
+    padding: 30px;
+    background-color: white;
+    margin-left: 0;
+    width: 100%;
+    border-radius: 12px;
+}
+
+.total-count {
+    margin-bottom: 30px;
+    font-size: 18px;
+    color: #333;
+}
+
+.count-label {
+    border-bottom: 2px solid #333;
+    display: inline-block;
+    min-width: 100px;
+    text-align: center;
+}
+
+.table-container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    height: 600px; /* 固定高度 */
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.color-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.color-red { background-color: #ff4757; }
+.color-blue { background-color: #3742fa; }
+.color-green { background-color: #2ed573; }
+.color-yellow { background-color: #ffa502; }
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    gap: 10px;
+}
+
+.page-btn {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.page-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.page-btn.active {
+    background-color: #FF677D;
+    color: white;
+    border-color: #FF677D;
+}
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    color: #666;
+}

@@ -1,0 +1,147 @@
+/* 關於我們頁面樣式 */
+/* 調整padding避免導覽列遮蓋 */
+.main-container {
+    padding: 120px 8px 16px; /* 原為60px，現在往下推120px適應nav，不被遮住 */
+    display: flex;
+    justify-content: center;
+    background: #f6fafb;
+}
+
+.content-box {
+    width: 960px;
+    min-height: 800px;
+    background: transparent;
+    border-radius: 16px;
+    padding: 0 8px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    box-shadow: none;
+}
+
+.section {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(47,182,196,0.06), 0 2px 8px rgba(44,80,100,0.07);
+    padding: 36px 36px;
+    margin-bottom: 0;
+    transition: box-shadow 0.26s;
+    min-height: 255px; /* 統一卡片高度，需配合圖片高度和內容 */
+    box-sizing: border-box;
+}
+.section:not(:last-child) {
+    margin-bottom: 24px;
+}
+.section.reverse {
+    flex-direction: row-reverse;
+}
+
+.image-col {
+    width: 290px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.98;
+    transform: translateY(16px);
+    animation: fadein-img 0.9s ease-in;
+}
+
+@keyframes fadein-img {
+  from { opacity: 0; transform:translateY(40px);} to {opacity: 1; transform:translateY(0);}
+}
+
+.image-box {
+    width: 260px;
+    height: 195px;
+    object-fit: cover;
+    background: #e2f4f7;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px #aee6e8a0;
+    border: 2.5px solid #cdebf0;
+}
+
+.text-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 135px;
+}
+
+.text-content h2 {
+    color: #24B3C0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: 0.06em;
+}
+
+.text-content p strong,
+.text-content ul li strong{
+    color: #21859d;
+    font-weight: 600;
+    background: linear-gradient(120deg, #c1f7ff5d 60%, #fff 100%);
+    border-radius: 8px;
+    padding: 0 4px;
+}
+
+.text-content p {
+    color: #174b5e;
+    font-size: 1.07rem;
+    margin-bottom: 9px;
+    line-height: 1.94;
+    text-align: left;
+}
+
+.text-content ul {
+    padding-left: 23px;
+    margin: 0 0 3px 0;
+    color: #3199a4;
+}
+
+.text-content ul li {
+    font-size: 0.96rem;
+    line-height: 2.1;
+    margin-bottom: 2px;
+    letter-spacing: 0.01em;
+}
+/* 返回鈕仍粉紅，其他區保留 */
+.back-section {
+    text-align: center;
+    margin: 2.1rem 0;
+}
+.back-button {
+    display: inline-block;
+    background-color: #FF677D;
+    text-decoration: none;
+    border-radius: 25px;
+    padding: 0.8rem 2rem;
+    color: #fff;
+    font-size: 1rem;
+    margin-bottom: 50px;
+    transition: background 0.3s;
+    box-shadow: 0 0 0.5rem #ffd0d6c3;
+    border: none;
+}
+.back-button:hover {
+    background: #fc4761;
+}
+/* 響應式調整 */
+@media (max-width: 900px) {
+    .content-box {width: 98vw; min-width:0;}
+    .section {flex-direction: column; padding: 30px 10px; gap:14px; min-height:unset;}
+    .section.reverse {flex-direction: column;}
+    .image-col {width: 100%;}
+    .image-box {width: 96%; height: 170px;}
+}
+
+@media (max-width: 560px) {
+   .section, .section.reverse {gap:6px; padding:14px 2px 13px 2px; min-height:unset;}
+   .text-content h2 {font-size: 1.05rem;}
+   .text-content p, .text-content ul li {font-size: 0.89rem;}
+   .image-box {height: 120px;}
+}

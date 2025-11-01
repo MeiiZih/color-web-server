@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測驗紀錄 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/user-test.css">
+    <style>
+        
+    </style>
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+    <main class="main-content">
+        <a href="account-manage.html" class="back-button" aria-label="返回">
+            <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
+            <span class="back-text">帳號管理</span>
+        </a>
+        
+        <div class="tab-btns">
+            <button class="tab-btn" id="profileTab">帳戶資料</button>
+            <button class="tab-btn active" id="testTab">測驗紀錄</button>
+        </div>
+        <div class="test-main">
+            <div class="test-side">
+                <label class="test-select-label">測驗名稱</label>
+                <select id="testNameSelect" class="test-select"></select>
+                <label class="test-select-label">測驗序</label>
+                <select id="testOrderSelect" class="test-select"></select>
+            </div>
+            <div class="test-report" id="testReport"></div>
+        </div>
+    </main>
+    <footer class="footer" style="position:fixed;left:0;right:0;bottom:0;width:100%;background:#fff6f8;z-index:10;">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+    <script>
+        // 自動同步 localStorage 與 sessionStorage
+        (function syncAdminSession() {
+            if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
+                sessionStorage.setItem('adminToken', localStorage.getItem('adminToken'));
+                sessionStorage.setItem('adminEmail', localStorage.getItem('adminEmail'));
+                sessionStorage.setItem('adminName', localStorage.getItem('adminName'));
+                sessionStorage.setItem('admin', localStorage.getItem('admin'));
+            }
+        })();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 檢查登入狀態
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const adminToken = sessionStorage.getItem('adminToken');
+            if (!adminEmail || !adminName || !adminToken) {
+                window.location.href = '../../main/login-user.html';
+                return;
+            }
+            if (typeof updateNavbar === 'function') updateNavbar();
+            
+            // tab 切換
+            document.getElementById('profileTab').onclick = function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const userEmail = urlParams.get('email');
+                window.location.href = `user-profile.html?email=${encodeURIComponent(userEmail)}`;
+            };
+            document.getElementById('testTab').classList.add('active');
+            
+            // 查詢 email
+            const urlParams = new URLSearchParams(window.location.search);
+            const userEmail = urlParams.get('email');
+            if (!userEmail) {
+                document.getElementById('testReport').innerHTML = '<div style="color:red; text-align: center; padding: 40px;">找不到用戶Email</div>';
+                return;
+            }
+
+            // 初始化頁面邏輯
+            initializeTestQuestions(userEmail, adminToken);
+        });
+
+        // 新增初始化測驗名稱
+        async function initializeTestQuestions(userEmail, adminToken) {
+            // 填測驗名稱下拉
+            const testNameSelect = document.getElementById('testNameSelect');
+            let testTypes = [];
+            try {
+                const ttRes = await fetch('/api/test/types');
+                if (ttRes.ok) {
+                    testTypes = await ttRes.json();
+                }
+            } catch(e) {console.error('獲取測驗問卷類型失敗',e);}
+            if (!testTypes.length) {
+                testNameSelect.innerHTML = '<option value="">找不到測驗名稱</option>';
+                return;
+            }
+            // 先不立即設置下拉選單，等獲取到用戶的測驗紀錄後再設置
+            testNameSelect.innerHTML = '<option value="">載入中...</option>';
+
+            // 查User基本資料以獲取userId
+            let user = null;
+            try {
+                const userRes = await fetch('/api/admin/users', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (userRes.ok) {
+                    const users = await userRes.json();
+                    user = users.find(u => u.email === userEmail);
+                }
+            } catch (e) { console.error('查詢用戶失敗:', e); }
+            if (!user) {
+                showNoRecord();
+                return;
+            }
+            // 取得該用戶所有測驗紀錄（testrecords）
+            let allRecords = [];
+            try {
+                // 同時查詢 userId 和 email 的記錄，然後合併結果
+                const promises = [];
+                
+                // 查詢 userId 的記錄
+                promises.push(
+                    fetch(`/api/admin/user/${user._id}/records`, {
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                );
+                
+                // 查詢 email 的記錄
+                promises.push(
+                    fetch(`/api/test/records?email=${encodeURIComponent(userEmail)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                );
+                
+                const [userIdRes, emailRes] = await Promise.allSettled(promises);
+                
+                // 處理 userId 查詢結果
+                if (userIdRes.status === 'fulfilled' && userIdRes.value.ok) {
+                    const userIdData = await userIdRes.value.json();
+                    allRecords = allRecords.concat(userIdData.records || []);
+                }
+                
+                // 處理 email 查詢結果
+                if (emailRes.status === 'fulfilled' && emailRes.value.ok) {
+                    const emailData = await emailRes.value.json();
+                    allRecords = allRecords.concat(emailData.records || []);
+                }
+                
+                // 去重（避免同一個記錄被查詢兩次）
+                const uniqueRecords = [];
+                const seenIds = new Set();
+                allRecords.forEach(record => {
+                    if (!seenIds.has(record.id || record._id)) {
+                        seenIds.add(record.id || record._id);
+                        uniqueRecords.push(record);
+                    }
+                });
+                allRecords = uniqueRecords;
+                
+                console.log('找到測驗紀錄數量:', allRecords.length);
+                console.log('測驗紀錄:', allRecords);
+                
+            } catch (e) { 
+                console.error('查詢測驗紀錄失敗:', e);
+                allRecords = [];
+            }
+
+            // 根據用戶實際的測驗紀錄動態設置下拉選單
+            setupTestNameDropdown(allRecords, testTypes);
+
+
+            // 初始化顯示
+            if (allRecords.length === 0) {
+                document.getElementById('testOrderSelect').innerHTML = '<option value="">無測驗紀錄</option>';
+                showNoRecord();
+            } else {
+                document.getElementById('testOrderSelect').innerHTML = '<option value="">請先選擇測驗名稱</option>';
+                document.getElementById('testReport').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <div class="empty-title">請選擇測驗名稱</div>
+                        <div class="empty-description">請從左側選擇測驗名稱以查看該用戶的測驗紀錄</div>
+                    </div>
+                `;
+            }
+        }
+
+        // 設置測驗名稱下拉選單
+        function setupTestNameDropdown(allRecords, testTypes) {
+            const testNameSelect = document.getElementById('testNameSelect');
+            
+            if (allRecords.length === 0) {
+                testNameSelect.innerHTML = '<option value="">該用戶無測驗紀錄</option>';
+                document.getElementById('testReport').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-title">查無測驗紀錄</div>
+                        <div class="empty-description">該用戶尚未進行過任何測驗</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 獲取用戶實際有測驗紀錄的類型
+            const userTestTypes = [...new Set(allRecords.map(r => r.testType))];
+            console.log('用戶實際的測驗類型:', userTestTypes);
+            
+            // 標準化測驗類型名稱映射（以資料庫名稱為準）
+            const standardizeMapping = {
+                '色彩性格測驗': '我在色彩學中的MBTI',
+                'MBTI測驗': '我在色彩學中的MBTI',
+                'MBTI色彩測驗': '我在色彩學中的MBTI'
+            };
+            
+            // 創建選項，優先顯示標準化的名稱
+            let options = '<option value="">請選擇測驗名稱</option>';
+            let addedTypes = new Set();
+            
+            // 先添加標準化的測驗類型
+            userTestTypes.forEach(testType => {
+                const standardizedType = standardizeMapping[testType] || testType;
+                if (!addedTypes.has(standardizedType)) {
+                    options += `<option value="${standardizedType}">${standardizedType}</option>`;
+                    addedTypes.add(standardizedType);
+                }
+            });
+            
+            // 再添加其他可用的測驗類型（如果有的話）
+            testTypes.forEach(testType => {
+                const standardizedType = standardizeMapping[testType] || testType;
+                if (!addedTypes.has(standardizedType)) {
+                    options += `<option value="${standardizedType}">${standardizedType}（無紀錄）</option>`;
+                    addedTypes.add(standardizedType);
+                }
+            });
+            
+            testNameSelect.innerHTML = options;
+            
+            // 綁定事件處理器
+            testNameSelect.onchange = function() {
+                const selType = this.value;
+                const testOrderSelect = document.getElementById('testOrderSelect');
+                
+                if (!selType) {
+                    testOrderSelect.innerHTML = '<option value="">請先選擇測驗名稱</option>';
+                    document.getElementById('testReport').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <div class="empty-title">請選擇測驗名稱</div>
+                            <div class="empty-description">請從左側選擇測驗名稱以查看該用戶的測驗紀錄</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 改進過濾邏輯：以資料庫中的名稱為準
+                let filteredRecords = allRecords.filter(r => {
+                    // 直接匹配
+                    if (r.testType === selType) return true;
+                    
+                    // 特殊匹配規則：以資料庫中的【我在色彩學中的MBTI】為準
+                    const typeMapping = {
+                        '我在色彩學中的MBTI': ['色彩性格測驗', 'MBTI色彩測驗', '我在色彩學中的MBTI', 'MBTI測驗'],
+                        '色彩性格測驗': ['我在色彩學中的MBTI'],  // 舊的testType映射到新的資料庫名稱
+                        'MBTI測驗': ['我在色彩學中的MBTI'],
+                        'MBTI色彩測驗': ['我在色彩學中的MBTI']
+                    };
+                    
+                    if (typeMapping[selType]) {
+                        return typeMapping[selType].includes(r.testType);
+                    }
+                    if (typeMapping[r.testType]) {
+                        return typeMapping[r.testType].includes(selType);
+                    }
+                    
+                    return false;
+                });
+                
+                console.log('選擇的測驗類型:', selType);
+                console.log('過濾後的紀錄數量:', filteredRecords.length);
+                console.log('過濾後的紀錄:', filteredRecords);
+                
+                if (filteredRecords.length === 0) {
+                    testOrderSelect.innerHTML = '<option value="">無該測驗紀錄</option>';
+                    document.getElementById('testReport').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <div class="empty-title">查無測驗紀錄</div>
+                            <div class="empty-description">該用戶尚未進行過「${selType}」測驗</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 排序（按時間升序，最早的在前）
+                filteredRecords.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                testOrderSelect.innerHTML = filteredRecords.map((r, i) => {
+                    const testDate = new Date(r.timestamp).toLocaleString('zh-TW', {
+                        year:'numeric',
+                        month:'2-digit',
+                        day:'2-digit',
+                        hour:'2-digit',
+                        minute:'2-digit'
+                    });
+                    return `<option value="${i}">第${i+1}次測驗 (${testDate})</option>`;
+                }).join('');
+                
+                // 顯示第一次測驗結果
+                displayTestResult(filteredRecords[0]);
+                
+                // 綁定次序變動事件
+                testOrderSelect.onchange = function() {
+                    const idx = parseInt(this.value);
+                    if (!isNaN(idx) && idx >= 0 && idx < filteredRecords.length) {
+                        displayTestResult(filteredRecords[idx]);
+                    }
+                };
+            };
+            
+            // 不自動選擇任何測驗類型，讓用戶手動選擇
+        }
+        
+        async function tryFetchRecords(url, adminToken) {
+            try {
+                const res = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.records && data.records.length > 0) return data.records;
+                }
+            } catch (e) {}
+            return null;
+        }
+        function renderTestRecordsByTypes(allRecords, testTypes) {
+            const recordsByType = {};
+            allRecords.forEach(record => {
+                if (!recordsByType[record.testType]) recordsByType[record.testType] = [];
+                recordsByType[record.testType].push(record);
+            });
+            const testNameSelect = document.getElementById('testNameSelect');
+            testNameSelect.innerHTML = '<option value="">請選擇測驗類型</option>' +
+                testTypes.map(name => `<option value="${name}">${name}</option>`).join('');
+            testNameSelect.onchange = function() {
+                if (this.value) {
+                    displayTestRecordsForType(recordsByType[this.value], this.value);
+                } else {
+                    document.getElementById('testOrderSelect').innerHTML = '<option>請先選擇測驗類型</option>';
+                    document.getElementById('testReport').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <div class="empty-title">請選擇測驗類型</div>
+                            <div class="empty-description">請從左側選擇測驗類型以查看該用戶的測驗紀錄</div>
+                        </div>
+                    `;
+                }
+            };
+            if (testTypes.length > 0) {
+                testNameSelect.value = testTypes[0];
+                displayTestRecordsForType(recordsByType[testTypes[0]], testTypes[0]);
+            }
+        }
+        function showNoRecord() {
+            document.getElementById('testReport').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <div class="empty-title">查無測驗紀錄</div>
+                    <div class="empty-description">該用戶尚未進行過任何測驗</div>
+                </div>
+            `;
+        }
+        function renderTestRecords(allRecords) {
+            // 按測驗類型分組
+            const recordsByType = {};
+            allRecords.forEach(record => {
+                if (!recordsByType[record.testType]) {
+                    recordsByType[record.testType] = [];
+                }
+                recordsByType[record.testType].push(record);
+            });
+            
+            // 更新測驗名稱選項
+            const testNames = Object.keys(recordsByType);
+            const testNameSelect = document.getElementById('testNameSelect');
+            testNameSelect.innerHTML = '<option value="">請選擇測驗類型</option>' + 
+                testNames.map(name => `<option value="${name}">${name}</option>`).join('');
+            
+            // 綁定測驗類型選擇事件
+            testNameSelect.onchange = function() {
+                if (this.value) {
+                    displayTestRecordsForType(recordsByType[this.value], this.value);
+                } else {
+                    document.getElementById('testOrderSelect').innerHTML = '<option>請先選擇測驗類型</option>';
+                    document.getElementById('testReport').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📋</div>
+                            <div class="empty-title">請選擇測驗類型</div>
+                            <div class="empty-description">請從左側選擇測驗類型以查看該用戶的測驗紀錄</div>
+                        </div>
+                    `;
+                }
+            };
+            
+            // 如果有測驗類型，自動載入第一個
+            if (testNames.length > 0) {
+                testNameSelect.value = testNames[0];
+                displayTestRecordsForType(recordsByType[testNames[0]], testNames[0]);
+            }
+        }
+        
+        // 顯示特定測驗類型的紀錄
+        function displayTestRecordsForType(records, testType) {
+            if (!records || records.length === 0) {
+                document.getElementById('testOrderSelect').innerHTML = '<option>無測驗記錄</option>';
+                document.getElementById('testReport').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-title">查無測驗紀錄</div>
+                        <div class="empty-description">該用戶尚未進行過「${testType}」測驗</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按時間排序（最早的在前）
+            records.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            // 更新測驗序選項
+            const testOrderSelect = document.getElementById('testOrderSelect');
+            testOrderSelect.innerHTML = records.map((record, index) => {
+                const testDate = new Date(record.timestamp).toLocaleString('zh-TW', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                return `<option value="${index}">第${index + 1}次測驗 (${testDate})</option>`;
+            }).join('');
+            
+            // 顯示第一次測驗的結果
+            displayTestResult(records[0]);
+            
+            // 綁定測驗序選擇事件
+            testOrderSelect.onchange = function() {
+                const selectedIndex = parseInt(this.value);
+                if (selectedIndex >= 0 && selectedIndex < records.length) {
+                    displayTestResult(records[selectedIndex]);
+                }
+            };
+        }
+        
+        // 載入用戶測驗統計（保留舊函數以備用）
+        function loadUserTestStats(userId, testType, adminToken) {
+            // 顯示載入狀態
+            document.getElementById('testReport').innerHTML = `
+                <div class="loading-state">
+                    <div class="loading-icon">⏳</div>
+                    <div class="loading-text">正在載入測驗紀錄...</div>
+                </div>
+            `;
+            
+            fetch(`/api/test/user-stats/${userId}?testType=${encodeURIComponent(testType)}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                const currentTestRecords = data[testType] || [];
+                const testOrderSelect = document.getElementById('testOrderSelect');
+                
+                if (currentTestRecords.length > 0) {
+                    // 更新測驗序選項 - 按時間排序顯示（最早的在前，最新的在後）
+                    testOrderSelect.innerHTML = currentTestRecords.map((record, index) => {
+                        const testDate = new Date(record.timestamp).toLocaleString('zh-TW', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        return `<option value="${index}">第${index + 1}次測驗 (${testDate})</option>`;
+                    }).join('');
+                    
+                    // 顯示第一次測驗的結果（最早的測驗）
+                    const firstRecord = currentTestRecords[0];
+                    firstRecord.testType = testType; // 確保有測驗類型
+                    displayTestResult(firstRecord);
+                    
+                    // 綁定測驗序選擇事件
+                    testOrderSelect.onchange = function() {
+                        const selectedIndex = parseInt(this.value);
+                        if (selectedIndex >= 0 && selectedIndex < currentTestRecords.length) {
+                            const selectedRecord = currentTestRecords[selectedIndex];
+                            selectedRecord.testType = testType; // 確保有測驗類型
+                            displayTestResult(selectedRecord);
+                        }
+                    };
+                } else {
+                    testOrderSelect.innerHTML = '<option>無測驗記錄</option>';
+                    document.getElementById('testReport').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <div class="empty-title">查無測驗紀錄</div>
+                            <div class="empty-description">該用戶尚未進行過「${testType}」測驗</div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('獲取用戶測驗統計失敗:', error);
+                document.getElementById('testReport').innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-title">查詢失敗</div>
+                        <div class="error-description">無法載入測驗紀錄，請稍後再試</div>
+                    </div>
+                `;
+            });
+        }
+            
+        // 顯示測驗結果
+        async function displayTestResult(record) {
+            if (!record) {
+                document.getElementById('testReport').innerHTML = `<div class="error-state"><div class="error-icon">❌</div><div class="error-title">查無紀錄</div><div class="error-description">無法找到指定的測驗紀錄</div></div>`;
+                return;
+            }
+            
+            console.log('顯示測驗結果:', record);
+            
+            // 解析結果數據
+            let mbtiType = '';
+            let colorType = '';
+            let colorDescription = '';
+            
+            // 優先使用 mbtiResult 和 colorResult
+            if (record.mbtiResult) {
+                mbtiType = record.mbtiResult;
+            } else if (record.result) {
+                const resultParts = record.result.split(' - ');
+                if (resultParts.length >= 2) {
+                    mbtiType = resultParts[0];
+                    colorType = resultParts[1];
+                }
+            }
+            
+            // 處理色彩結果
+            if (record.colorResult && record.colorResult.primary) {
+                const colorMap = {
+                    'blue': '藍 - 神秘的理想主義者',
+                    'green': '綠 - 穩健的守護者',
+                    'yellow': '黃 - 活力的探險家',
+                    'red': '紅 - 熱情的行動者'
+                };
+                colorType = colorMap[record.colorResult.primary] || colorType;
+            }
+            
+            // 如果沒有色彩結果，嘗試從 result 中解析
+            if (!colorType && record.result) {
+                const resultParts = record.result.split(' - ');
+                if (resultParts.length >= 2) {
+                    colorType = resultParts[1];
+                }
+            }
+            
+            // 生成色彩描述
+            const primaryColor = record.colorResult?.primary || 'blue';
+            colorDescription = generateColorDescription(primaryColor, mbtiType);
+            
+            // 生成個性解析
+            const personalityAnalysis = generatePersonalityAnalysis(mbtiType, colorType);
+            
+            // 格式化測驗時間
+            const testDate = new Date(record.timestamp).toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            // 生成測驗答案顯示
+            let answersDisplay = '';
+            if (record.answers && record.answers.length > 0) {
+                answersDisplay = `
+                    <div class="test-answers">
+                        <h3>測驗答案</h3>
+                        <div class="answers-list">
+                            ${record.answers.map((answer, index) => `
+                                <div class="answer-item">
+                                    <span class="answer-question">第${answer.questionId}題：${answer.question}</span>
+                                    <span class="answer-answer">答案：${answer.answer}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 生成測驗分數顯示
+            let scoresDisplay = '';
+            if (record.scores) {
+                const scores = record.scores;
+                scoresDisplay = `
+                    <div class="test-scores">
+                        <h3>測驗分數</h3>
+                        <div class="scores-grid">
+                            ${scores.E !== undefined ? `<div class="score-item"><span>外向(E)：</span><span>${scores.E}</span></div>` : ''}
+                            ${scores.I !== undefined ? `<div class="score-item"><span>內向(I)：</span><span>${scores.I}</span></div>` : ''}
+                            ${scores.N !== undefined ? `<div class="score-item"><span>直覺(N)：</span><span>${scores.N}</span></div>` : ''}
+                            ${scores.S !== undefined ? `<div class="score-item"><span>感覺(S)：</span><span>${scores.S}</span></div>` : ''}
+                            ${scores.T !== undefined ? `<div class="score-item"><span>思考(T)：</span><span>${scores.T}</span></div>` : ''}
+                            ${scores.F !== undefined ? `<div class="score-item"><span>情感(F)：</span><span>${scores.F}</span></div>` : ''}
+                            ${scores.J !== undefined ? `<div class="score-item"><span>判斷(J)：</span><span>${scores.J}</span></div>` : ''}
+                            ${scores.P !== undefined ? `<div class="score-item"><span>感知(P)：</span><span>${scores.P}</span></div>` : ''}
+                            ${scores.red !== undefined ? `<div class="score-item"><span>紅色：</span><span>${scores.red}</span></div>` : ''}
+                            ${scores.yellow !== undefined ? `<div class="score-item"><span>黃色：</span><span>${scores.yellow}</span></div>` : ''}
+                            ${scores.green !== undefined ? `<div class="score-item"><span>綠色：</span><span>${scores.green}</span></div>` : ''}
+                            ${scores.blue !== undefined ? `<div class="score-item"><span>藍色：</span><span>${scores.blue}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 生成詳細的測驗結果顯示
+            document.getElementById('testReport').innerHTML = `
+                <div class="test-result-header">
+                    <h2 class="test-title">${record.testType || '測驗紀錄'}</h2>
+                    <div class="test-date">測驗時間：${testDate}</div>
+                </div>
+                <div class="test-result-content">
+                    <div class="result-item">
+                        <span class="result-label">您的 MBTI 類型：</span>
+                        <span class="result-value">${mbtiType || '未記錄'}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">代表色彩：</span>
+                        <span class="result-value ${getColorClass(colorType)}">${colorType || '未記錄'}</span>
+                    </div>
+                    ${scoresDisplay}
+                    ${answersDisplay}
+                    ${record.details ? `
+                        <div class="test-details">
+                            <h3>測驗詳情</h3>
+                            <div class="details-content">${JSON.stringify(record.details, null, 2)}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // 載入完整色彩報告
+            let topColors = [];
+            if (record.colorResult && record.colorResult.primary) {
+                topColors = [
+                    { color: record.colorResult.primary, zh: '', en: '', text: '', description: '' }
+                ];
+            } else if (record.colorResult && Array.isArray(record.colorResult.primary)) {
+                topColors = record.colorResult.primary.map(c => ({
+                    color: c, zh: '', en: '', text: '', description: ''
+                }));
+            }
+            if (mbtiType && topColors.length > 0) {
+                await loadColorReportByColorResult(topColors, mbtiType);
+            }
+        }
+        
+        // 獲取色彩類別
+        function getColorClass(colorType) {
+            if (!colorType) return '';
+            if (colorType.includes('藍')) return 'blue';
+            if (colorType.includes('綠')) return 'green';
+            if (colorType.includes('黃')) return 'yellow';
+            if (colorType.includes('紅')) return 'red';
+            return '';
+        }
+        
+        // 生成色彩描述
+        function generateColorDescription(colorType, mbtiType) {
+            const descriptions = {
+                'blue': `藍象徵深思熟慮、洞察力與內在智慧。${mbtiType || 'INFJ'}以其強大的共感能力和遠見卓識著稱，總能在混亂中找到秩序，並用深刻的思考影響世界。`,
+                'green': `綠象徵穩定性、和諧與自然。${mbtiType || 'ISFJ'}以其溫暖的關懷和實用的智慧著稱，總是為他人提供支持和安全感。`,
+                'yellow': `黃象徵活力、樂觀與創造力。${mbtiType || 'ENFP'}以其熱情和創新思維著稱，總能激勵他人並帶來新的可能性。`,
+                'red': `紅象徵熱情、行動力與領導力。${mbtiType || 'ENTJ'}以其果斷和戰略思維著稱，總能有效地實現目標並帶領團隊前進。`
+            };
+            return descriptions[colorType] || descriptions['blue'];
+        }
+        
+        // 生成個性解析
+        function generatePersonalityAnalysis(mbtiType, colorType) {
+            if (!mbtiType) return '';
+            
+            const analysis = {
+                'INFJ': {
+                    core: '核心特質：內向但充滿熱情，擁有強烈的價值觀和使命感。',
+                    emotion: '情緒特點：情感豐富且細膩，容易感受到他人的需求與情緒。',
+                    thinking: '思維方式：追求深度與意義，對未來有清晰的願景。',
+                    action: '行動模式：偏向計劃與組織，樂於為理想努力。'
+                },
+                'ISFJ': {
+                    core: '核心特質：溫暖且負責任，重視和諧與穩定。',
+                    emotion: '情緒特點：關懷他人，具有強烈的同理心。',
+                    thinking: '思維方式：注重細節，重視傳統與實用性。',
+                    action: '行動模式：穩健可靠，善於照顧他人需求。'
+                },
+                'ENFP': {
+                    core: '核心特質：熱情且富有創意，充滿活力和可能性。',
+                    emotion: '情緒特點：情感豐富，善於激勵他人。',
+                    thinking: '思維方式：靈活多變，善於發現新的可能性。',
+                    action: '行動模式：充滿熱情，樂於探索和創新。'
+                },
+                'ENTJ': {
+                    core: '核心特質：果斷且具有領導力，追求效率和成就。',
+                    emotion: '情緒特點：理性且直接，善於制定策略。',
+                    thinking: '思維方式：邏輯清晰，善於分析複雜問題。',
+                    action: '行動模式：行動力強，善於組織和領導。'
+                }
+            };
+            
+            const mbtiAnalysis = analysis[mbtiType] || {
+                core: '核心特質：具有獨特的個性特質和價值觀。',
+                emotion: '情緒特點：情感表達豐富，善於理解他人。',
+                thinking: '思維方式：具有獨特的思考模式和見解。',
+                action: '行動模式：根據個人特質採取相應的行動策略。'
+            };
+            
+            return `
+                <div class="analysis-item">
+                    <span class="analysis-icon">◆</span>
+                    <span class="analysis-text">${mbtiAnalysis.core}</span>
+                </div>
+                <div class="analysis-item">
+                    <span class="analysis-icon">◆</span>
+                    <span class="analysis-text">${mbtiAnalysis.emotion}</span>
+                </div>
+                <div class="analysis-item">
+                    <span class="analysis-icon">◆</span>
+                    <span class="analysis-text">${mbtiAnalysis.thinking}</span>
+                </div>
+                <div class="analysis-item">
+                    <span class="analysis-icon">◆</span>
+                    <span class="analysis-text">${mbtiAnalysis.action}</span>
+                </div>
+            `;
+        }
+
+        // ====== 以下為 result.html 相關動態報告函數 ======
+        async function loadColorReport(scores, mbtiType) {
+            try {
+                // 獲取最高分顏色組合
+                const topColors = getTopColors(scores);
+                if (topColors.length === 0) return;
+
+                // 生成資料夾路徑和檔案名稱
+                const folderPath = getFolderPath(topColors);
+                const fileName = getFileName(mbtiType, topColors);
+                const fullPath = `../../test/${folderPath}/${fileName}`;
+
+                const res = await fetch(fullPath);
+                if (!res.ok) {
+                    console.error(`找不到報告檔案: ${fullPath}`);
+                    return;
+                }
+                const text = await res.text();
+
+                const section = extractMbtiSection(text, mbtiType);
+                if (!section) return;
+
+                renderReportSection(section, topColors, mbtiType);
+            } catch (error) {
+                console.error('載入報告時發生錯誤:', error);
+            }
+        }
+
+        // 獲取最高分顏色組合（支援1-4種顏色並列）
+        function getTopColors(scores) {
+            if (!scores) return [];
+            
+            const colorScores = [
+                { color: 'red', score: scores.red || 0 },
+                { color: 'yellow', score: scores.yellow || 0 },
+                { color: 'green', score: scores.green || 0 },
+                { color: 'blue', score: scores.blue || 0 }
+            ];
+            
+            // 找出最高分
+            const maxScore = Math.max(...colorScores.map(c => c.score));
+            
+            // 找出所有等於最高分的顏色
+            const topColors = colorScores
+                .filter(c => c.score === maxScore)
+                .map(c => {
+                    const info = getColorInfo(c.color);
+                    return {
+                        color: c.color,
+                        zh: info.zh,
+                        en: info.en,
+                        text: info.text,
+                        description: info.description
+                    };
+                });
+            
+            return topColors;
+        }
+
+        // 根據顏色名稱獲取顏色翻譯和描述
+        function getColorInfo(colorName) {
+            switch (colorName) {
+                case 'red':
+                    return { text: '紅 - 熱情的行動者', description: '紅色代表活力、熱情和行動力。喜歡直接面對挑戰，追求立即的成果。', zh: '紅', en: 'Red' };
+                case 'yellow':
+                    return { text: '黃 - 活力的探險家', description: '黃色代表陽光、樂觀與能量。喜歡自由和變化，靈活的適應能力和享受當下的態度。', zh: '黃', en: 'Yellow' };
+                case 'green':
+                    return { text: '綠 - 穩健的守護者', description: '綠色象徵和諧、平衡與成長。重視傳統和秩序，具有可靠、負責和務實的態度。', zh: '綠', en: 'Green' };
+                case 'blue':
+                    return { text: '藍 - 神秘的理想主義者', description: '藍象徵深邃冷靜，洞察力與內在智慧。具有強大的共感能力和遠見卓識。', zh: '藍', en: 'Blue' };
+                default:
+                    return { text: '未知', description: '未知顏色類型', zh: '未知', en: 'Unknown' };
+            }
+        }
+
+        // 根據顏色組合生成資料夾路徑
+        function getFolderPath(topColors) {
+            const colorCount = topColors.length;
+            let folderName = '';
+            
+            if (colorCount === 1) {
+                folderName = 'one color';
+            } else if (colorCount === 2) {
+                // 排序顏色確保一致性
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `two color/${sortedColors[0].en} x ${sortedColors[1].en}`;
+            } else if (colorCount === 3) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
+            } else if (colorCount === 4) {
+                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
+                folderName = `four color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en} x ${sortedColors[3].en}`;
+            }
+            
+            return `Full-report/${folderName}`;
+        }
+
+        // 根據MBTI類型和顏色組合生成檔案名稱
+        function getFileName(mbtiType, topColors) {
+            const mbtiNames = {
+                'ENFJ': 'ENFJ主人公',
+                'ENFP': 'ENFP競選者',
+                'ENTJ': 'ENTJ指揮官',
+                'ENTP': 'ENTP辯論家',
+                'ESFJ': 'ESFJ執政官',
+                'ESFP': 'ESFP表演者',
+                'ESTJ': 'ESTJ總經理',
+                'ESTP': 'ESTP企業家',
+                'INFJ': 'INFJ提倡者',
+                'INFP': 'INFP調停者',
+                'INTJ': 'INTJ建築師',
+                'INTP': 'INTP邏輯學家',
+                'ISFJ': 'ISFJ守衛者',
+                'ISFP': 'ISFP探險家',
+                'ISTJ': 'ISTJ物流師',
+                'ISTP': 'ISTP鑑賞家'
+            };
+            
+            const mbtiName = mbtiNames[mbtiType] || mbtiType;
+            const colorString = topColors.map(c => c.zh).join('');
+            
+            return `${mbtiName}x${colorString}.txt`;
+        }
+        function extractMbtiSection(fullText, mbtiType) {
+            if (!fullText || !mbtiType) return null;
+            const lines = fullText.split(/\r?\n/);
+            const headerRegex = new RegExp(`^🧭\\s*.*\\(${mbtiType}\\)`);
+            let start = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (headerRegex.test(lines[i])) { start = i; break; }
+            }
+            if (start === -1) return null;
+            let end = lines.length;
+            for (let j = start + 1; j < lines.length; j++) {
+                if (/^_{6,}/.test(lines[j])) { end = j; break; }
+            }
+            const sectionLines = lines.slice(start, end).filter(l => l.trim().length > 0);
+            return sectionLines.join('\n');
+        }
+        function renderReportSection(sectionText, topColors, mbtiType) {
+            if (!sectionText) return;
+            const container = document.getElementById('testReport');
+            if (!container) return;
+            let report = document.getElementById('color-report');
+            if (!report) {
+                report = document.createElement('div');
+                report.id = 'color-report';
+                report.className = 'result-section report';
+                container.appendChild(report);
+            } else {
+                report.innerHTML = '';
+                report.classList.add('report');
+            }
+
+            // 顯示多色組合資訊
+            if (topColors && topColors.length > 0) {
+                const colorInfoDiv = document.createElement('div');
+                colorInfoDiv.className = 'color-combination-info';
+                colorInfoDiv.style.cssText = `
+                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin-bottom: 24px;
+                    border-left: 4px solid #007bff;
+                `;
+                
+                const title = document.createElement('h3');
+                title.textContent = '您的專屬色彩組合';
+                title.style.cssText = 'margin: 0 0 12px 0; color: #495057; font-size: 18px;';
+                colorInfoDiv.appendChild(title);
+                
+                const colorList = document.createElement('div');
+                colorList.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
+                
+                topColors.forEach(color => {
+                    const colorBadge = document.createElement('span');
+                    colorBadge.style.cssText = `
+                        background: ${getColorCode(color.color)};
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        margin: 2px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    `;
+                    colorBadge.textContent = `${color.zh} ${color.en}`;
+                    colorList.appendChild(colorBadge);
+                });
+                
+                colorInfoDiv.appendChild(colorList);
+                report.appendChild(colorInfoDiv);
+            }
+
+            // 解析段落
+            const lines = sectionText.split(/\r?\n/);
+            const sections = [];
+            let current = null;
+            function startSection(icon, title) {
+                if (current) sections.push(current);
+                current = { icon, title, content: [] };
+            }
+            for (const raw of lines) {
+                const line = raw.trim();
+                if (!line) continue;
+                if (line.startsWith('🧭')) { startSection('🧭', `你的 MBTI 人格解析 — ${mbtiType}`); continue; }
+                if (line.startsWith('🌼')) { 
+                    let colorDisplay = '';
+                    if (topColors && topColors.length > 0) {
+                        if (topColors.length === 1) {
+                            colorDisplay = `${topColors[0].zh} (${topColors[0].en})`;
+                        } else {
+                            const colorNames = topColors.map(c => `${c.zh} (${c.en})`).join(' × ');
+                            colorDisplay = colorNames;
+                        }
+                    } else {
+                        colorDisplay = '未知顏色';
+                    }
+                    startSection('🌼', `你的專屬顏色 — ${colorDisplay}`); 
+                    continue; 
+                }
+                if (line.startsWith('🌈')) { startSection('🌈', 'MBTI × 色彩學的專屬結合'); continue; }
+                if (line.startsWith('💡')) { startSection('💡', '給你的生活小建議'); continue; }
+                if (line.startsWith('✨')) { startSection('✨', '專屬一句話'); continue; }
+                if (!current) startSection('🧭', '你的 MBTI 人格解析');
+                current.content.push(line);
+            }
+            if (current) sections.push(current);
+            sections.forEach((sec) => {
+                const sectionEl = document.createElement('div');
+                sectionEl.className = 'section';
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                const iconEl = document.createElement('span');
+                iconEl.className = 'icon';
+                iconEl.textContent = sec.icon;
+                const titleEl = document.createElement('span');
+                titleEl.textContent = sec.title;
+                header.appendChild(iconEl);
+                header.appendChild(titleEl);
+                sectionEl.appendChild(header);
+                const hr = document.createElement('hr');
+                hr.className = 'divider';
+                sectionEl.appendChild(hr);
+                let ulEl = null;
+                let subUl = null;
+                let isInReminders = false;
+                let reminderItemCount = 0;
+                sec.content.forEach((text) => {
+                    if (text.startsWith('•')) {
+                        if (!ulEl) { ulEl = document.createElement('ul'); sectionEl.appendChild(ulEl); }
+                        const li = document.createElement('li');
+                        li.textContent = text.replace(/^•\s*/, '');
+                        ulEl.appendChild(li);
+                        subUl = null;
+                        if (isInReminders) { reminderItemCount++; }
+                    } else if (text.startsWith('○')) {
+                        if (!ulEl) { ulEl = document.createElement('ul'); sectionEl.appendChild(ulEl); }
+                        if (!subUl) { subUl = document.createElement('ul'); ulEl.appendChild(subUl); }
+                        const li2 = document.createElement('li');
+                        li2.textContent = text.replace(/^○\s*/, '');
+                        subUl.appendChild(li2);
+                    } else {
+                        if (isInReminders && ulEl && reminderItemCount >= 4) {
+                            const separator = document.createElement('hr');
+                            separator.className = 'divider';
+                            separator.style.margin = '20px 0';
+                            sectionEl.appendChild(separator);
+                            isInReminders = false;
+                            reminderItemCount = 0;
+                        }
+                        ulEl = null;
+                        subUl = null;
+                        const p = document.createElement('p');
+                        p.textContent = text;
+                        sectionEl.appendChild(p);
+                    }
+                });
+                report.appendChild(sectionEl);
+            });
+        }
+
+        // 獲取顏色代碼
+        function getColorCode(colorName) {
+            switch (colorName) {
+                case 'red':
+                    return '#ff6b6b';
+                case 'yellow':
+                    return '#ffd93d';
+                case 'green':
+                    return '#6bcb77';
+                case 'blue':
+                    return '#4d96ff';
+                default:
+                    return '#cccccc';
+            }
+        }
+        // ====== 以上為 result.html 相關動態報告函數 ======
+
+        // [A] 取得主色陣列（以 colorResult.primary 為主，支援多主色）
+        function parseTopColorsFromRecord(record) {
+            const colorKeyToZh = { red: '紅', yellow: '黃', green: '綠', blue: '藍' };
+            const colorKeyToEn = { red: 'Red', yellow: 'Yellow', green: 'Green', blue: 'Blue' };
+            let res = [];
+            if (record.colorResult && record.colorResult.primary && Array.isArray(record.colorResult.primary)) {
+                for (const c of record.colorResult.primary) {
+                    res.push({
+                        color: c,
+                        zh: colorKeyToZh[c] || c,
+                        en: colorKeyToEn[c] || c,
+                        text: '', description: ''
+                    });
+                }
+            }
+            return res;
+        }
+
+
+        // [C] 新增loadColorReportByColorResult，根據已選 topColors/mbtiType 組路徑載入報告
+        async function loadColorReportByColorResult(topColors, mbtiType) {
+            try {
+                if (topColors.length === 0) return;
+                const folderPath = getFolderPath(topColors);
+                const fileName = getFileName(mbtiType, topColors);
+                const fullPath = `../../test/${folderPath}/${fileName}`;
+                const res = await fetch(fullPath);
+                if (!res.ok) {
+                    console.error(`找不到報告檔案: ${fullPath}`);
+                    return;
+                }
+                const text = await res.text();
+                const section = extractMbtiSection(text, mbtiType);
+                if (!section) return;
+                renderReportSection(section, topColors, mbtiType);
+            } catch (error) {
+                console.error('載入報告時發生錯誤:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

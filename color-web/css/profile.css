@@ -1,0 +1,305 @@
+/* 個人資料頁面樣式 */
+.profile-container {
+    max-width: 800px;
+    margin: 100px auto 50px;
+    padding: 30px;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-title {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.profile-form {
+    margin-top: 30px;
+}
+
+/* 分區塊樣式 */
+.form-section {
+    margin-bottom: 40px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px dashed #FF8C9E;
+}
+
+.form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+.form-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+    font-size: 20px;
+    text-align: center;
+    color: #4FC3F7;
+}
+
+.form-label {
+    width: 100px;
+    margin-right: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-value {
+    flex: 1;
+    color: #444;
+}
+
+.form-value input[type="radio"] {
+    margin-right: 5px;
+}
+
+.form-value label {
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.edit-button {
+    padding: 8px 20px;
+    background-color: #FFB6C1;
+    color: #000;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.edit-button:hover {
+    background-color: #FF8C9E;
+}
+
+/* 表單輸入框樣式 */
+.form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: white;
+    transition: all 0.3s ease;
+    color: #333;
+}
+
+.form-input:disabled {
+    background-color: transparent;
+    border: none;
+    color: #444;
+    cursor: default;
+    padding: 0;
+}
+
+.form-input:disabled:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.form-input:not(:disabled) {
+    background-color: white;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+.form-input:not(:disabled):focus {
+    outline: none;
+    border-color: #4FC3F7;
+    box-shadow: 0 0 5px rgba(79, 195, 247, 0.3);
+}
+
+.date-input {
+    width: 80px;
+    padding: 10px;
+    margin-right: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    background-color: white;
+    transition: all 0.3s ease;
+    color: #333;
+}
+
+.date-input:disabled {
+    background-color: transparent;
+    border: none;
+    color: #444;
+    cursor: default;
+    padding: 0;
+    margin-right: 5px;
+}
+
+.date-input:disabled:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.date-input:not(:disabled) {
+    background-color: white;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+.date-input:not(:disabled):focus {
+    outline: none;
+    border-color: #4FC3F7;
+    box-shadow: 0 0 5px rgba(79, 195, 247, 0.3);
+}
+
+/* 下拉選單樣式 */
+.form-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    background-color: white;
+    transition: all 0.3s ease;
+    color: #333;
+    cursor: pointer;
+}
+
+.form-select:disabled {
+    background-color: transparent;
+    border: none;
+    color: #444;
+    cursor: default;
+    padding: 0;
+}
+
+.form-select:disabled:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.form-select:not(:disabled) {
+    background-color: white;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+.form-select:not(:disabled):focus {
+    outline: none;
+    border-color: #4FC3F7;
+    box-shadow: 0 0 5px rgba(79, 195, 247, 0.3);
+}
+
+/* 單選按鈕樣式 */
+.form-value input[type="radio"]:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.form-value input[type="radio"]:not(:disabled) {
+    cursor: pointer;
+    opacity: 1;
+}
+
+.form-value label {
+    margin-right: 20px;
+    transition: cursor 0.3s ease;
+}
+
+.form-value input[type="radio"]:disabled + label {
+    cursor: default;
+}
+
+.form-value input[type="radio"]:not(:disabled) + label {
+    cursor: pointer;
+}
+
+.save-button, .cancel-button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+    margin-left: 10px;
+}
+
+.save-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.save-button:hover {
+    background-color: #45a049;
+}
+
+.cancel-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.cancel-button:hover {
+    background-color: #d32f2f;
+}
+
+/* 訊息樣式 */
+.error-message, .success-message {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+.success-message {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .profile-container {
+        margin: 80px 20px 50px;
+        padding: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .form-label {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .form-icon {
+        position: absolute;
+        left: 30px;
+    }
+    
+    .form-label {
+        margin-left: 35px;
+    }
+} 

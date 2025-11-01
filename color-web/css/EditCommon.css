@@ -1,0 +1,217 @@
+/* EditCommon首頁管理專用樣式 */
+
+.main-content {
+  max-width: 1280px;
+  margin: 50px auto 0;
+  padding: 0 30px 64px;
+}
+.tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+.tabs > div {
+  display: flex;
+  gap: 2rem;
+}
+.tabs .add-btn {
+  margin: 0 0 0 auto;
+  height: 40px;
+  padding: 0 32px;
+  font-size: 1.08rem;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: #999;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 16px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.19s;
+}
+.tab-btn.active {
+  color: #222;
+  border-bottom: 3px solid #222;
+}
+#info-list-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 36px;
+  margin: 25px 0;
+  min-height: 250px;
+}
+
+.admin-card {
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 3px 14px 0 #e7e7ef33;
+  overflow: hidden;
+  padding: 20px 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 400px;
+  min-width: 0;
+  position: relative;
+  transition: box-shadow 0.2s, transform 0.15s;
+  border: 1.5px solid #efefef;
+}
+.admin-card:hover {
+  box-shadow: 0 8px 30px 0 #d2d2e844;
+  border: 1.5px solid #ddb7c0;
+  transform: translateY(-2px) scale(1.02);
+}
+.admin-card .card-image {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: #f7f6f8;
+  border-radius: 10px;
+}
+.admin-card .card-image img {
+  width: auto; height: 100%; max-width: 100%; object-fit: contain;
+}
+.admin-card h2 {
+  margin-top: 7px; margin-bottom: 12px; font-size: 1.2rem; font-weight: bold; color: #282828; text-align: center;
+  width: 100%;
+  word-break: break-word;
+}
+.admin-card p {
+  margin: 0;
+  max-height: 56px;
+  overflow: auto;
+  font-size: 1rem;
+  color: #666;
+  text-align: left;
+}
+.admin-card .edit-btn,
+.admin-card .delete-btn {
+  background: #f7d3dd;
+  border: none;
+  color: #b43654;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 7px 16px;
+  margin-top: 20px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.13s, color 0.13s;
+}
+.admin-card .delete-btn {
+  background: #ffeaea;
+  color: #c22727;
+}
+.admin-card .edit-btn:hover {
+  background: #d36e8b; color: #fff;
+}
+.admin-card .delete-btn:hover {
+  background: #ffb5b5; color: #fff;
+}
+/* 新增按鈕 */
+.add-btn {
+  display: inline-block;
+  background: #ffb5c8;
+  color: #bb1650;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  padding: 12px 32px;
+  font-weight: 700;
+  margin: 32px 0 12px 0;
+  box-shadow: 0 1px 6px 0 #ad195613;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.add-btn:hover {
+  background: #d36e8b;
+  color: #fff;
+}
+/* 彈窗表單 */
+.modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  z-index: 99999;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: none;
+  display: none; /* 預設隱藏 */
+}
+
+/* 當 modal 顯示時 */
+.modal.show, .modal[style*="display: block"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.modal-content {
+  background: #fff; padding: 35px 36px 20px 36px;
+  border-radius: 16px; box-shadow: 0 4px 30px 0 #eab1d766;
+  min-width: 300px; max-width: 430px; width: 94vw;
+  display: flex; flex-direction: column;
+}
+#modal-title { margin: 0 0 8px 0; font-size: 1.3rem; font-weight: 700; color: #964d7e; }
+.form-row {
+  display: flex; flex-direction: column; margin-bottom: 17px;
+}
+.form-row label { font-size: 1.07rem; color: #222; font-weight: 600; margin-bottom: 4px; }
+.form-row input[type='text'], .form-row textarea {
+  border: 1.3px solid #efaec5;
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-size: 1.04rem;
+  outline: none;
+  transition: border 0.15s;
+  background: #f9f8fa;
+}
+.form-row input[type='text']:focus, .form-row textarea:focus { border-color: #cf5a97; }
+.form-row textarea { resize: vertical; }
+.form-row input[type='file'] { margin-top: 8px; }
+.form-row img#preview-image {
+  border-radius: 8px;
+  margin-top: 7px;
+  max-width: 86%;
+  box-shadow: 0 2px 10px 0 #efb7d47a;
+  background: #f4f4fa;
+}
+.form-actions {
+  display: flex;
+  gap: 18px;
+  justify-content: flex-end;
+}
+.save-btn, .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 23px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1.08rem;
+  transition: background .12s, color .12s;
+}
+.save-btn { background: #ffe3e9; color: #bb1650; }
+.cancel-btn { background: #f8f8f8; color: #222; }
+.save-btn:hover { background: #bb1467; color: #fff; }
+.cancel-btn:hover { background: #ddd; }
+@media (max-width: 800px) {
+  #info-list-section {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .main-content { padding: 0 2vw 64px; }
+}

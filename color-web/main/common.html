@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 首頁</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/all.css">
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo" style="height: 40px; vertical-align: middle; margin-right: 10px;">
+            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+        </div>
+        <div class="nav-links">
+            <a href="main/common.html" class="nav-link active">首頁</a>
+            <a href="test/test.html" class="nav-link">測驗系統</a>
+            <a href="main/about.html" class="nav-link">關於我們</a>
+            <a href="main/login-user.html" class="nav-link" id="loginButton">登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="main/user/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="carousel-section">
+        <div class="section-header">
+            <h2>最新資訊</h2>
+        </div>
+        <div class="single-carousel-container">
+            <div class="single-carousel" id="newsCarousel">
+                <div class="carousel-loading">載入中...</div>
+            </div>
+            <div class="carousel-arrow prev" onclick="moveNewsSlide(-1)">❮</div>
+            <div class="carousel-arrow next" onclick="moveNewsSlide(1)">❯</div>
+            <div class="carousel-indicators" id="carouselIndicators"></div>
+        </div>
+        <a href="news/events.html" class="view-more-button">查看更多活動</a>
+    </section>
+
+    <section class="info-section">
+        <h2 class="section-title">一般資訊</h2>
+        <div class="info-carousel-container">
+            <div class="info-carousel" id="infoCarousel">
+                <div class="carousel-loading">載入中...</div>
+            </div>
+            <div class="info-carousel-arrows">
+                <button class="info-carousel-arrow left">&#8592;</button>
+                <button class="info-carousel-arrow right">&#8594;</button>
+            </div>
+        </div>
+        <a href="news/all.html" class="view-more-button">查看更多資訊</a>
+    </section>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script src="../js/navbar.js"></script>
+    <script>
+        // 最新資訊輪播相關變數
+        let newsData = [];
+        let currentNewsIndex = 0;
+        let newsCarouselTimer = null;
+
+        // 一般資訊輪播相關變數
+        let commonData = [];
+        let infoIndex = 0;
+
+        // 載入最新資訊資料
+        async function loadNewsData() {
+            try {
+                const response = await fetch('/api/homepage?type=news');
+                if (response.ok) {
+                    newsData = await response.json();
+                    // 只取最新的6個
+                    newsData = newsData.slice(0, 6);
+                    renderNewsCarousel();
+                } else {
+                    console.error('載入最新資訊失敗');
+                    document.getElementById('newsCarousel').innerHTML = '<div class="carousel-loading">載入失敗</div>';
+                }
+            } catch (error) {
+                console.error('載入最新資訊錯誤:', error);
+                document.getElementById('newsCarousel').innerHTML = '<div class="carousel-loading">載入失敗</div>';
+            }
+        }
+
+        // 渲染輪播內容
+        function renderNewsCarousel() {
+            const carousel = document.getElementById('newsCarousel');
+            const indicators = document.getElementById('carouselIndicators');
+            
+            if (newsData.length === 0) {
+                carousel.innerHTML = '<div class="carousel-loading">暫無最新資訊</div>';
+                return;
+            }
+
+            // 渲染輪播內容
+            carousel.innerHTML = newsData.map((item, index) => `
+                <div class="news-slide ${index === 0 ? 'active' : ''}">
+                    <a href="${item.link || '#'}" target="_blank">
+                        <img src="${item.imageUrl}" alt="${item.title}" />
+                        <div class="news-content">
+                            <h3>${item.title}</h3>
+                            <p>${item.description}</p>
+                        </div>
+                    </a>
+                </div>
+            `).join('');
+
+            // 渲染指示器
+            indicators.innerHTML = newsData.map((_, index) => 
+                `<span class="indicator ${index === 0 ? 'active' : ''}" onclick="goToNewsSlide(${index})"></span>`
+            ).join('');
+
+            // 開始自動輪播
+            startNewsAutoPlay();
+        }
+
+        // 切換到指定輪播（設為全局函數供HTML調用）
+        window.goToNewsSlide = function(index) {
+            currentNewsIndex = index;
+            updateNewsSlide();
+        }
+
+        // 移動輪播（設為全局函數供HTML調用）
+        window.moveNewsSlide = function(direction) {
+            currentNewsIndex += direction;
+            if (currentNewsIndex >= newsData.length) {
+                currentNewsIndex = 0;
+            } else if (currentNewsIndex < 0) {
+                currentNewsIndex = newsData.length - 1;
+            }
+            updateNewsSlide();
+        }
+
+        // 更新輪播顯示
+        function updateNewsSlide() {
+            const slides = document.querySelectorAll('.news-slide');
+            const indicators = document.querySelectorAll('.indicator');
+            
+            slides.forEach((slide, index) => {
+                if (index === currentNewsIndex) {
+                    slide.classList.add('active');
+                    slide.classList.remove('prev');
+                } else {
+                    slide.classList.remove('active');
+                    if (index < currentNewsIndex) {
+                        slide.classList.add('prev');
+                    } else {
+                        slide.classList.remove('prev');
+                    }
+                }
+            });
+            
+            indicators.forEach((indicator, index) => {
+                indicator.classList.toggle('active', index === currentNewsIndex);
+            });
+        }
+
+        // 開始自動輪播
+        function startNewsAutoPlay() {
+            if (newsCarouselTimer) clearInterval(newsCarouselTimer);
+            newsCarouselTimer = setInterval(() => {
+                moveNewsSlide(1);
+            }, 8000); // 改為8秒切換
+        }
+
+        // 停止自動輪播
+        function stopNewsAutoPlay() {
+            if (newsCarouselTimer) {
+                clearInterval(newsCarouselTimer);
+                newsCarouselTimer = null;
+            }
+        }
+
+        // 載入一般資訊資料
+        async function loadCommonData() {
+            try {
+                const response = await fetch('/api/homepage?type=common');
+                if (response.ok) {
+                    commonData = await response.json();
+                    // 只取最新的6個
+                    commonData = commonData.slice(0, 6);
+                    renderInfoCarousel();
+                } else {
+                    console.error('載入一般資訊失敗');
+                    document.getElementById('infoCarousel').innerHTML = '<div class="carousel-loading">載入失敗</div>';
+                }
+            } catch (error) {
+                console.error('載入一般資訊錯誤:', error);
+                document.getElementById('infoCarousel').innerHTML = '<div class="carousel-loading">載入失敗</div>';
+            }
+        }
+
+        // 渲染一般資訊輪播內容
+        function renderInfoCarousel() {
+            const carousel = document.getElementById('infoCarousel');
+            
+            if (commonData.length === 0) {
+                carousel.innerHTML = '<div class="carousel-loading">暫無一般資訊</div>';
+                return;
+            }
+
+            // 渲染輪播內容
+            carousel.innerHTML = commonData.map((item, index) => `
+                <a href="${item.link || '#'}" class="info-card" target="_blank">
+                    <img src="${item.imageUrl}" alt="${item.title || ''}" class="info-image">
+                    <h3 class="info-title">${item.title || ''}</h3>
+                    <p class="info-desc">${item.description || ''}</p>
+                </a>
+            `).join('');
+            
+            // 渲染完成後初始化輪播功能
+            setTimeout(initializeInfoCarousel, 100);
+        }
+        
+        // info-carousel 輪播功能
+        function initializeInfoCarousel() {
+            const infoCarousel = document.getElementById("infoCarousel");
+            const infoCards = infoCarousel.querySelectorAll(".info-card");
+            
+            if (infoCards.length === 0) {
+                return; // 如果沒有卡片，就不初始化
+            }
+            
+            const infoGap = 40;
+            const infoCardWidth = infoCards[0].offsetWidth + infoGap;
+            const infoTotal = infoCards.length;
+
+            function showInfoSlide(idx, smooth = true) {
+                infoCarousel.scrollTo({
+                    left: idx * infoCardWidth,
+                    behavior: smooth ? "smooth" : "auto"
+                });
+            }
+            
+            function nextInfoSlide() {
+                infoIndex = (infoIndex + 1) % infoTotal;
+                showInfoSlide(infoIndex);
+            }
+            
+            function prevInfoSlide() {
+                infoIndex = (infoIndex - 1 + infoTotal) % infoTotal;
+                showInfoSlide(infoIndex);
+            }
+            
+            // 重設 infoIndex
+            infoIndex = 0;
+            
+            // 設置按鈕事件
+            const leftBtn = document.querySelector(".info-carousel-arrow.left");
+            const rightBtn = document.querySelector(".info-carousel-arrow.right");
+            if (leftBtn && rightBtn) {
+                leftBtn.onclick = prevInfoSlide;
+                rightBtn.onclick = nextInfoSlide;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateNavigation();
+            
+            // 載入最新資訊
+            loadNewsData();
+            
+            // 添加滑鼠懸停暫停事件
+            const carouselContainer = document.querySelector('.single-carousel-container');
+            if (carouselContainer) {
+                carouselContainer.addEventListener('mouseenter', stopNewsAutoPlay);
+                carouselContainer.addEventListener('mouseleave', startNewsAutoPlay);
+            }
+
+            // ---------- 下方 info-carousel ----------
+            // 載入一般資訊
+            loadCommonData();
+        });
+    </script>
+    
+
+</body>
+</html> 

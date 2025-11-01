@@ -1,0 +1,175 @@
+.admin-content {
+    max-width: 1200px;
+    margin: 80px auto 0;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    padding: 2rem;
+    align-items: center;
+}
+
+.admin-card {
+    background: #fff;
+    border-radius: 15px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem;
+    height: 420px;
+}
+
+.admin-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-image {
+    width: 100%;
+    height: 200px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.admin-card h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.user-icon {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+    color: #333;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+    .admin-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .admin-content {
+        padding: 1rem;
+    }
+
+    .card-image {
+        height: 180px;
+    }
+
+    .admin-card h2 {
+        font-size: 1.3rem;
+    }
+}
+
+/* EditSurvey.html 專用樣式 */
+/* 讓內容區塊與導覽列有距離 */
+.main-content { margin-top: 160px !important; } 
+
+.back-button {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+    position: relative;
+    z-index: 10;
+}
+
+.back-img {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    display: block;
+    transition: filter 0.2s;
+}
+
+.back-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111;
+    letter-spacing: 3px;
+    transition: color 0.2s;
+    line-height: 1;
+    user-select: none;
+}
+
+.back-button:hover .back-img {
+    filter: brightness(0) saturate(100%) invert(36%) sepia(97%) saturate(749%) hue-rotate(312deg) brightness(102%) contrast(101%);
+}
+
+.back-button:hover .back-text {
+    color: #FF677D;
+} 
+
+/* 管理tab選單樣式 */
+.tab-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 18px;
+    margin: 28px 0 36px 0;
+    width: 100%;
+    max-width: 1080px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.tab-btn {
+    padding: 11px 34px;
+    border: none;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.24s;
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 1px 2px #0001;
+}
+.tab-btn.active {
+    background: #FF677D;
+    color: white;
+    border-color: #FF677D;
+}
+.tab-btn:hover:not(.active) {
+    background: #ffe7eb;
+    color: #222;
+}
+@media (max-width: 800px) {
+    .tab-btns {
+        margin: 18px 0;
+        gap: 10px;
+    }
+    .tab-btn {
+        padding: 8px 16px;
+        font-size: 15px;
+    }
+} 

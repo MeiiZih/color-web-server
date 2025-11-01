@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>問卷管理 - ColorMind Lab</title>
+        <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/survey.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+
+    <main class="main-content">
+        <div class="header-section">
+            <a href="admin.html" class="back-button" aria-label="返回">
+                <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
+                <span class="back-text">後臺管理</span>
+            </a>
+            <h1 class="page-title">問卷管理</h1>
+            <div class="survey-actions">
+                <button class="add-btn" id="addSurveyBtn">＋新增問卷</button>
+            </div>
+        </div>
+        
+        <div class="survey-grid" id="surveyGrid">
+            <div class="loading">載入中...</div>
+        </div>
+    </main>
+    
+    <script>
+        let surveys = [];
+        let selectedSurveys = new Set();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 檢查登入狀態
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const adminToken = sessionStorage.getItem('adminToken');
+            
+            if (!adminEmail || !adminName || !adminToken) {
+                window.location.href = '../../main/login-user.html';
+                return;
+            }
+            
+            if (typeof updateNavbar === 'function') updateNavbar();
+            
+            // 載入問卷列表
+            loadSurveys();
+            
+            // 綁定按鈕事件
+            document.getElementById('addSurveyBtn').addEventListener('click', addNewSurvey);
+            document.getElementById('deleteSurveyBtn').addEventListener('click', deleteSelectedSurveys);
+        });
+        
+        async function loadSurveys() {
+            try {
+                const adminToken = sessionStorage.getItem('adminToken');
+                const response = await fetch('/api/test/surveys', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('無法載入問卷列表');
+                }
+                
+                surveys = await response.json();
+                renderSurveys();
+            } catch (error) {
+                console.error('載入問卷失敗:', error);
+                document.getElementById('surveyGrid').innerHTML = `
+                    <div class="error">
+                        載入失敗: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function renderSurveys() {
+            const grid = document.getElementById('surveyGrid');
+            
+            if (!surveys || surveys.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="emoji">📝</div>
+                        <div>暫無問卷</div>
+                        <div style="margin-top: 16px;">
+                            <button class="action-btn" onclick="addNewSurvey()">創建第一個問卷</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = surveys.map(survey => {
+                const createdAt = new Date(survey.createdAt).toLocaleDateString('zh-TW');
+                const updatedAt = new Date(survey.updatedAt).toLocaleDateString('zh-TW');
+                
+                return `
+                    <div class="survey-card" data-id="${survey._id}" onclick="openSurvey('${survey._id}')">
+                        <span class="emoji">🎨</span>
+                        <div class="card-title">${survey.testType}</div>
+                        <div class="card-info">
+                            題目數: ${survey.totalQuestions}<br>
+                            創建: ${createdAt}<br>
+                            更新: ${updatedAt}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function addNewSurvey() {
+            // 跳轉到編輯頁面，不帶ID表示新增模式
+            window.location.href = 'EditSurvey.html';
+        }
+        
+        function openSurvey(surveyId) {
+            // 跳轉到編輯頁面
+            window.location.href = `EditSurvey.html?id=${surveyId}`;
+        }
+        
+        function deleteSelectedSurveys() {
+            if (selectedSurveys.size === 0) {
+                alert('請先選擇要刪除的問卷');
+                return;
+            }
+            
+            if (!confirm(`確定要刪除選中的 ${selectedSurveys.size} 個問卷嗎？此操作無法復原。`)) {
+                return;
+            }
+            
+            // 這裡可以實現批量刪除功能
+            alert('批量刪除功能開發中...');
+        }
+        
+        // 自動同步 localStorage 與 sessionStorage
+        (function syncAdminSession() {
+            if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
+                sessionStorage.setItem('adminToken', localStorage.getItem('adminToken'));
+                sessionStorage.setItem('adminEmail', localStorage.getItem('adminEmail'));
+                sessionStorage.setItem('adminName', localStorage.getItem('adminName'));
+                sessionStorage.setItem('admin', localStorage.getItem('admin'));
+            }
+        })();
+    </script>
+</body>
+</html> 

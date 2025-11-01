@@ -1,0 +1,2 @@
+﻿?? | Out-File -FilePath temp1.txt -Encoding UTF8; echo 
+??

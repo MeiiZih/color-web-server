@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 色彩心理測驗</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/test.css">
+    <script src="../js/navbar.js"></script>
+
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首頁</a>
+            <a href="test.html" class="nav-link active">測驗系統</a>
+            <a href="../main/about.html" class="nav-link">關於我們</a>
+            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="../main/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="card-grid">
+            <div class="test-card">
+                <div class="card-icon">📝</div>
+                <h2 class="card-title">進入測驗</h2>
+                <p class="card-desc">參加各種有趣的心理測驗，探索你的個性特質、心理狀態和潛意識傾向。</p>
+                <button class="card-button" id="enterTestBtn">開始測驗</button>
+            </div>
+
+            <div class="test-card">
+                <div class="card-icon">📊</div>
+                <h2 class="card-title">測驗紀錄</h2>
+                <p class="card-desc">查看您之前的測驗結果和分析，追蹤您的心理成長和變化。</p>
+                <button class="card-button" id="viewHistoryBtn">查看紀錄</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-modal" id="loginModal">
+        <div class="login-container">
+            <h2 class="login-title" id="modalTitle">登入</h2>
+            <!-- 登入表單 -->
+            <div id="loginForm">
+                <input type="text" class="input-field" placeholder="帳號" id="username">
+                <input type="password" class="input-field" placeholder="密碼" id="password">
+                <button class="login-button" onclick="login()">登入</button>
+                <div class="login-options">
+                    <button class="option-button" onclick="guestLogin()">訪客登入</button>
+                    <button class="option-button" onclick="showRegisterForm()">建立帳號</button>
+                </div>
+            </div>
+            <!-- 註冊表單 -->
+            <div id="registerForm" style="display: none;">
+                <input type="text" class="input-field" placeholder="姓名" id="regName">
+                <div class="gender-group">
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="male" required>
+                        男性
+                    </label>
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="female" required>
+                        女性
+                    </label>
+                </div>
+                <div class="date-fields">
+                    <input type="number" class="date-field" id="year" placeholder="年" min="1950" max="2025">
+                    <input type="number" class="date-field" id="month" placeholder="月" min="1" max="12">
+                    <input type="number" class="date-field" id="day" placeholder="日" min="1" max="31">
+                </div>
+                <input type="email" class="input-field" placeholder="電子郵件" id="regEmail">
+                <input type="tel" class="input-field" placeholder="行動電話" id="regPhone">
+                <input type="password" class="input-field" placeholder="密碼" id="regPassword">
+                <input type="password" class="input-field" placeholder="確認密碼" id="regConfirmPassword">
+                <button class="login-button" onclick="handleRegister()">建立帳號</button>
+                <div class="login-options">
+                    <button class="option-button" onclick="showLoginForm()">返回登入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        // 頁面加載時強制更新導航欄
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('test.html 頁面加載');
+            
+            // 強制更新導航欄
+            if (typeof updateNavbar === 'function') {
+                updateNavbar();
+            }
+            
+            // 每30秒刷新一次導航欄，確保登入狀態最新
+            setInterval(function() {
+                if (typeof updateNavbar === 'function') {
+                    updateNavbar();
+                }
+            }, 30000);
+        });
+        
+        // 全局变量，存储用户点击后想要前往的页面路径
+        let redirectTarget = "";
+
+        // 處理按鈕點擊事件
+        document.getElementById('enterTestBtn').addEventListener('click', function() {
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userName = sessionStorage.getItem('userName');
+            if (userEmail && userName) {
+                // 已登入，直接前往測驗選擇頁面
+                window.location.href = 'select.html';
+            } else {
+                // 未登入，導向登入頁面，帶上 redirectTarget
+                window.location.href = '../main/login-user.html?redirectTarget=../test/select.html';
+            }
+        });
+        
+        document.getElementById('viewHistoryBtn').addEventListener('click', function() {
+            const userEmail = sessionStorage.getItem('userEmail');
+            const userName = sessionStorage.getItem('userName');
+            if (userEmail && userName) {
+                // 已登入，前往測驗紀錄頁面
+                window.location.href = 'history.html';
+            } else {
+                // 未登入，導向登入頁面，帶上 redirectTarget
+                window.location.href = '../main/login-user.html?redirectTarget=../test/history.html';
+            }
+        });
+
+        // 處理測驗按鈕點擊
+        function handleTestClick(testId) {
+            // 检查是否已登录
+            const userToken = sessionStorage.getItem('userToken');
+            const isGuest = sessionStorage.getItem('isGuest') === 'true';
+            
+            if (!userToken && !isGuest) {
+                // 如果未登录，设置为访客模式
+                sessionStorage.setItem('isGuest', 'true');
+            }
+            
+            // 直接跳转到对应的测验页面
+            window.location.href = `test-${testId}.html`;
+        }
+
+        // 處理登入按鈕點擊
+        function handleLoginClick() {
+            const userEmail = sessionStorage.getItem('userEmail');
+            const isGuest = sessionStorage.getItem('isGuest');
+            if (userEmail || isGuest) {
+                logout();
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginModal').style.display = 'flex';
+        }
+
+        // 處理點擊登入模態框背景的事件
+        window.onclick = function(event) {
+            const modal = document.getElementById('loginModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://20.57.128.97:3000/api/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: username, password: password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    sessionStorage.setItem('userEmail', username);
+                    sessionStorage.setItem('userName', data.name);
+                    sessionStorage.setItem('token', data.token);
+                    sessionStorage.setItem('user', JSON.stringify({email: username, name: data.name}));
+                    document.getElementById('loginModal').style.display = 'none';
+                    
+                    // 更新導航欄
+                    if (typeof updateNavbar === 'function') {
+                        updateNavbar();
+                    }
+                    
+                    // 如果有重定向目标，进行跳转
+                    if (redirectTarget) {
+                        window.location.href = redirectTarget;
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(error.message || '登入失敗');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('登入時發生錯誤');
+            }
+        }
+
+        function logout() {
+            // 清除所有登入相關的數據
+            sessionStorage.removeItem('userEmail');
+            sessionStorage.removeItem('userName');
+            sessionStorage.removeItem('isGuest');
+            sessionStorage.removeItem('userToken');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('guestId');
+            
+            // 進一步確保所有登入相關數據被清除
+            for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                const key = sessionStorage.key(i);
+                if (key && (
+                    key.includes('user') || 
+                    key.includes('token') || 
+                    key.includes('guest') || 
+                    key.includes('login') ||
+                    key.includes('auth')
+                )) {
+                    sessionStorage.removeItem(key);
+                }
+            }
+            
+            // 也清除可能存在于localStorage的冗余登录数据
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && (
+                    key.includes('user') || 
+                    key.includes('token') || 
+                    key.includes('guest') || 
+                    key.includes('login') ||
+                    key.includes('auth')
+                )) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            // 重定向到首頁
+            window.location.href = '../index.html';
+        }
+
+        function guestLogin() {
+            sessionStorage.setItem('isGuest', 'true');
+            document.getElementById('loginModal').style.display = 'none';
+            
+            // 如果有重定向目标，进行跳转
+            if (redirectTarget) {
+                window.location.href = redirectTarget;
+            }
+        }
+
+        function showRegisterForm() {
+            document.getElementById('modalTitle').textContent = '建立帳號';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function showLoginForm() {
+            document.getElementById('modalTitle').textContent = '登入';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+
+        async function handleRegister() {
+            const name = document.getElementById('regName').value;
+            const gender = document.querySelector('input[name="gender"]:checked')?.value;
+            const year = document.getElementById('year').value;
+            const month = document.getElementById('month').value;
+            const day = document.getElementById('day').value;
+            const email = document.getElementById('regEmail').value;
+            const phone = document.getElementById('regPhone').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+            // 驗證所有欄位都已填寫
+            if (!name || !gender || !year || !month || !day || !email || !phone || !password || !confirmPassword) {
+                alert('請填寫所有欄位');
+                return;
+            }
+
+            // 驗證密碼
+            if (password !== confirmPassword) {
+                alert('密碼與確認密碼不符');
+                return;
+            }
+
+            const birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+            try {
+                const response = await fetch('http://20.57.128.97:3000/api/user/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name,
+                        gender,
+                        birthDate,
+                        email,
+                        phone,
+                        password
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('註冊成功！請登入您的帳號。');
+                    // 註冊成功後直接導向登入頁面
+                    window.location.href = '../main/login-user.html';
+                } else {
+                    alert(data.message || '註冊失敗');
+                }
+            } catch (error) {
+                console.error('註冊錯誤:', error);
+                alert('註冊失敗，請稍後重試');
+            }
+        }
+
+        // 頁面加載時檢查登入狀態
+        window.onload = function() {
+            console.log('test.html 頁面加載');
+            
+            // 強制更新導航欄，確保登入狀態正確顯示
+            if (typeof updateNavbar === 'function') {
+                updateNavbar();
+            }
+            
+            // 每5秒刷新一次導航欄，確保登入狀態最新
+            setInterval(function() {
+                if (typeof updateNavbar === 'function') {
+                    updateNavbar();
+                }
+            }, 5000);
+        };
+    </script>
+</body>
+</html> 

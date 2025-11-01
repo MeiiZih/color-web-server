@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帳戶資料 - ColorMind Lab</title>
+    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="../../css/user-profile.css">
+    <script src="../../js/navbar.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links"></div>
+    </nav>
+    <main class="main-content">
+        <a href="account-manage.html" class="back-button" aria-label="返回">
+            <img src="../../assets/icons/back-button.png" alt="返回" class="back-img">
+            <span class="back-text">帳號管理</span>
+        </a>
+        <div class="tab-btns">
+            <button class="tab-btn active" id="profileTab">帳戶資料</button>
+            <button class="tab-btn" id="testTab">測驗紀錄</button>
+        </div>
+        <div id="profileContent" class="profile-card"></div>
+    </main>
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+    <script>
+        // 自動同步 localStorage 與 sessionStorage
+        (function syncAdminSession() {
+            if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
+                sessionStorage.setItem('adminToken', localStorage.getItem('adminToken'));
+                sessionStorage.setItem('adminEmail', localStorage.getItem('adminEmail'));
+                sessionStorage.setItem('adminName', localStorage.getItem('adminName'));
+                sessionStorage.setItem('admin', localStorage.getItem('admin'));
+            }
+        })();
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 檢查登入狀態
+            const adminEmail = sessionStorage.getItem('adminEmail');
+            const adminName = sessionStorage.getItem('adminName');
+            const adminToken = sessionStorage.getItem('adminToken');
+            if (!adminEmail || !adminName || !adminToken) {
+                window.location.href = '../../main/login-user.html';
+                return;
+            }
+            if (typeof updateNavbar === 'function') updateNavbar();
+            // tab 切換
+            document.getElementById('profileTab').onclick = function() {
+                this.classList.add('active');
+                document.getElementById('testTab').classList.remove('active');
+                document.getElementById('profileContent').style.display = '';
+            };
+            document.getElementById('testTab').onclick = function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const userEmail = urlParams.get('email');
+                window.location.href = `user-test.html?email=${encodeURIComponent(userEmail)}`;
+            };
+            // 查詢 email
+            const urlParams = new URLSearchParams(window.location.search);
+            const userEmail = urlParams.get('email');
+            if (!userEmail) {
+                document.getElementById('profileContent').innerHTML = '<div style="color:red">找不到用戶Email</div>';
+                return;
+            }
+            
+            // 取得所有用戶，然後根據 email 查找
+            try {
+                const res = await fetch('/api/admin/users', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!res.ok) {
+                    throw new Error('查詢用戶失敗');
+                }
+                
+                const users = await res.json();
+                // 根據 email 查找用戶
+                const user = users.find(u => u.email === userEmail);
+                
+                if (!user) {
+                    document.getElementById('profileContent').innerHTML = '<div style="color:red">找不到該用戶資料</div>';
+                    return;
+                }
+                
+                renderProfile(user);
+            } catch (e) {
+                console.error('查詢用戶失敗:', e);
+                document.getElementById('profileContent').innerHTML = '<div style="color:red">查詢失敗：' + e.message + '</div>';
+                return;
+            }
+        });
+
+        function renderProfile(user) {
+            document.getElementById('profileContent').innerHTML = `
+                <div class="upf-info-list" id="viewMode">
+                    <div class="upf-info-row">
+                        <img src="../../assets/icons/name.png" class="upf-info-icon" alt="姓名">
+                        <span class="upf-info-label">姓名：</span>
+                        <span class="upf-info-value" id="userNameValue">${user.name || user.nickname || ''}</span>
+                    </div>
+                    <div class="upf-info-row">
+                        <img src="../../assets/icons/gender.png" class="upf-info-icon" alt="性別">
+                        <span class="upf-info-label">性別：</span>
+                        <span class="upf-info-value" id="userGenderValue">${user.gender === '男' ? '男' : user.gender === '女' ? '女' : '未提供'}</span>
+                    </div>
+                    <div class="upf-info-row">
+                        <img src="../../assets/icons/calendar.png" class="upf-info-icon" alt="出生日期">
+                        <span class="upf-info-label">出生日期：</span>
+                        <span class="upf-info-value" id="userBirthValue">${user.birthDate ? new Date(user.birthDate).getFullYear() + ' 年 ' + (new Date(user.birthDate).getMonth() + 1) + ' 月 ' + new Date(user.birthDate).getDate() + ' 日' : '未提供'}</span>
+                    </div>
+                    <div class="upf-info-row">
+                        <img src="../../assets/icons/phone.png" class="upf-info-icon" alt="行動電話">
+                        <span class="upf-info-label">行動電話：</span>
+                        <span class="upf-info-value" id="userPhoneValue">${user.phone || '未提供'}</span>
+                    </div>
+                    <div class="upf-info-row">
+                        <img src="../../assets/icons/email.png" class="upf-info-icon" alt="電子郵件">
+                        <span class="upf-info-label">電子郵件：</span>
+                        <span class="upf-info-value" id="userEmailValue">${user.email || '未提供'}</span>
+                    </div>
+                    <div class="upf-info-row">
+                        <img src="../../assets/icons/job.png" class="upf-info-icon" alt="職業">
+                        <span class="upf-info-label">職業：</span>
+                        <span class="upf-info-value" id="userOccupationValue">${user.occupation || '未提供'}</span>
+                    </div>
+                </div>
+                <button class="upf-edit-btn" id="editUserBtn">編輯</button>
+            `;
+            
+            document.getElementById('editUserBtn').onclick = function() {
+                switchToEditMode(user);
+            };
+        }
+
+                function switchToEditMode(user) {
+            const viewMode = document.getElementById('viewMode');
+            const editBtn = document.getElementById('editUserBtn');
+            
+            // 將顯示模式改為編輯模式
+            viewMode.innerHTML = `
+                <div class="upf-info-row">
+                    <img src="../../assets/icons/name.png" class="upf-info-icon" alt="姓名">
+                    <span class="upf-info-label">姓名：</span>
+                    <input type="text" id="editName" class="upf-edit-input" value="${user.name || user.nickname || ''}" required>
+                </div>
+                <div class="upf-info-row">
+                    <img src="../../assets/icons/gender.png" class="upf-info-icon" alt="性別">
+                    <span class="upf-info-label">性別：</span>
+                    <select id="editGender" class="upf-edit-select">
+                        <option value="" ${!user.gender || user.gender === 'unknown' ? 'selected' : ''}>請選擇</option>
+                        <option value="男" ${user.gender === '男' ? 'selected' : ''}>男</option>
+                        <option value="女" ${user.gender === '女' ? 'selected' : ''}>女</option>
+                    </select>
+                </div>
+                <div class="upf-info-row">
+                    <img src="../../assets/icons/calendar.png" class="upf-info-icon" alt="出生日期">
+                    <span class="upf-info-label">出生日期：</span>
+                    <input type="date" id="editBirthDate" class="upf-edit-input" value="${user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : ''}">
+                </div>
+                <div class="upf-info-row">
+                    <img src="../../assets/icons/phone.png" class="upf-info-icon" alt="行動電話">
+                    <span class="upf-info-label">行動電話：</span>
+                    <input type="tel" id="editPhone" class="upf-edit-input" value="${user.phone || ''}" placeholder="請輸入電話號碼">
+                </div>
+                <div class="upf-info-row">
+                    <img src="../../assets/icons/email.png" class="upf-info-icon" alt="電子郵件">
+                    <span class="upf-info-label">電子郵件：</span>
+                    <input type="email" id="editEmail" class="upf-edit-input" value="${user.email || ''}" required>
+                </div>
+                <div class="upf-info-row">
+                    <img src="../../assets/icons/job.png" class="upf-info-icon" alt="職業">
+                    <span class="upf-info-label">職業：</span>
+                    <input type="text" id="editOccupation" class="upf-edit-input" value="${user.occupation || ''}" placeholder="請輸入職業">
+                </div>
+            `;
+            
+            // 更改按鈕
+            editBtn.textContent = '儲存';
+            editBtn.className = 'upf-save-btn';
+            editBtn.onclick = function() {
+                saveUserData(user);
+            };
+            
+            // 添加取消按鈕
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.className = 'upf-cancel-btn';
+            cancelBtn.onclick = function() {
+                renderProfile(user);
+            };
+            editBtn.parentNode.appendChild(cancelBtn);
+        }
+
+        function saveUserData(originalUser) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userEmail = urlParams.get('email');
+            const adminToken = sessionStorage.getItem('adminToken');
+            
+            const formData = {
+                email: userEmail,
+                name: document.getElementById('editName').value,
+                gender: document.getElementById('editGender').value,
+                birthDate: document.getElementById('editBirthDate').value,
+                phone: document.getElementById('editPhone').value,
+                email: document.getElementById('editEmail').value,
+                occupation: document.getElementById('editOccupation').value
+            };
+            
+            // 驗證必填欄位
+            if (!formData.name.trim()) {
+                alert('請輸入姓名');
+                return;
+            }
+            
+            if (!formData.email.trim()) {
+                alert('請輸入電子郵件');
+                return;
+            }
+            
+            // 發送更新請求
+            fetch('/api/user/update-profile', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('資料更新成功！');
+                    // 重新載入用戶資料
+                    fetch('/api/admin/users', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(users => {
+                        const user = users.find(u => u.email === userEmail);
+                        if (user) {
+                            renderProfile(user);
+                        }
+                    });
+                } else {
+                    alert('更新失敗：' + (data.message || '未知錯誤'));
+                }
+            })
+            .catch(error => {
+                console.error('更新失敗:', error);
+                alert('更新失敗，請稍後再試');
+            });
+        }
+    </script>
+</body>
+</html> 

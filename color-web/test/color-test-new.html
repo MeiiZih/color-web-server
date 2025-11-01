@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ColorMind Lab - 色彩性格測驗</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/test-style.css">
+    <script src="../js/navbar.js"></script>
+    <script src="../js/test-api.js"></script>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
+            <span class="site-title">ColorMind Lab</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首頁</a>
+            <a href="test.html" class="nav-link active">測驗系統</a>
+            <a href="../main/about.html" class="nav-link">關於我們</a>
+            <a href="../main/login-user.html" class="nav-link" id="loginButton">👤登入</a>
+            <div class="user-dropdown" id="userDropdown" style="display: none;">
+                <a href="#" class="user-icon" id="userName"></a>
+                <div class="dropdown-content">
+                    <a href="../main/user/profile.html">個人資料</a>
+                    <a href="#" id="logoutLink">登出</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="question-container">
+        <div class="progress-container">
+                <div class="progress-text">進度：<span id="progressText">0</span>/20</div>
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+        </div>
+            
+            <div class="question" id="questionText">載入中...</div>
+            <div class="options" id="optionsContainer"></div>
+            <div class="navigation-buttons">
+                <button class="nav-button" id="prevButton" onclick="previousQuestion()" disabled>上一題</button>
+                <button class="nav-button" id="nextButton" onclick="nextQuestion()">下一題</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-modal" id="loginModal">
+        <div class="login-container">
+            <h2 class="login-title" id="modalTitle">登入</h2>
+            <!-- 登入表單 -->
+            <div id="loginForm">
+                <input type="text" class="input-field" placeholder="帳號" id="username">
+                <input type="password" class="input-field" placeholder="密碼" id="password">
+                <button class="login-button" onclick="login()">登入</button>
+                <div class="login-options">
+                    <button class="option-button" onclick="guestLogin()">訪客登入</button>
+                    <button class="option-button" onclick="showRegisterForm()">建立帳號</button>
+                </div>
+            </div>
+            <!-- 註冊表單 -->
+            <div id="registerForm" class="register-form">
+                <input type="text" class="input-field" placeholder="姓名" id="regName">
+                <div class="gender-group">
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="male" required>
+                        男性
+                    </label>
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="female" required>
+                        女性
+                    </label>
+                </div>
+                <div class="date-fields">
+                    <input type="number" class="date-field" id="year" placeholder="年" min="1900" max="2024">
+                    <input type="number" class="date-field" id="month" placeholder="月" min="1" max="12">
+                    <input type="number" class="date-field" id="day" placeholder="日" min="1" max="31">
+                </div>
+                <input type="email" class="input-field" placeholder="電子郵件" id="regEmail">
+                <input type="tel" class="input-field" placeholder="行動電話" id="regPhone">
+                <input type="password" class="input-field" placeholder="密碼" id="regPassword">
+                <input type="password" class="input-field" placeholder="確認密碼" id="regConfirmPassword">
+                <button class="login-button" onclick="handleRegister()">建立帳號</button>
+                <div class="login-options">
+                    <button class="option-button" onclick="showLoginForm()">返回登入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        國立臺中科技大學－資訊管理系114學年專題
+    </footer>
+
+    <script>
+        // 從 API 獲取問題列表
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let surveyTestType = ''; // 新增：儲存問卷的 testType
+
+        // 頁面載入時獲取題目
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/api/test/questions/色彩性格測驗');
+                const data = await response.json();
+                
+                if (data.questions && data.questions.length > 0) {
+                    questions = data.questions.map(q => ({
+                        question: `${q.questionNumber}. ${q.question}`,
+                        options: q.options
+                    }));
+                    
+                    // 保存問卷的 testType，如果 API 沒有返回則使用預設值
+                    surveyTestType = data.testType || '我在色彩學中的MBTI';
+                    
+                    // 更新進度條顯示
+                    document.getElementById('progressText').textContent = `0/${questions.length}`;
+                    
+                    // 顯示第一題
+                    showQuestion(0);
+                } else {
+                    console.error('無法獲取題目');
+                    document.getElementById('questionText').textContent = '無法載入題目，請重新整理頁面';
+                }
+            } catch (error) {
+                console.error('獲取題目失敗:', error);
+                document.getElementById('questionText').textContent = '載入題目時發生錯誤，請重新整理頁面';
+            }
+        }
+
+        // 顯示問題函數
+        function showQuestion(index) {
+            if (index >= questions.length) {
+                calculateResult();
+                return;
+            }
+
+            const question = questions[index];
+            document.getElementById('questionText').textContent = question.question;
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, i) => {
+                const button = document.createElement('button');
+                button.className = 'option' + (userAnswers[index] === i ? ' selected' : '');
+                button.textContent = option;
+                button.onclick = () => selectOption(i);
+                optionsContainer.appendChild(button);
+            });
+
+            // 更新進度條
+            updateProgress();
+
+            // 更新按鈕狀態
+            document.getElementById('prevButton').disabled = index === 0;
+            document.getElementById('nextButton').textContent = index === questions.length - 1 ? '提交' : '下一題';
+        }
+
+        // 選擇選項
+        function selectOption(optionIndex) {
+            userAnswers[currentQuestionIndex] = optionIndex;
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, i) => {
+                option.classList.toggle('selected', i === optionIndex);
+            });
+        }
+
+        // 更新進度
+        function updateProgress() {
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('progressText').textContent = currentQuestionIndex + 1;
+        }
+
+        // 下一題
+        function nextQuestion() {
+            if (userAnswers[currentQuestionIndex] === undefined) {
+                alert('請選擇一個選項');
+                return;
+            }
+            
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                showQuestion(currentQuestionIndex);
+            } else {
+                calculateResult();
+            }
+        }
+
+        // 上一題
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showQuestion(currentQuestionIndex);
+            }
+        }
+
+        // 計算結果
+        async function calculateResult() {
+            // 初始化分數計算
+            const scores = {
+                E: 0, I: 0,  // 外向/內向
+                N: 0, S: 0,  // 直覺/感覺
+                F: 0, T: 0,  // 情感/思考
+                J: 0, P: 0,  // 判斷/感知
+                red: 0, yellow: 0, green: 0, blue: 0  // 四種顏色
+            };
+            
+            // 根據題目範圍和選項給不同維度加分（20題版本）
+            userAnswers.forEach((answer, index) => {
+                const questionNumber = index + 1;
+
+                // 第1-5題: E/I 和顏色
+                if (questionNumber >= 1 && questionNumber <= 5) {
+                    if (answer === 0 || answer === 1) { // A或B選項
+                        scores.E += 1;
+                        if (answer === 0) scores.red += 1;    // A選項
+                        if (answer === 1) scores.yellow += 1; // B選項
+                    } else if (answer === 2 || answer === 3) { // C或D選項
+                        scores.I += 1;
+                        if (answer === 2) scores.green += 1;  // C選項
+                        if (answer === 3) scores.blue += 1;   // D選項
+                    }
+                }
+
+                // 第6-10題: N/S 和顏色
+                else if (questionNumber >= 6 && questionNumber <= 10) {
+                    if (answer === 0 || answer === 1) { // A或B選項
+                        scores.N += 1;
+                        if (answer === 0) scores.red += 1;    // A選項
+                        if (answer === 1) scores.yellow += 1; // B選項
+                    } else if (answer === 2 || answer === 3) { // C或D選項
+                        scores.S += 1;
+                        if (answer === 2) scores.green += 1;  // C選項
+                        if (answer === 3) scores.blue += 1;   // D選項
+                    }
+                }
+
+                // 第11-15題: F/T 和顏色
+                else if (questionNumber >= 11 && questionNumber <= 15) {
+                    if (answer === 0 || answer === 1) { // A或B選項
+                        scores.F += 1;
+                        if (answer === 0) scores.red += 1;    // A選項
+                        if (answer === 1) scores.yellow += 1; // B選項
+                    } else if (answer === 2 || answer === 3) { // C或D選項
+                        scores.T += 1;
+                        if (answer === 2) scores.green += 1;  // C選項
+                        if (answer === 3) scores.blue += 1;   // D選項
+                    }
+                }
+
+                // 第16-20題: J/P 和顏色
+                else if (questionNumber >= 16 && questionNumber <= 20) {
+                    if (answer === 0 || answer === 1) { // A或B選項
+                        scores.J += 1;
+                        if (answer === 0) scores.red += 1;    // A選項
+                        if (answer === 1) scores.yellow += 1; // B選項
+                    } else if (answer === 2 || answer === 3) { // C或D選項
+                        scores.P += 1;
+                        if (answer === 2) scores.green += 1;  // C選項
+                        if (answer === 3) scores.blue += 1;   // D選項
+                    }
+                }
+            });
+            
+            // 確定MBTI類型
+            const mbtiType = 
+                (scores.E > scores.I ? 'E' : 'I') +
+                (scores.N > scores.S ? 'N' : 'S') +
+                (scores.F > scores.T ? 'F' : 'T') +
+                (scores.J > scores.P ? 'J' : 'P');
+            
+            // 確定主要顏色
+            const colorScores = [scores.red, scores.yellow, scores.green, scores.blue];
+            const colorNames = ['red', 'yellow', 'green', 'blue'];
+            const maxColorIndex = colorScores.indexOf(Math.max(...colorScores));
+            const primaryColor = colorNames[maxColorIndex];
+            
+            // 確定次要顏色
+            colorScores[maxColorIndex] = 0; // 排除主要顏色
+            const secondMaxColorIndex = colorScores.indexOf(Math.max(...colorScores));
+            const secondaryColor = colorNames[secondMaxColorIndex];
+            
+            // 保存結果到資料庫
+            await saveTestResult(mbtiType, primaryColor, secondaryColor, scores);
+
+            // 同步保存到本地供 result.html 顯示
+            const resultPayload = {
+                mbtiResult: mbtiType,
+                colorResult: { primary: primaryColor, secondary: secondaryColor },
+                scores
+            };
+            localStorage.setItem('currentTestResult', JSON.stringify(resultPayload));
+
+            // 轉跳結果頁
+            window.location.href = 'result.html';
+        }
+        
+        // 保存測驗結果
+        async function saveTestResult(mbtiType, primaryColor, secondaryColor, scores) {
+            try {
+                const userEmail = sessionStorage.getItem('userEmail') || sessionStorage.getItem('email');
+                const userName = sessionStorage.getItem('userName') || sessionStorage.getItem('name');
+                const userId = sessionStorage.getItem('userId');
+                const token = sessionStorage.getItem('token') || sessionStorage.getItem('userToken');
+                let guestId = sessionStorage.getItem('guestId');
+                const isGuest = sessionStorage.getItem('isGuest') === 'true';
+                let guestEmail = null;
+                
+                if (!userEmail && !userId && isGuest) {
+                    if (!guestId) {
+                        // 生成 guestID0001 格式的 ID
+                        const timestamp = Date.now();
+                        const randomNum = Math.floor(Math.random() * 1000);
+                        guestId = `guestID${String(randomNum).padStart(4, '0')}`;
+                        sessionStorage.setItem('guestId', guestId);
+                    }
+                    guestEmail = guestId; // 使用 guestID 作為 email
+                }
+                
+                const testData = {
+                    userId: userId,
+                    email: userEmail || guestEmail, // 正式用戶用 email，訪客用 guestEmail
+                    guestId: guestId,
+                    userName: userName || '訪客',
+                    testType: surveyTestType || '我在色彩學中的MBTI', // 使用動態獲取的 testType
+                    result: `${mbtiType} - ${primaryColor}`,
+                    mbtiResult: mbtiType,
+                    colorResult: {
+                        primary: primaryColor,
+                        secondary: secondaryColor
+                    },
+                    answers: userAnswers.map((answer, index) => ({
+                        questionId: index + 1,
+                        question: questions[index].question,
+                        answer: questions[index].options[answer]
+                    })),
+                    scores: {
+                        E: scores.E, I: scores.I,
+                        N: scores.N, S: scores.S,
+                        F: scores.F, T: scores.T,
+                        J: scores.J, P: scores.P,
+                        red: scores.red, yellow: scores.yellow,
+                        green: scores.green, blue: scores.blue
+                    }
+                };
+                
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/api/test/saveRecord', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(testData)
+                });
+                
+                if (!response.ok) {
+                    console.error('保存測驗結果失敗');
+                }
+            } catch (error) {
+                console.error('保存測驗結果時發生錯誤:', error);
+            }
+        }
+        
+        // 顯示結果
+        function showResult(mbtiType, primaryColor, secondaryColor) {
+            const colorMap = {
+                'red': '紅 - 熱情的行動者',
+                'yellow': '黃 - 活力的探險家',
+                'green': '綠 - 穩健的守護者',
+                'blue': '藍 - 神秘的理想主義者'
+            };
+            
+            const primaryColorText = colorMap[primaryColor] || primaryColor;
+            const secondaryColorText = colorMap[secondaryColor] || secondaryColor;
+            
+            document.getElementById('questionText').innerHTML = `
+                <h2>測驗完成！</h2>
+                <div class="result-container">
+                    <div class="result-item">
+                        <strong>您的 MBTI 類型：</strong> ${mbtiType}
+                    </div>
+                    <div class="result-item">
+                        <strong>主要色彩：</strong> ${primaryColorText}
+                    </div>
+                    <div class="result-item">
+                        <strong>次要色彩：</strong> ${secondaryColorText}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('optionsContainer').innerHTML = `
+                <button class="option" onclick="window.location.href='../index.html'">返回首頁</button>
+                <button class="option" onclick="window.location.href='select.html'">再做一次測驗</button>
+            `;
+            
+            document.getElementById('prevButton').style.display = 'none';
+            document.getElementById('nextButton').style.display = 'none';
+        }
+
+        // 頁面載入時執行
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestions();
+        });
+    </script>
+</body>
+</html>
