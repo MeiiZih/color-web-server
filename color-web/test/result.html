@@ -519,6 +519,55 @@
             // 開啟下載連結
             window.open(pdfUrl, '_blank');
         }
+
+        // ========== PATCH 1: 相容的「用 id 取單筆紀錄」 ==========
+        async function fetchRecordByIdMultiTry(id, headers = {}) {
+        const tryGet = async (url) => {
+            try {
+            const r = await fetch(url, { headers });
+            if (!r.ok) return null;
+            const data = await r.json();
+            if (Array.isArray(data)) return null;
+            if (data && data._id) return data;
+            if (data && data.record && data.record._id) return data.record;
+            if (data && data.data && data.data._id) return data.data;
+            if (data && data.records && Array.isArray(data.records)) {
+                return data.records.find(x => x._id === id || x.id === id) || null;
+            }
+            return data && (data._id || data.id) ? data : null;
+            } catch {
+            return null;
+            }
+        };
+
+        const candidates = [
+            `/api/test/records/${encodeURIComponent(id)}`,
+            `/api/test/record/${encodeURIComponent(id)}`,
+            `/api/test/records?id=${encodeURIComponent(id)}`,
+            `/api/admin/test-records?id=${encodeURIComponent(id)}`
+        ];
+
+        for (const url of candidates) {
+            const hit = await tryGet(url);
+            if (hit) return hit;
+        }
+
+        // 後備：抓清單再自己找
+        try {
+            const r = await fetch(`/api/test/records`, { headers });
+            if (r.ok) {
+            const list = await r.json();
+            if (Array.isArray(list)) {
+                return list.find(x => x._id === id || x.id === id) || null;
+            }
+            if (list && list.records && Array.isArray(list.records)) {
+                return list.records.find(x => x._id === id || x.id === id) || null;
+            }
+            }
+        } catch {}
+
+        return null;
+        }
         
         // 分享結果功能
         function shareResult() {
@@ -1868,6 +1917,29 @@ ${colorInfo.description}
             }
         }
         document.addEventListener('DOMContentLoaded', async function() {
+            // ========== PATCH 2: DOMContentLoaded 開頭插入 ==========
+            const qsId = new URLSearchParams(location.search).get('id');
+            if (qsId) {
+            const token = sessionStorage.getItem('token') || sessionStorage.getItem('adminToken') || '';
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+
+            try {
+                const rec = await fetchRecordByIdMultiTry(qsId, headers);
+                if (!rec) {
+                alert('無法顯示測驗結果，請稍後再試。');
+                return; // 終止初始化，避免後續渲染空資料
+                }
+                // 讓既有流程可直接讀取
+                window.currentTestResult = rec;
+                try { localStorage.setItem('currentTestResult', JSON.stringify(rec)); } catch {}
+            } catch (e) {
+                console.error('載入單筆測驗紀錄失敗：', e);
+                alert('無法顯示測驗結果，請稍後再試。');
+                return; // 終止初始化
+            }
+            }
+
             checkPageAccess();
             if (typeof updateNavbar === 'function') updateNavbar();
 
