@@ -47,6 +47,7 @@ body {
 .history-table td {
     padding: 15px;
     border-bottom: 1px solid #ddd;
+    vertical-align: middle; /* 讓按鈕在列中置中 */
 }
 
 .history-table tr:hover {
@@ -338,15 +339,24 @@ body {
     font-size:12px;
     opacity:.85
 }
+  
+.link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;     /* 稍微加大內距 */
+    height: auto;          /* 移除固定高度 */
+    line-height: 1.2;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    }
 
-.link-btn{
-    border:1px solid #ddd;
-    background:#fff;
-    padding:0 10px;
-    height:28px;
-    border-radius:6px;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
-    gap:6px
+.link-btn:hover {
+    background-color: #FF677D;
+    color: #fff;
+    border-color: #FF677D;
 }
