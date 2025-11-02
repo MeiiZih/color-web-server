@@ -39,7 +39,7 @@
                         圖片
                     </button>
                 </div>
-                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
             </div>
             
             <div class="form-fields">
@@ -73,393 +73,298 @@
     
     <script>
         let currentSurvey = null;
-        let isEditMode = false;
-        let editingQuestionIndex = null; // 追蹤目前正在編輯的題目
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // 檢查登入狀態
-            const adminEmail = sessionStorage.getItem('adminEmail');
-            const adminName = sessionStorage.getItem('adminName');
-            const adminToken = sessionStorage.getItem('adminToken');
-            
-            if (!adminEmail || !adminName || !adminToken) {
-                window.location.href = '../../main/login-user.html';
-                return;
-            }
-            
-            if (typeof updateNavbar === 'function') updateNavbar();
-            
-            // 獲取問卷ID
-            const urlParams = new URLSearchParams(window.location.search);
-            const surveyId = urlParams.get('id');
-            
-            if (surveyId) {
-                loadSurvey(surveyId);
-            } else {
-                // 新增問卷模式
-                currentSurvey = {
-                    testType: '',
-                    totalQuestions: 0,
-                    questions: []
-                };
-                updateUI();
-            }
-            
-            // 綁定按鈕事件
-            document.getElementById('editBtn').addEventListener('click', toggleEditMode);
-            document.getElementById('saveBtn').addEventListener('click', saveSurvey);
-            document.getElementById('deleteBtn').addEventListener('click', deleteSurvey);
-            document.getElementById('addQuestionBtn').addEventListener('click', addNewQuestion);
+        let editingQuestionIndex = null;
+      
+        // ==== 基本守門 ====
+        function requireAdminOrRedirect() {
+          const token = sessionStorage.getItem('adminToken');
+          if (!token) {
+            // 依你的路徑調整
+            window.location.href = '/main/login-user.html';
+            return null;
+          }
+          return token;
+        }
+      
+        // ==== 初始化 ====
+        document.addEventListener('DOMContentLoaded', () => {
+          const adminToken = requireAdminOrRedirect();
+          if (!adminToken) return;
+      
+          // 綁定按鈕
+          const addBtn   = document.getElementById('addQuestionBtn');
+          const editBtn  = document.getElementById('editBtn');
+          const saveBtn  = document.getElementById('saveBtn');
+          const delBtn   = document.getElementById('deleteBtn');
+      
+          addBtn && (addBtn.onclick = addNewQuestion);
+          editBtn && (editBtn.onclick = toggleEditMode);
+          saveBtn && (saveBtn.onclick = saveSurvey);
+          delBtn && (delBtn.onclick = deleteSurvey);
+      
+          // 載入問卷
+          const qs = new URLSearchParams(location.search);
+          const surveyId = qs.get('id');
+          if (surveyId) loadSurvey(surveyId);
+      
+          // 綁 Cloudinary 上傳
+          attachCloudinaryToSurvey();
         });
-        
+      
+        // ==== API ====
         async function loadSurvey(surveyId) {
-            try {
-                const adminToken = sessionStorage.getItem('adminToken');
-                const response = await fetch(`/api/test/surveys/${surveyId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('無法載入問卷');
-                }
-                
-                const data = await response.json();
-                currentSurvey = {
-                    _id: surveyId,
-                    testType: data.testType,
-                    totalQuestions: data.totalQuestions,
-                    questions: data.questions,
-                    description: data.description || `我們是國立台中科技大學資訊管理系的學生。此份問卷主要是想要探討MBTI與色彩學之間的聯繫。\n整份問卷總共有32道題目，大約會花費您6分鐘的時間。*註*請依照您的「第一直覺」作答，不需要思考太多!!!\n非常感謝您參與此次問卷的填寫。`,
-                    imgUrl: data.imgUrl || ''
-                };
-                
-                updateUI();
-            } catch (error) {
-                console.error('載入問卷失敗:', error);
-                alert('載入問卷失敗');
-            }
+          try {
+            const adminToken = sessionStorage.getItem('adminToken');
+            const res = await fetch(`/api/test/surveys/${surveyId}`, {
+              headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            if (!res.ok) throw new Error(await res.text() || '無法載入問卷');
+      
+            const data = await res.json();
+            currentSurvey = {
+              _id: surveyId,
+              testType: data.testType,
+              totalQuestions: data.totalQuestions,
+              questions: Array.isArray(data.questions) ? data.questions : [],
+              description: data.description || `我們是國立台中科技大學資訊管理系的學生。此份問卷主要是想要探討MBTI與色彩學之間的聯繫。\n整份問卷總共有32道題目，大約會花費您6分鐘的時間。*註*請依照您的「第一直覺」作答，不需要思考太多!!!\n非常感謝您參與此次問卷的填寫。`,
+              imgUrl: data.imgUrl || ''
+            };
+            updateUI();
+          } catch (e) {
+            console.error(e);
+            alert('載入問卷失敗');
+          }
         }
-        
+      
+        async function persistSurvey(silent) {
+          try {
+            const adminToken = sessionStorage.getItem('adminToken');
+            const payload = getSurveyPayload();
+            let res;
+            if (currentSurvey?._id) {
+              res = await fetch(`/api/test/surveys/${currentSurvey._id}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${adminToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+              });
+            } else {
+              res = await fetch('/api/test/surveys', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${adminToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+              });
+            }
+            if (!res.ok) throw new Error(await res.text() || '自動儲存失敗');
+      
+            const result = await res.json();
+            if (!currentSurvey._id) {
+              currentSurvey._id = result.survey?._id || result._id || currentSurvey._id;
+            }
+            if (!silent) alert('已儲存');
+          } catch (e) {
+            console.error(e);
+            if (!silent) alert('儲存失敗');
+          }
+        }
+      
+        async function saveSurvey() {
+          await persistSurvey(false);
+          // 回到唯讀模式
+          setEditable(false);
+        }
+      
+        async function deleteSurvey() {
+          if (!currentSurvey?._id) return alert('無法刪除未儲存的問卷');
+          if (!confirm('確定要刪除這個問卷嗎？此操作無法復原。')) return;
+      
+          try {
+            const adminToken = sessionStorage.getItem('adminToken');
+            const res = await fetch(`/api/test/surveys/${currentSurvey._id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${adminToken}` }
+            });
+            if (!res.ok) throw new Error(await res.text() || '刪除失敗');
+            alert('刪除成功');
+            window.location.href = 'survey.html';
+          } catch (e) {
+            console.error(e);
+            alert('刪除失敗');
+          }
+        }
+      
+        // ==== UI ====
         function updateUI() {
-            if (!currentSurvey) return;
-            
-            document.getElementById('surveyTitle').value = currentSurvey.testType || '';
-            document.getElementById('surveyDescription').value = currentSurvey.description || '';
-            const imageUpload = document.getElementById('imageUpload');
-            if (currentSurvey.imgUrl) {
-                imageUpload.innerHTML = `<img src="${currentSurvey.imgUrl}" alt="問卷圖片" class="image-preview">`;
-            }
-            
-            renderQuestions();
+          if (!currentSurvey) return;
+          document.getElementById('surveyTitle').value = currentSurvey.testType || '';
+          document.getElementById('surveyDescription').value = currentSurvey.description || '';
+      
+          // 初始唯讀
+          setEditable(false);
+      
+          renderImage();
+          renderQuestions();
         }
-        
+      
+        function setEditable(on) {
+          const title = document.getElementById('surveyTitle');
+          const desc  = document.getElementById('surveyDescription');
+          const editBtn = document.getElementById('editBtn');
+          const saveBtn = document.getElementById('saveBtn');
+      
+          title.readOnly = !on;
+          desc.readOnly  = !on;
+      
+          title.classList.toggle('editing', on);
+          desc.classList.toggle('editing', on);
+      
+          if (editBtn) editBtn.style.display = on ? 'none' : 'inline-block';
+          if (saveBtn) saveBtn.style.display = on ? 'inline-block' : 'none';
+        }
+      
+        function toggleEditMode() {
+          const title = document.getElementById('surveyTitle');
+          setEditable(title.readOnly); // 如果現在是唯讀，就開啟編輯；反之關閉
+        }
+      
+        function renderImage() {
+          const box = document.getElementById('imageUpload');
+          const hasImg = !!currentSurvey?.imgUrl;
+          const imgHtml = hasImg ? `<img src="${currentSurvey.imgUrl}" alt="問卷圖片" class="image-preview">`
+                                 : `<div class="image-placeholder">🎨</div>`;
+          // 保留「更換圖片」按鈕，確保可重複上傳
+          box.innerHTML = `
+            ${imgHtml}
+            <button class="image-upload-btn" type="button" onclick="document.getElementById('imageInput').click()">
+              <span style="font-size: 24px;">📷</span> 更換圖片
+            </button>
+          `;
+        }
+      
         function renderQuestions() {
-            const questionsList = document.getElementById('questionsList');
-            if (!currentSurvey.questions || currentSurvey.questions.length === 0) {
-                questionsList.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">暫無題目</p>';
-                return;
-            }
-            questionsList.innerHTML = currentSurvey.questions.map((question, index) => {
-                const isEditing = editingQuestionIndex === index;
-                const isDisabled = isEditing ? '' : 'disabled';
-                const optionsHtml = question.options.map((option, optIndex) => `
-                    <div class="option-edit-row">
-                        <input type="text" class="option-input${isEditing ? ' editing' : ''}" value="${option.replace(/"/g, '&quot;')}" ${isDisabled} onchange="updateOption(${index}, ${optIndex}, this.value)">
-                        ${isEditing ? `<button class='btn-small' onclick='removeOption(${index}, ${optIndex})' type='button'>刪除</button>` : ''}
-                    </div>
-                `).join('');
-                return `
-                <div class="question-item">
-                    <div class="question-header">
-                        <span class="question-number">題目 ${question.questionNumber}</span>
-                        <div class="question-actions">
-                            ${isEditing
-                                ? `<button class='btn-small btn-save-question' onclick='saveSingleQuestion(${index})' type='button'>儲存</button><button class='btn-small' onclick='cancelEditQuestion()' type='button'>取消</button>`
-                                : `<button class='btn-small btn-edit-question' onclick='editQuestion(${index})'>編輯</button>`}
-                            <button class="btn-small btn-delete-question" onclick="deleteQuestion(${index})">刪除</button>
-                        </div>
-                    </div>
-                    <div class="question-content">
-                        <textarea class="question-textarea${isEditing ? ' editing' : ''}" ${isDisabled} onchange="updateQuestionText(${index}, this.value)">${question.question}</textarea>
-                        <div class="options-list-edit">
-                            ${optionsHtml}
-                            ${isEditing ? `<button class='btn-small' onclick='addOption(${index})' type='button'>新增選項</button>` : ''}
-                        </div>
-                    </div>
+          const wrap = document.getElementById('questionsList');
+          const list = Array.isArray(currentSurvey?.questions) ? currentSurvey.questions : [];
+          if (!list.length) {
+            wrap.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">暫無題目</p>';
+            return;
+          }
+      
+          wrap.innerHTML = list.map((q, i) => {
+            const isEditing = editingQuestionIndex === i;
+            const disabled = isEditing ? '' : 'disabled';
+            const options = (q.options || []).map((opt, j) => `
+              <div class="option-edit-row">
+                <input type="text" class="option-input${isEditing ? ' editing' : ''}"
+                       value="${String(opt).replace(/"/g, '&quot;')}" ${disabled}
+                       onchange="updateOption(${i}, ${j}, this.value)">
+                ${isEditing ? `<button class='btn-small' onclick='removeOption(${i}, ${j})' type='button'>刪除</button>` : ''}
+              </div>
+            `).join('');
+      
+            return `
+              <div class="question-item">
+                <div class="question-header">
+                  <span class="question-number">題目 ${q.questionNumber}</span>
+                  <div class="question-actions">
+                    ${isEditing
+                      ? `<button class='btn-small btn-save-question' onclick='saveSingleQuestion(${i})' type='button'>儲存</button>
+                         <button class='btn-small' onclick='cancelEditQuestion()' type='button'>取消</button>`
+                      : `<button class='btn-small btn-edit-question' onclick='editQuestion(${i})'>編輯</button>`}
+                    <button class="btn-small btn-delete-question" onclick="deleteQuestion(${i})">刪除</button>
+                  </div>
                 </div>
-                `;
-            }).join('');
+                <div class="question-content">
+                  <textarea class="question-textarea${isEditing ? ' editing' : ''}" ${disabled}
+                            onchange="updateQuestionText(${i}, this.value)">${q.question || ''}</textarea>
+                  <div class="options-list-edit">
+                    ${options}
+                    ${isEditing ? `<button class='btn-small' onclick='addOption(${i})' type='button'>新增選項</button>` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
         }
-
-        // 題目文字編輯
-        window.updateQuestionText = function(index, value) {
-            currentSurvey.questions[index].question = value;
+      
+        // ==== 題目編修 ====
+        window.updateQuestionText = function(i, val) {
+          currentSurvey.questions[i].question = val;
         }
-        // 選項編輯
-        window.updateOption = function(qIdx, optIdx, value) {
-            currentSurvey.questions[qIdx].options[optIdx] = value;
+        window.updateOption = function(i, j, val) {
+          currentSurvey.questions[i].options[j] = val;
         }
-        // 新增選項
-        window.addOption = function(qIdx) {
-            currentSurvey.questions[qIdx].options.push('新選項');
-            renderQuestions();
+        window.addOption = function(i) {
+          if (!Array.isArray(currentSurvey.questions[i].options)) {
+            currentSurvey.questions[i].options = [];
+          }
+          currentSurvey.questions[i].options.push('新選項');
+          renderQuestions();
         }
-        // 刪除選項
-        window.removeOption = function(qIdx, optIdx) {
-            if (currentSurvey.questions[qIdx].options.length <= 1) return alert('至少要有一個選項');
-            currentSurvey.questions[qIdx].options.splice(optIdx, 1);
-            renderQuestions();
+        window.removeOption = function(i, j) {
+          const opts = currentSurvey.questions[i].options || [];
+          if (opts.length <= 1) return alert('至少要有一個選項');
+          opts.splice(j, 1);
+          renderQuestions();
         }
-        // 儲存單一題目（立即同步到資料庫）
-        window.saveSingleQuestion = async function(index) {
-            editingQuestionIndex = null;
-            renderQuestions();
-            await persistSurvey(true);
+        window.saveSingleQuestion = async function(i) {
+          editingQuestionIndex = null;
+          // 重新編號保險
+          currentSurvey.questions.forEach((q, idx) => q.questionNumber = idx + 1);
+          renderQuestions();
+          await persistSurvey(true);
         }
         window.cancelEditQuestion = function() {
-            editingQuestionIndex = null;
-            renderQuestions();
+          editingQuestionIndex = null;
+          renderQuestions();
         }
-        
-        function toggleEditMode() {
-            const titleInput = document.getElementById('surveyTitle');
-            const descInput = document.getElementById('surveyDescription');
-            const editBtn = document.getElementById('editBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            if (titleInput.readOnly) {
-                titleInput.readOnly = false;
-                descInput.readOnly = false;
-                titleInput.classList.add('editing');
-                descInput.classList.add('editing');
-                editBtn.style.display = 'none';
-                saveBtn.style.display = 'inline-block';
-            } else {
-                titleInput.readOnly = true;
-                descInput.readOnly = true;
-                titleInput.classList.remove('editing');
-                descInput.classList.remove('editing');
-                editBtn.style.display = 'inline-block';
-                saveBtn.style.display = 'none';
-            }
+        function editQuestion(i) {
+          editingQuestionIndex = i;
+          renderQuestions();
         }
-        
-        async function saveSurvey() {
-            try {
-                const adminToken = sessionStorage.getItem('adminToken');
-                const surveyData = {
-                    testType: document.getElementById('surveyTitle').value,
-                    totalQuestions: currentSurvey.questions.length,
-                    questions: currentSurvey.questions,
-                    description: document.getElementById('surveyDescription').value
-                };
-                
-                let response;
-                if (currentSurvey._id) {
-                    // 更新現有問卷
-                    response = await fetch(`/api/test/surveys/${currentSurvey._id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${adminToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(surveyData)
-                    });
-                } else {
-                    // 創建新問卷
-                    response = await fetch('/api/test/surveys', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${adminToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(surveyData)
-                    });
-                }
-                
-                if (!response.ok) {
-                    throw new Error('儲存失敗');
-                }
-                
-                const result = await response.json();
-                alert('儲存成功');
-                
-                if (!currentSurvey._id) {
-                    // 如果是新問卷，重新載入頁面
-                    window.location.reload();
-                }
-                
-                toggleEditMode();
-            } catch (error) {
-                console.error('儲存失敗:', error);
-                alert('儲存失敗: ' + error.message);
-            }
+        async function deleteQuestion(i) {
+          if (!confirm('確定要刪除這個題目嗎？')) return;
+          currentSurvey.questions.splice(i, 1);
+          currentSurvey.questions.forEach((q, idx) => q.questionNumber = idx + 1);
+          renderQuestions();
+          await persistSurvey(true);
         }
-        
-        async function deleteSurvey() {
-            if (!currentSurvey._id) {
-                alert('無法刪除未儲存的問卷');
-                return;
-            }
-            
-            if (!confirm('確定要刪除這個問卷嗎？此操作無法復原。')) {
-                return;
-            }
-            
-            try {
-                const adminToken = sessionStorage.getItem('adminToken');
-                const response = await fetch(`/api/test/surveys/${currentSurvey._id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${adminToken}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('刪除失敗');
-                }
-                
-                alert('刪除成功');
-                window.location.href = 'survey.html';
-            } catch (error) {
-                console.error('刪除失敗:', error);
-                alert('刪除失敗: ' + error.message);
-            }
-        }
-        
         async function addNewQuestion() {
-            const questionNumber = currentSurvey.questions.length + 1;
-            const newQuestion = {
-                questionNumber: questionNumber,
-                question: `請輸入題目 ${questionNumber}`,
-                options: ['選項 A', '選項 B', '選項 C', '選項 D']
-            };
-            
-            currentSurvey.questions.push(newQuestion);
-            renderQuestions();
-            await persistSurvey(true);
+          const n = (currentSurvey.questions?.length || 0) + 1;
+          const q = {
+            questionNumber: n,
+            question: `請輸入題目 ${n}`,
+            options: ['選項 A', '選項 B', '選項 C', '選項 D']
+          };
+          if (!Array.isArray(currentSurvey.questions)) currentSurvey.questions = [];
+          currentSurvey.questions.push(q);
+          renderQuestions();
+          await persistSurvey(true);
         }
-        
-        function editQuestion(index) {
-            editingQuestionIndex = index;
-            renderQuestions();
-        }
-        
-        async function deleteQuestion(index) {
-            if (confirm('確定要刪除這個題目嗎？')) {
-                currentSurvey.questions.splice(index, 1);
-                
-                // 重新編號
-                currentSurvey.questions.forEach((q, i) => {
-                    q.questionNumber = i + 1;
-                });
-                
-                renderQuestions();
-                await persistSurvey(true);
-            }
-        }
-        
-        async function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            try {
-                const adminToken = sessionStorage.getItem('adminToken');
-                const formData = new FormData();
-                formData.append('image', file);
-                const res = await fetch('/api/homepage/upload-image', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${adminToken}` },
-                    body: formData
-                });
-                if (!res.ok) throw new Error('圖片上傳失敗');
-                const data = await res.json();
-                currentSurvey.imgUrl = data.imageUrl;
-                const imageUpload = document.getElementById('imageUpload');
-                imageUpload.innerHTML = `<img src="${currentSurvey.imgUrl}" alt="問卷圖片" class="image-preview">`;
-                await persistSurvey(true);
-            } catch (err) {
-                console.error('上傳圖片失敗:', err);
-                alert('上傳圖片失敗');
-            }
-        }
-
-        // 立即儲存（若無 _id 先建立後更新狀態）
-        async function persistSurvey(silent) {
-            try {
-                const adminToken = sessionStorage.getItem('adminToken');
-                const surveyData = getSurveyPayload();
-                let response;
-                if (currentSurvey._id) {
-                    response = await fetch(`/api/test/surveys/${currentSurvey._id}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${adminToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(surveyData)
-                    });
-                } else {
-                    response = await fetch('/api/test/surveys', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${adminToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(surveyData)
-                    });
-                }
-                if (!response.ok) throw new Error('自動儲存失敗');
-                const result = await response.json();
-                if (!currentSurvey._id) {
-                    currentSurvey._id = result.survey?._id || result._id || currentSurvey._id;
-                }
-                if (!silent) alert('已儲存');
-            } catch (e) {
-                console.error(e);
-                if (!silent) alert('儲存失敗');
-            }
-        }
-
+      
         function getSurveyPayload() {
-            return {
-                testType: document.getElementById('surveyTitle').value,
-                totalQuestions: currentSurvey.questions.length,
-                questions: currentSurvey.questions,
-                description: document.getElementById('surveyDescription').value,
-                imgUrl: currentSurvey.imgUrl || ''
-            };
+          return {
+            testType: document.getElementById('surveyTitle').value.trim(),
+            totalQuestions: (currentSurvey.questions || []).length,
+            questions: currentSurvey.questions || [],
+            description: document.getElementById('surveyDescription').value,
+            imgUrl: currentSurvey.imgUrl || ''
+          };
         }
-
+      
+        // ==== Cloudinary ====
         const CLOUD_NAME = 'dgsj2css3';
-        const UPLOAD_PRESET = 'color-web-homepage'; 
-        const CLOUD_FOLDER = 'homepage';
-
-        function findSurveyFileInput() {
-        return (
-            document.querySelector('input[type="file"][name*="image" i]') ||
-            document.querySelector('input[type="file"][id*="image" i]') ||
-            document.querySelector('input[type="file"]')
-        );
-        }
-        function findSurveyImageUrlInput() {
-        return (
-            document.querySelector('input[name="imageUrl"]') ||
-            document.querySelector('#imageUrl') ||
-            document.querySelector('input[type="hidden"][name*="image" i]')
-        );
-        }
-        function findSurveyPreview() {
-        return (
-            document.querySelector('#preview') ||
-            document.querySelector('img[data-preview]') ||
-            document.querySelector('.preview, .preview-img')
-        );
-        }
+        const UPLOAD_PRESET = 'color-web-homepage';
+        const CLOUD_FOLDER = 'survey'; // 建議問卷用獨立資料夾
+      
         function showProgressSurvey(pct) {
-        let bar = document.getElementById('cloudinaryProgressBarSurvey');
-        let wrap = document.getElementById('cloudinaryProgressWrapSurvey');
-        if (!wrap) {
+          let bar = document.getElementById('cloudinaryProgressBarSurvey');
+          let wrap = document.getElementById('cloudinaryProgressWrapSurvey');
+          if (!wrap) {
             wrap = document.createElement('div');
             wrap.id = 'cloudinaryProgressWrapSurvey';
             wrap.style.cssText = 'height:8px;background:#f1f3f5;border-radius:8px;overflow:hidden;margin-top:8px;';
@@ -467,125 +372,64 @@
             bar.id = 'cloudinaryProgressBarSurvey';
             bar.style.cssText = 'display:block;height:100%;background:#74c0fc;width:0%';
             wrap.appendChild(bar);
-            const fi = findSurveyFileInput();
+            const fi = document.getElementById('imageInput');
             fi && fi.parentNode && fi.parentNode.appendChild(wrap);
+          }
+          bar.style.width = pct + '%';
+          if (pct >= 100) setTimeout(() => wrap.remove(), 700);
         }
-        bar.style.width = pct + '%';
-        if (pct >= 100) setTimeout(() => wrap.remove(), 700);
-        }
+      
         async function uploadToCloudinarySurvey(file) {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('upload_preset', UPLOAD_PRESET);
-        fd.append('folder', CLOUD_FOLDER);
-        const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-        const xhr = new XMLHttpRequest();
-        const p = new Promise((resolve, reject) => {
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('upload_preset', UPLOAD_PRESET);
+          fd.append('folder', CLOUD_FOLDER);
+          const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+      
+          const xhr = new XMLHttpRequest();
+          const p = new Promise((resolve, reject) => {
             xhr.upload.addEventListener('progress', e => {
-            if (e.lengthComputable) showProgressSurvey(Math.round((e.loaded/e.total)*100));
+              if (e.lengthComputable) showProgressSurvey(Math.round((e.loaded/e.total)*100));
             });
             xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) {
+              if (xhr.readyState === 4) {
                 if (xhr.status>=200 && xhr.status<300) {
-                try { resolve(JSON.parse(xhr.responseText)); } catch(e){ reject(e); }
-                } else reject(new Error('Cloudinary 上傳失敗'));
-            }
+                  try { resolve(JSON.parse(xhr.responseText)); }
+                  catch(e){ reject(e); }
+                } else {
+                  reject(new Error('Cloudinary 上傳失敗'));
+                }
+              }
             };
             xhr.open('POST', url);
             xhr.send(fd);
-        });
-        const data = await p;
-        if (!data.secure_url) throw new Error(data.error?.message || '上傳失敗');
-        return data.secure_url;
+          });
+          const data = await p;
+          if (!data.secure_url) throw new Error(data.error?.message || '上傳失敗');
+          return data.secure_url;
         }
-        (function attachCloudinaryToSurvey(){
-        const fileInput = findSurveyFileInput();
-        const hidden = findSurveyImageUrlInput();
-        const preview = findSurveyPreview();
-        if (!fileInput || !hidden) return;
-        fileInput.addEventListener('change', async (e)=>{
+      
+        function attachCloudinaryToSurvey() {
+          const fileInput = document.getElementById('imageInput');
+          if (!fileInput) return;
+          fileInput.addEventListener('change', async (e) => {
             const file = e.target.files && e.target.files[0];
             if (!file) return;
-            try{
-            const url = await uploadToCloudinarySurvey(file);
-            hidden.value = url;
-            if (preview) preview.src = url;
-            }catch(err){
-            console.error(err);
-            alert('圖片上傳失敗：' + err.message);
-            }finally{
-            e.target.value='';
+            try {
+              const url = await uploadToCloudinarySurvey(file);
+              if (!currentSurvey) currentSurvey = { questions: [] };
+              currentSurvey.imgUrl = url;
+              renderImage();
+              await persistSurvey(true);
+              alert('圖片上傳成功');
+            } catch (err) {
+              console.error(err);
+              alert('圖片上傳失敗：' + err.message);
+            } finally {
+              e.target.value = '';
             }
-        });
-        })();
-        
-        async function safeLoadSurveyById(id, headers) {
-        // 1) /api/survey/:id
-        let res = await fetch(`/api/survey/${id}`, { headers });
-        if (res.ok) return await res.json();
-
-        // 2) /api/survey?id=...
-        if (res.status === 404) {
-            res = await fetch(`/api/survey?id=${encodeURIComponent(id)}`, { headers });
-            if (res.ok) {
-            const data = await res.json();
-            // 有的實作會回陣列
-            if (Array.isArray(data)) {
-                const hit = data.find(x => x._id === id || x.id === id);
-                if (hit) return hit;
-            }
-            return data;
-            }
+          });
         }
-
-        // 3) 後備：抓清單再自己找（請把 URL 換成你真的有的清單 API）
-        try {
-            let listRes = await fetch('/api/survey', { headers }); // 例如 /api/survey 或 /api/survey/list
-            if (listRes.ok) {
-            const list = await listRes.json();
-            if (Array.isArray(list)) {
-                const hit = list.find(x => x._id === id || x.id === id);
-                if (hit) return hit;
-            }
-            }
-        } catch(e) { /* 忽略 */ }
-
-        // 都找不到
-        const txt = await res.text().catch(()=> '');
-        throw new Error('讀取問卷失敗；伺服器回應：' + (txt || res.status));
-        }
-
-        /** 範例：在你的 DOMContentLoaded/初始化流程中使用 */
-        document.addEventListener('DOMContentLoaded', async () => {
-        const qs = new URLSearchParams(location.search);
-        const surveyId = qs.get('id');
-        if (!surveyId) return;
-
-        const adminToken = sessionStorage.getItem('adminToken') || sessionStorage.getItem('token') || '';
-        const headers = { 'Content-Type': 'application/json' };
-        if (adminToken) headers['Authorization'] = 'Bearer ' + adminToken;
-
-        try {
-            const data = await safeLoadSurveyById(surveyId, headers);
-
-            // === 下面「填入畫面」請對齊你原本的欄位 ===
-            const $ = s => document.querySelector(s);
-            if ($('#name'))   $('#name').value = data.name || data.title || '';
-            if ($('#status')) $('#status').value = data.status || data.state || 'draft';
-            if ($('#desc'))   $('#desc').value = data.description || data.desc || '';
-
-            const imgUrl = data.imageUrl || data.coverImage || data.bannerUrl || '';
-            if (imgUrl) {
-            const hidden = document.querySelector('input[name="imageUrl"], #imageUrl');
-            const preview = document.querySelector('#preview, img[data-preview], .preview, .preview-img');
-            if (hidden) hidden.value = imgUrl;
-            if (preview) preview.src = imgUrl;
-            }
-        } catch (err) {
-            console.error(err);
-            alert('讀取問卷失敗');
-        }
-        });
     </script>
 </body>
 </html> 
