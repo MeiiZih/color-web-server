@@ -303,3 +303,50 @@ body {
     background-color: #ccc;
     cursor: not-allowed;
 } 
+
+.color-chip{
+    display:inline-flex;
+    gap:6px;
+    margin-left:6px;
+    align-items:center
+}
+
+.dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    display:inline-block
+}
+
+.dot.red{
+    background:#ef7171
+}
+
+.dot.yellow{
+    background:#cfce92
+}
+
+.dot.green{
+    background:#8aaa88
+}
+
+.dot.blue{
+    background:#859ac3
+}
+
+.color-label{
+    font-size:12px;
+    opacity:.85
+}
+
+.link-btn{
+    border:1px solid #ddd;
+    background:#fff;
+    padding:0 10px;
+    height:28px;
+    border-radius:6px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px
+}
