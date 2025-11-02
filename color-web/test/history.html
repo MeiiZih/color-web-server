@@ -286,6 +286,74 @@
                 '<tr><td colspan="5">加載測驗記錄失敗。</td></tr>';
             }
         }
+        
+        function displayHistoryRecords(records) {
+        const tbody = document.getElementById('historyTableBody');
+
+        if (!Array.isArray(records) || records.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center; padding:40px; color:#666;">
+                目前沒有測驗紀錄
+                </td>
+            </tr>`;
+            return;
+        }
+
+        // 小工具：時間與結果格式化
+        const fmtDate = ts => {
+            try {
+            const d = new Date(ts);
+            return d.toLocaleString('zh-TW', {
+                year:'numeric', month:'2-digit', day:'2-digit',
+                hour:'2-digit', minute:'2-digit'
+            });
+            } catch { return '-'; }
+        };
+        const fmtResult = r => {
+            // 後端可能給不同欄位：mbtiResult、result、colorResult.primary...
+            if (!r) return '-';
+            if (typeof r === 'string') return r;
+            if (r.mbtiResult) return r.mbtiResult;
+            if (r.result) return r.result;
+            if (r.colorResult) {
+            const c = r.colorResult;
+            if (typeof c === 'string') return c;
+            if (Array.isArray(c.primary)) return c.primary.join('/');
+            if (typeof c.primary === 'string') return c.primary;
+            }
+            return '-';
+        };
+
+        tbody.innerHTML = records.map((rec, i) => {
+            // 後端欄位相容處理
+            const date      = fmtDate(rec.timestamp || rec.createdAt || rec.date);
+            const testName  = rec.testType || rec.testName || rec.test?.name || '—';
+            const result    = fmtResult(rec);
+            // 詳細連結：若你有詳細頁可替換 href
+            const detailBtn = `<button class="link-btn" disabled>—</button>`;
+
+            return `
+            <tr>
+                <td>${String(i + 1).padStart(2, '0')}</td>
+                <td>${date}</td>
+                <td>${escapeHtml(testName)}</td>
+                <td>${escapeHtml(result)}</td>
+                <td style="text-align:center;">${detailBtn}</td>
+            </tr>`;
+        }).join('');
+        }
+
+        /** 簡單的 HTML escape，避免特殊字元破版 */
+        function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
     </script>
 </body>
 </html> 
