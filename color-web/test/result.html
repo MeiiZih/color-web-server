@@ -165,6 +165,10 @@
                 return;
             }
 
+            // ★ 將顏色欄位正規化（不管後端回哪種格式），並覆寫回 resultData
+            const normalized = normalizeColorResult(resultData);
+            if (normalized) resultData.colorResult = normalized;
+
             const mbtiType = resultData.mbtiResult || resultData.mbtiType;
             const scores = resultData.scores;
             const colorResult = resultData.colorResult;
@@ -173,6 +177,36 @@
                 alert('測驗結果資料不完整，無法下載報告。');
                 return;
             }
+
+            // 修正顏色資料結構相容性
+            function normalizeColorResult(record) {
+            if (!record) return { primary: [] };
+
+            // 已經是正確格式的情況
+            if (record.colorResult && Array.isArray(record.colorResult.primary)) {
+                return record.colorResult;
+            }
+
+            // 如果 colorResult 是字串或單一顏色
+            if (typeof record.colorResult === 'string') {
+                return {
+                    primary: record.colorResult.split('/').map(s => s.trim()).filter(Boolean)
+                };
+            }
+
+            // 從平面欄位補建
+            const primary = record.primary || record.topColor || record.resultColor || '';
+            const secondary = record.secondary || '';
+            const tertiary = record.tertiary || '';
+
+            return {
+                primary: Array.isArray(primary)
+                    ? primary
+                    : String(primary).split('/').map(s => s.trim()).filter(Boolean),
+                secondary,
+                tertiary
+            };
+        }
 
             // 獲取最高分顏色組合
             let topColors = [];
@@ -541,11 +575,11 @@
         };
 
         const candidates = [
-            `/api/test/records/${encodeURIComponent(id)}`,
-            `/api/test/record/${encodeURIComponent(id)}`,
-            `/api/test/records?id=${encodeURIComponent(id)}`,
+            `/api/test/record/${encodeURIComponent(id)}`,      // ← 單數：先嘗試這個
+            `/api/test/records/${encodeURIComponent(id)}`,     // 再嘗試複數 path
+            `/api/test/records?id=${encodeURIComponent(id)}`,  // 再嘗試 query 版本
             `/api/admin/test-records?id=${encodeURIComponent(id)}`
-        ];
+            ];
 
         for (const url of candidates) {
             const hit = await tryGet(url);
@@ -589,6 +623,10 @@
                 alert('無法取得測驗結果，請重新進行測驗。');
                 return;
             }
+
+            // ★ 將顏色欄位正規化（不管後端回哪種格式），並覆寫回 resultData
+            const normalized = normalizeColorResult(resultData);
+            if (normalized) resultData.colorResult = normalized;
 
             const mbtiType = resultData.mbtiResult || resultData.mbtiType;
             const scores = resultData.scores;
@@ -1949,7 +1987,7 @@ ${colorInfo.description}
             const guestId = urlParams.get('guestId');
             const testType = urlParams.get('testType');
             const timestamp = urlParams.get('timestamp');
-            let resultData = null;
+            let resultData = null;     
 
             if (testType && timestamp && (email || guestId)) {
                 // 用複合條件查詢
@@ -1971,6 +2009,10 @@ ${colorInfo.description}
                     return;
                 }
             }
+
+            // ★ 將顏色欄位正規化（不管後端回哪種格式），並覆寫回 resultData
+            const normalized = normalizeColorResult(resultData);
+            if (normalized) resultData.colorResult = normalized;
 
             // 顯示MBTI類型
             if (resultData.mbtiResult || resultData.mbtiType) {
