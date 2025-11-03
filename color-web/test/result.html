@@ -787,9 +787,10 @@
                 fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
             }
             
-            // 確保路徑以 / 開頭（絕對路徑）
-            const fullPath = folderPath.startsWith('/') ? `${folderPath}/${fileName}` : `/${folderPath}/${fileName}`;
-            return fullPath;
+            // 重要：回傳相對於當前頁面的路徑，
+            // 使其指向 /test/Full-report/...（與文字報告相同的相對路徑策略）
+            // 避免以網站根目錄為基準造成 404
+            return `${folderPath}/${fileName}`;
         }
         
         // 顯示小卡彈窗
