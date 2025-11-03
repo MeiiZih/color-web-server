@@ -769,21 +769,22 @@
             let folderPath = '';
             let fileName = '';
             
+            // 對顏色進行排序，確保與資料夾路徑的順序一致
+            // 使用與 getFolderPath() 相同的排序邏輯（按英文名稱排序）
+            const sortedColors = [...topColors].sort((a, b) => a.en.localeCompare(b.en));
+            
             if (colorCount === 1) {
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderPath = `Full-report/one color/${sortedColors[0].en}`;
-                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+                fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
             } else if (colorCount === 2) {
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderPath = `Full-report/two color/${sortedColors[0].en} x ${sortedColors[1].en}`;
-                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+                fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
             } else if (colorCount === 3) {
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderPath = `Full-report/three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
-                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+                fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
             } else if (colorCount === 4) {
-                folderPath = `Full-report/four color/Red x Yellow x Blue x Green`;
-                fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
+                folderPath = `Full-report/four color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en} x ${sortedColors[3].en}`;
+                fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
             }
             
             // 確保路徑以 / 開頭（絕對路徑）
@@ -1037,18 +1038,17 @@
             const colorCount = topColors.length;
             let folderName = '';
             
+            // 對顏色進行排序，確保一致性（按英文名稱排序）
+            // 使用展開運算符創建新數組，避免修改原數組
+            const sortedColors = [...topColors].sort((a, b) => a.en.localeCompare(b.en));
+            
             if (colorCount === 1) {
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderName = `one color/${sortedColors[0].en}`;
             } else if (colorCount === 2) {
-                // 排序顏色確保一致性
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderName = `two color/${sortedColors[0].en} x ${sortedColors[1].en}`;
             } else if (colorCount === 3) {
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderName = `three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
             } else if (colorCount === 4) {
-                const sortedColors = topColors.sort((a, b) => a.en.localeCompare(b.en));
                 folderName = `four color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en} x ${sortedColors[3].en}`;
             }
             
@@ -1077,7 +1077,11 @@
             };
             
             const mbtiName = mbtiNames[mbtiType] || mbtiType;
-            const colorString = topColors.map(c => c.zh).join('');
+            
+            // 重要：對顏色進行排序，確保與資料夾路徑的順序一致
+            // 使用與 getFolderPath() 相同的排序邏輯（按英文名稱排序）
+            const sortedColors = [...topColors].sort((a, b) => a.en.localeCompare(b.en));
+            const colorString = sortedColors.map(c => c.zh).join('');
             
             return `${mbtiName}x${colorString}.txt`;
         }
