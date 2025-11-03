@@ -1269,22 +1269,37 @@
         function extractMbtiSection(fullText, mbtiType) {
             if (!fullText || !mbtiType) return null;
             const lines = fullText.split(/\r?\n/);
-            const headerRegex = new RegExp(`^🧭\\s*.*\\(${mbtiType}\\)`);
+            // 支援半形/全形括號；並容忍不同的標題文案格式
+            const headerRegex1 = new RegExp(`^🧭\\s*.*\\(${mbtiType}\\)`);      // 半形 ()
+            const headerRegex2 = new RegExp(`^🧭\\s*.*[（]${mbtiType}[）]`);       // 全形 （）
+            const anyHeader    = /^🧭/;                                            // 退而求其次：第一個 🧭
+
             let start = -1;
             for (let i = 0; i < lines.length; i++) {
-                if (headerRegex.test(lines[i])) {
+                const line = lines[i];
+                if (headerRegex1.test(line) || headerRegex2.test(line)) {
                     start = i;
                     break;
                 }
             }
+            // 找不到帶 MBTI 的 🧭，回退到第一個 🧭 開頭行
+            if (start === -1) {
+                for (let i = 0; i < lines.length; i++) {
+                    if (anyHeader.test(lines[i])) { start = i; break; }
+                }
+            }
             if (start === -1) return null;
+
+            // 結束條件：分隔線或下一個章節圖示
             let end = lines.length;
             for (let j = start + 1; j < lines.length; j++) {
-                if (/^_{6,}/.test(lines[j])) { // 找到分隔線
+                const l = lines[j];
+                if (/^_{6,}/.test(l) || /^([🌼🌈💡✨])/.test(l)) {
                     end = j;
                     break;
                 }
             }
+
             const sectionLines = lines.slice(start, end).filter(l => l.trim().length > 0);
             return sectionLines.join('\n');
         }
