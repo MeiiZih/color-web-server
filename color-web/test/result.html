@@ -143,21 +143,42 @@
     </footer>
 
     <script>
+        // 全局 normalizeColorResult 函數 - 正規化顏色結果
+        function normalizeColorResult(record) {
+            if (!record) return null;
+            if (record.colorResult && record.colorResult.primary) return record.colorResult;
+
+            const primary   = record.primary   || record.topColor   || record.resultColor || '';
+            const secondary = record.secondary || '';
+            const tertiary  = record.tertiary  || '';
+
+            return {
+                primary: Array.isArray(primary)
+                    ? primary
+                    : String(primary).split('/').map(s => s.trim()).filter(Boolean),
+                secondary,
+                tertiary
+            };
+        }
+        
         // 下載報告功能
         function downloadReport() {
-            // 取得當前測驗結果
-            const urlParams = new URLSearchParams(window.location.search);
-            const email = urlParams.get('email');
-            const guestId = urlParams.get('guestId');
-            const testType = urlParams.get('testType');
-            const timestamp = urlParams.get('timestamp');
+            // 取得當前測驗結果 - 優先使用 window.currentTestResult（通過 id 載入的數據）
             let resultData = null;
-
-            if (testType && timestamp && (email || guestId)) {
-                // 這裡可根據實際情況取得 resultData
-                resultData = window.currentTestResult || null;
+            
+            // 優先使用 window.currentTestResult（如果通過 id 載入的）
+            if (window.currentTestResult) {
+                resultData = window.currentTestResult;
             } else {
-                resultData = JSON.parse(localStorage.getItem('currentTestResult'));
+                // 否則從 localStorage 讀取
+                try {
+                    const stored = localStorage.getItem('currentTestResult');
+                    if (stored) {
+                        resultData = JSON.parse(stored);
+                    }
+                } catch (e) {
+                    console.error('從 localStorage 讀取失敗:', e);
+                }
             }
 
             if (!resultData) {
@@ -166,8 +187,16 @@
             }
 
             // ★ 將顏色欄位正規化（不管後端回哪種格式），並覆寫回 resultData
-            const normalized = normalizeColorResult(resultData);
-            if (normalized) resultData.colorResult = normalized;
+            if (typeof normalizeColorResult === 'function') {
+                const normalized = normalizeColorResult(resultData);
+                if (normalized) {
+                    resultData.colorResult = normalized;
+                }
+            } else {
+                console.error('normalizeColorResult 函數未定義');
+                alert('系統錯誤：無法處理顏色資料。');
+                return;
+            }
 
             const mbtiType = resultData.mbtiResult || resultData.mbtiType;
             const scores = resultData.scores;
@@ -178,35 +207,8 @@
                 return;
             }
 
-            // 修正顏色資料結構相容性
-            function normalizeColorResult(record) {
-            if (!record) return { primary: [] };
-
-            // 已經是正確格式的情況
-            if (record.colorResult && Array.isArray(record.colorResult.primary)) {
-                return record.colorResult;
-            }
-
-            // 如果 colorResult 是字串或單一顏色
-            if (typeof record.colorResult === 'string') {
-                return {
-                    primary: record.colorResult.split('/').map(s => s.trim()).filter(Boolean)
-                };
-            }
-
-            // 從平面欄位補建
-            const primary = record.primary || record.topColor || record.resultColor || '';
-            const secondary = record.secondary || '';
-            const tertiary = record.tertiary || '';
-
-            return {
-                primary: Array.isArray(primary)
-                    ? primary
-                    : String(primary).split('/').map(s => s.trim()).filter(Boolean),
-                secondary,
-                tertiary
-            };
-        }
+            // 使用全局的 normalizeColorResult 函數
+            // 不需要重新定義，直接使用上面的全局函數
 
             // 獲取最高分顏色組合
             let topColors = [];
@@ -556,49 +558,79 @@
 
         // ========== PATCH 1: 相容的「用 id 取單筆紀錄」 ==========
         async function fetchRecordByIdMultiTry(id, headers = {}) {
-        const tryGet = async (url) => {
-            try {
-            const r = await fetch(url, { headers });
-            if (!r.ok) return null;
-            const data = await r.json();
-            if (Array.isArray(data)) return null;
-            if (data && data._id) return data;
-            if (data && data.record && data.record._id) return data.record;
-            if (data && data.data && data.data._id) return data.data;
-            if (data && data.records && Array.isArray(data.records)) {
-                return data.records.find(x => x._id === id || x.id === id) || null;
-            }
-            return data && (data._id || data.id) ? data : null;
-            } catch {
-            return null;
-            }
-        };
+            const tryGet = async (url) => {
+                try {
+                    const r = await fetch(url, { headers });
+                    if (!r.ok) return null;
+                    const data = await r.json();
+                    
+                    // 處理各種可能的響應格式
+                    if (Array.isArray(data)) {
+                        // 如果是數組，查找匹配的記錄
+                        return data.find(x => (x._id === id || x.id === id)) || null;
+                    }
+                    if (data && data._id) return data;
+                    if (data && data.record && data.record._id) return data.record;
+                    if (data && data.data && data.data._id) return data.data;
+                    if (data && data.records && Array.isArray(data.records)) {
+                        return data.records.find(x => (x._id === id || x.id === id)) || null;
+                    }
+                    if (data && data.success && data.record) {
+                        return data.record;
+                    }
+                    return data && (data._id || data.id) ? data : null;
+                } catch (e) {
+                    console.warn(`嘗試獲取 ${url} 失敗:`, e);
+                    return null;
+                }
+            };
 
         const candidates = [
             `/api/test/record/${encodeURIComponent(id)}`,      // ← 單數：先嘗試這個
             `/api/test/records/${encodeURIComponent(id)}`,     // 再嘗試複數 path
             `/api/test/records?id=${encodeURIComponent(id)}`,  // 再嘗試 query 版本
+            `/api/test/recordByInfo?id=${encodeURIComponent(id)}`,  // 嘗試 recordByInfo 端點
             `/api/admin/test-records?id=${encodeURIComponent(id)}`
-            ];
+        ];
 
         for (const url of candidates) {
             const hit = await tryGet(url);
             if (hit) return hit;
         }
 
-        // 後備：抓清單再自己找
+        // 後備：抓清單再自己找（需要用戶信息）
         try {
-            const r = await fetch(`/api/test/records`, { headers });
-            if (r.ok) {
-            const list = await r.json();
-            if (Array.isArray(list)) {
-                return list.find(x => x._id === id || x.id === id) || null;
+            const userEmail = sessionStorage.getItem('userEmail');
+            const isGuest = sessionStorage.getItem('isGuest') === 'true';
+            const guestId = sessionStorage.getItem('guestId');
+            
+            let query = '';
+            if (isGuest && guestId) {
+                query = `guestId=${encodeURIComponent(guestId)}`;
+            } else if (userEmail) {
+                query = `email=${encodeURIComponent(userEmail)}`;
             }
-            if (list && list.records && Array.isArray(list.records)) {
-                return list.records.find(x => x._id === id || x.id === id) || null;
+            
+            if (query) {
+                const r = await fetch(`/api/test/records?${query}`, { headers });
+                if (r.ok) {
+                    const list = await r.json();
+                    let records = [];
+                    if (Array.isArray(list)) {
+                        records = list;
+                    } else if (list && list.records && Array.isArray(list.records)) {
+                        records = list.records;
+                    } else if (list && list.data && Array.isArray(list.data)) {
+                        records = list.data;
+                    }
+                    
+                    const found = records.find(x => (x._id === id || x.id === id));
+                    if (found) return found;
+                }
             }
-            }
-        } catch {}
+        } catch (e) {
+            console.warn('後備查詢失敗:', e);
+        }
 
         return null;
         }
@@ -607,16 +639,27 @@
         function shareResult() {
             // 取得當前測驗結果
             const urlParams = new URLSearchParams(window.location.search);
+            const qsId = urlParams.get('id');
             const email = urlParams.get('email');
             const guestId = urlParams.get('guestId');
             const testType = urlParams.get('testType');
             const timestamp = urlParams.get('timestamp');
             let resultData = null;
 
-            if (testType && timestamp && (email || guestId)) {
+            // 優先使用 window.currentTestResult（如果通過 id 載入的）
+            if (window.currentTestResult) {
+                resultData = window.currentTestResult;
+            } else if (testType && timestamp && (email || guestId)) {
                 resultData = window.currentTestResult || null;
             } else {
-                resultData = JSON.parse(localStorage.getItem('currentTestResult'));
+                try {
+                    const stored = localStorage.getItem('currentTestResult');
+                    if (stored) {
+                        resultData = JSON.parse(stored);
+                    }
+                } catch (e) {
+                    console.error('從 localStorage 讀取失敗:', e);
+                }
             }
 
             if (!resultData) {
@@ -625,8 +668,16 @@
             }
 
             // ★ 將顏色欄位正規化（不管後端回哪種格式），並覆寫回 resultData
-            const normalized = normalizeColorResult(resultData);
-            if (normalized) resultData.colorResult = normalized;
+            if (typeof normalizeColorResult === 'function') {
+                const normalized = normalizeColorResult(resultData);
+                if (normalized) {
+                    resultData.colorResult = normalized;
+                }
+            } else {
+                console.error('normalizeColorResult 函數未定義');
+                alert('系統錯誤：無法處理顏色資料。');
+                return;
+            }
 
             const mbtiType = resultData.mbtiResult || resultData.mbtiType;
             const scores = resultData.scores;
@@ -678,7 +729,9 @@
                 fileName = getFileName(mbtiType, topColors).replace('.txt', '.png');
             }
             
-            return `${folderPath}/${fileName}`;
+            // 確保路徑以 / 開頭（絕對路徑）
+            const fullPath = folderPath.startsWith('/') ? `${folderPath}/${fileName}` : `/${folderPath}/${fileName}`;
+            return fullPath;
         }
         
         // 顯示小卡彈窗
@@ -756,16 +809,23 @@
             
             // 錯誤處理
             cardImage.onerror = function() {
+                console.error('小卡圖片載入失敗，路徑:', imagePath);
                 modalContent.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #666;">
                         <h3>小卡圖片載入失敗</h3>
                         <p>抱歉，找不到對應的小卡圖片。</p>
+                        <p style="font-size: 12px; color: #999; margin-top: 10px;">路徑: ${imagePath}</p>
                         <button onclick="this.parentElement.parentElement.parentElement.remove()" 
                                 style="margin-top: 20px; padding: 10px 20px; background: #FF677D; color: white; border: none; border-radius: 5px; cursor: pointer;">
                             關閉
                         </button>
                     </div>
                 `;
+            };
+            
+            // 圖片載入成功後移除錯誤處理器
+            cardImage.onload = function() {
+                console.log('小卡圖片載入成功，路徑:', imagePath);
             };
             
             // 組裝彈窗
@@ -1955,41 +2015,73 @@ ${colorInfo.description}
             }
         }
         document.addEventListener('DOMContentLoaded', async function() {
-            // ========== PATCH 2: DOMContentLoaded 開頭插入 ==========
-            const qsId = new URLSearchParams(location.search).get('id');
-            if (qsId) {
-            const token = sessionStorage.getItem('token') || sessionStorage.getItem('adminToken') || '';
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = 'Bearer ' + token;
-
-            try {
-                const rec = await fetchRecordByIdMultiTry(qsId, headers);
-                if (!rec) {
-                alert('無法顯示測驗結果，請稍後再試。');
-                return; // 終止初始化，避免後續渲染空資料
-                }
-                // 讓既有流程可直接讀取
-                window.currentTestResult = rec;
-                try { localStorage.setItem('currentTestResult', JSON.stringify(rec)); } catch {}
-            } catch (e) {
-                console.error('載入單筆測驗紀錄失敗：', e);
-                alert('無法顯示測驗結果，請稍後再試。');
-                return; // 終止初始化
-            }
-            }
-
             checkPageAccess();
             if (typeof updateNavbar === 'function') updateNavbar();
 
             // 取得 URL 參數
             const urlParams = new URLSearchParams(window.location.search);
+            const qsId = urlParams.get('id');
             const email = urlParams.get('email');
             const guestId = urlParams.get('guestId');
             const testType = urlParams.get('testType');
             const timestamp = urlParams.get('timestamp');
-            let resultData = null;     
+            let resultData = null;
 
-            if (testType && timestamp && (email || guestId)) {
+            // 優先處理 id 參數（從 history.html 點擊查看按鈕進入）
+            if (qsId) {
+                const token = sessionStorage.getItem('token') || sessionStorage.getItem('adminToken') || '';
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                try {
+                    const rec = await fetchRecordByIdMultiTry(qsId, headers);
+                    if (!rec) {
+                        // 如果通過 id 找不到，嘗試使用用戶信息查詢
+                        const userEmail = sessionStorage.getItem('userEmail');
+                        const isGuest = sessionStorage.getItem('isGuest') === 'true';
+                        const currentGuestId = sessionStorage.getItem('guestId');
+                        
+                        if (userEmail || (isGuest && currentGuestId)) {
+                            // 從所有記錄中找到匹配的 ID
+                            try {
+                                const query = isGuest && currentGuestId 
+                                    ? `guestId=${encodeURIComponent(currentGuestId)}`
+                                    : `email=${encodeURIComponent(userEmail)}`;
+                                const allRes = await fetch(`/api/test/records?${query}`, { headers });
+                                if (allRes.ok) {
+                                    const allData = await allRes.json();
+                                    const records = Array.isArray(allData) ? allData : (allData.records || allData.data || []);
+                                    const found = records.find(r => (r._id === qsId || r.id === qsId));
+                                    if (found) {
+                                        resultData = found;
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('從列表查找記錄失敗:', e);
+                            }
+                        }
+                        
+                        if (!resultData) {
+                            alert('無法顯示測驗結果，請稍後再試。');
+                            return;
+                        }
+                    } else {
+                        resultData = rec;
+                    }
+                    
+                    // 讓既有流程可直接讀取
+                    window.currentTestResult = resultData;
+                    try { 
+                        localStorage.setItem('currentTestResult', JSON.stringify(resultData)); 
+                    } catch (e) {
+                        console.warn('無法寫入 localStorage:', e);
+                    }
+                } catch (e) {
+                    console.error('載入單筆測驗紀錄失敗：', e);
+                    alert('無法顯示測驗結果，請稍後再試。');
+                    return;
+                }
+            } else if (testType && timestamp && (email || guestId)) {
                 // 用複合條件查詢
                 resultData = await fetchTestDetailByInfo(email, testType, timestamp, guestId);
                 if (!resultData) {
@@ -2001,8 +2093,19 @@ ${colorInfo.description}
                 window.currentTestResult = resultData;
                 localStorage.setItem('currentTestResult', JSON.stringify(resultData));
             } else {
-                // 沒有複合條件，顯示最近一次
-                resultData = JSON.parse(localStorage.getItem('currentTestResult'));
+                // 沒有 id 或複合條件，嘗試從 localStorage 讀取
+                resultData = window.currentTestResult || null;
+                if (!resultData) {
+                    try {
+                        const stored = localStorage.getItem('currentTestResult');
+                        if (stored) {
+                            resultData = JSON.parse(stored);
+                        }
+                    } catch (e) {
+                        console.warn('從 localStorage 讀取失敗:', e);
+                    }
+                }
+                
                 if (!resultData) {
                     alert('無法顯示測驗結果，請重新進行測驗。');
                     window.location.href = 'test.html';
@@ -2011,8 +2114,22 @@ ${colorInfo.description}
             }
 
             // ★ 將顏色欄位正規化（不管後端回哪種格式），並覆寫回 resultData
-            const normalized = normalizeColorResult(resultData);
-            if (normalized) resultData.colorResult = normalized;
+            // 確保 normalizeColorResult 函數存在
+            if (typeof normalizeColorResult === 'function') {
+                const normalized = normalizeColorResult(resultData);
+                if (normalized) {
+                    resultData.colorResult = normalized;
+                    // 同步更新 window.currentTestResult
+                    window.currentTestResult = resultData;
+                    try {
+                        localStorage.setItem('currentTestResult', JSON.stringify(resultData));
+                    } catch (e) {
+                        console.warn('更新 localStorage 失敗:', e);
+                    }
+                }
+            } else {
+                console.error('normalizeColorResult 函數未定義');
+            }
 
             // 顯示MBTI類型
             if (resultData.mbtiResult || resultData.mbtiType) {

@@ -68,6 +68,19 @@ body {
     background-color: #ff4d67;
 }
 
+.history-table th:nth-child(5),
+.history-table td:nth-child(5) {
+  text-align: center;
+  width: 120px;
+}
+
+/* 讓「查看」按鈕在儲存格裡垂直置中 */
+.history-table td:nth-child(5) .link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .back-section {
     text-align: center;
     margin: 2rem 0;
