@@ -636,7 +636,7 @@
         }
 
         // ========== PATCH 1: 相容的「用 id 取單筆紀錄」 ==========
-        async function downloadReport() {
+        function downloadReport() {
             let resultData = window.currentTestResult || null;
 
             if (!resultData) {
@@ -679,41 +679,20 @@
 
             const colorKey = colors.join('-');
             const endpoint = `/api/reports/download/${encodeURIComponent(mbtiType)}/${encodeURIComponent(colorKey)}`;
-            const downloadButton = document.getElementById('downloadReportButton');
-            const originalButtonText = downloadButton ? downloadButton.textContent : '';
+            // 必須在點擊事件中立刻開啟連結；若先 await，iOS Safari 會失去
+            // 使用者操作授權並阻擋下載。target=_blank 同時提供手機 PDF 預覽備援。
+            const link = document.createElement('a');
+            link.href = endpoint;
+            link.download = `ColorLab-${mbtiType}-${colorKey}-完整報告.pdf`;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.hidden = true;
+            document.body.appendChild(link);
+            link.click();
+            window.setTimeout(() => link.remove(), 1000);
 
-            try {
-                if (downloadButton) {
-                    downloadButton.disabled = true;
-                    downloadButton.textContent = '正在準備完整 PDF…';
-                    downloadButton.setAttribute('aria-busy', 'true');
-                }
-
-                const response = await fetch(endpoint, { method: 'HEAD', cache: 'no-store' });
-                if (!response.ok) {
-                    throw new Error(`Report request failed (${response.status})`);
-                }
-
-                const link = document.createElement('a');
-                link.href = endpoint;
-                link.download = `ColorLab-${mbtiType}-${colorKey}-完整報告.pdf`;
-                link.hidden = true;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-
-                if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
-                    window.ColorLabUX.toast('完整 PDF 報告已開始下載', 'success');
-                }
-            } catch (error) {
-                console.error('下載完整 PDF 報告失敗：', error);
-                alert('目前無法下載完整報告，請稍後再試。');
-            } finally {
-                if (downloadButton) {
-                    downloadButton.disabled = false;
-                    downloadButton.textContent = originalButtonText || '下載 PDF 報告';
-                    downloadButton.removeAttribute('aria-busy');
-                }
+            if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
+                window.ColorLabUX.toast('完整 PDF 已開啟；手機可用「分享」儲存到檔案', 'success');
             }
         }
 
