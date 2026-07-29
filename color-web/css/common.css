@@ -299,6 +299,10 @@ footer {
     margin: 0;
     line-height: 1.4;
     opacity: 0.9;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .carousel-loading {
@@ -566,4 +570,130 @@ footer {
     height: 40px;
     max-height: 100%;
     margin-right: 10px;
-} 
+}
+
+/* 首頁資訊改用原生水平滑動，觸控、滑鼠觸控板與鍵盤都能操作。 */
+.single-carousel-container,
+.info-carousel-container {
+    overflow: visible;
+}
+
+.single-carousel-container {
+    padding: 0 24px;
+}
+
+.single-carousel,
+.info-carousel {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+}
+
+.single-carousel::-webkit-scrollbar,
+.info-carousel::-webkit-scrollbar {
+    display: none;
+}
+
+.single-carousel {
+    position: relative;
+    height: auto;
+    gap: 20px;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.news-slide,
+.news-slide.active,
+.news-slide.prev {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: 400px;
+    flex: 0 0 100%;
+    opacity: 1;
+    transform: none;
+    transition: box-shadow 0.25s ease;
+    overflow: hidden;
+    border-radius: 24px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    box-shadow: 0 14px 40px rgba(61, 43, 48, 0.13);
+}
+
+.news-slide img,
+.news-slide.active img {
+    width: 100%;
+    height: 100%;
+    transform: none;
+    object-fit: cover;
+}
+
+.news-content,
+.news-slide.active .news-content {
+    opacity: 1;
+    transform: none;
+    padding: 70px 34px 30px;
+    background: linear-gradient(transparent, rgba(29, 20, 23, 0.82));
+}
+
+.info-carousel-container {
+    padding: 0 24px 24px;
+}
+
+.info-carousel {
+    gap: 24px;
+    padding: 8px 4px 20px;
+}
+
+.info-card {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    border: 1px solid rgba(255, 103, 125, 0.13);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(56, 71, 84, 0.1);
+}
+
+.carousel-indicators {
+    margin-top: 16px;
+    gap: 8px;
+}
+
+.indicator {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    background: #d9c9cd;
+}
+
+.indicator.active {
+    width: 26px;
+    border-radius: 999px;
+    background: #ff677d;
+}
+
+.carousel-swipe-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin: 10px 0 0;
+    color: #806a70;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.carousel-swipe-hint span {
+    color: #ff677d;
+    font-size: 18px;
+}
+
+.info-indicators {
+    margin-top: 2px;
+}

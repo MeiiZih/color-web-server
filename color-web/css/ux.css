@@ -42,6 +42,45 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+/* 各頁返回操作統一為輕量膠囊按鈕，避免手機出現過大或脫離主題的比例。 */
+.back-section .back-button,
+.main-container > .back-button {
+    width: max-content;
+    min-width: 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    padding: 10px 17px;
+    border: 1px solid #f1c0ca;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #99485a;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(91, 60, 70, 0.09);
+}
+
+.back-section .back-button:hover,
+.main-container > .back-button:hover {
+    border-color: #ff9bad;
+    background: #fff1f4;
+    color: #c7465f;
+    transform: translateY(-1px);
+}
+
+.back-section .back-button img,
+.main-container > .back-button img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    opacity: 0.72;
+}
+
 .ux-visually-hidden {
     position: absolute !important;
     width: 1px !important;

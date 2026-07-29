@@ -14,7 +14,7 @@
     <script src="../js/test-api.js"></script>
     <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="page-test-history">
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
@@ -36,27 +36,41 @@
     </nav>
 
     <div class="main-container">
-        <div class="history-table">
-            <h2 class="section-title">測驗紀錄</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>序號</th>
-                        <th>日期</th>
-                        <th>測驗</th>
-                        <th>結果</th>
-                        <th>詳細</th>
-                    </tr>
-                </thead>
-                <tbody id="historyTableBody">
-                    <!-- 資料將由 JavaScript 動態填充 -->
-                </tbody>
-            </table>
-        </div>
+        <section class="history-shell">
+            <header class="history-heading">
+                <span class="page-kicker">YOUR COLOR JOURNEY</span>
+                <div class="history-title-row">
+                    <h1>測驗紀錄</h1>
+                    <span class="history-count" id="historyCount">讀取中</span>
+                </div>
+                <p>回顧每一次色彩探索，快速查看結果或開啟完整分析。</p>
+            </header>
+
+            <div id="historyCardList" class="history-card-list" aria-live="polite">
+                <div class="history-state">正在讀取紀錄...</div>
+            </div>
+
+            <div class="history-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>序號</th>
+                            <th>日期</th>
+                            <th>測驗</th>
+                            <th>結果</th>
+                            <th>詳細</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr><td colspan="5" class="history-state">正在讀取紀錄...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
     <div class="back-section">
-        <a href="/test/test.html" class="back-button">返回</a>
+        <a href="/test/test.html" class="back-button"><span aria-hidden="true">←</span><span>返回測驗首頁</span></a>
       </div>
 
     <div class="login-modal" id="loginModal">
@@ -165,9 +179,19 @@
             if (!data.token) throw new Error('登入失敗：未收到有效 Token。');
         
             sessionStorage.setItem('userEmail', username);
-            sessionStorage.setItem('userName', data.userName || username);
+            const loggedInUser = data.user || { email: username, name: data.userName };
+            sessionStorage.setItem('userName', loggedInUser.name || loggedInUser.nickname || username.split('@')[0]);
             sessionStorage.setItem('token', data.token);
+            sessionStorage.setItem('userToken', data.token);
+            sessionStorage.setItem('user', JSON.stringify(loggedInUser));
+            sessionStorage.setItem('userId', loggedInUser.id || loggedInUser._id || '');
             sessionStorage.setItem('isGuest', 'false');
+            window.ColorLabAuth?.persistUserSession({
+              token: data.token,
+              email: username,
+              name: loggedInUser.name || loggedInUser.nickname || username.split('@')[0],
+              user: loggedInUser
+            });
         
             alert('登入成功！');
             document.getElementById('loginModal').style.display = 'none';
@@ -180,20 +204,18 @@
         
         function showGuestNoAccessMessage() {
           const tbody = document.getElementById('historyTableBody');
+          const cardList = document.getElementById('historyCardList');
+          document.getElementById('historyCount').textContent = '訪客模式';
+          cardList.innerHTML = `
+            <div class="history-state history-state-card">
+              <span class="history-state-icon" aria-hidden="true">◫</span>
+              <strong>訪客紀錄尚未綁定帳號</strong>
+              <p>建立帳號並登入，即可同步同一瀏覽器的訪客紀錄並集中管理。</p>
+              <a class="history-state-action" href="/main/user/register.html">立即註冊帳號</a>
+            </div>`;
           tbody.innerHTML = `
             <tr>
-              <td colspan="5" style="text-align:center;padding:40px;color:#666;">
-                <div style="font-size:18px;margin-bottom:20px;"><i style="font-size:48px;color:#ccc;">📋</i></div>
-                <div style="margin-bottom:15px;"><strong>訪客紀錄尚未綁定帳號</strong></div>
-                <div style="margin-bottom:20px;line-height:1.6;">
-                  訪客資料會以匿名編號保存，這個頁面只顯示帳號的完整歷史紀錄。<br>
-                  建立帳號並登入，可同步同一瀏覽器的訪客紀錄並集中管理。
-                </div>
-                <button onclick="window.location.href='/main/user/register.html'"
-                  style="background-color:#FF677D;color:#fff;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;font-size:14px;">
-                  立即註冊帳號
-                </button>
-              </td>
+              <td colspan="5" class="history-state">訪客紀錄尚未綁定帳號，建立帳號後即可集中管理。</td>
             </tr>`;
         }
         
@@ -235,11 +257,16 @@
           } catch (err) {
             console.error('獲取測驗記錄失敗：', err);
             const tbody = document.getElementById('historyTableBody');
+            document.getElementById('historyCount').textContent = '讀取失敗';
+            document.getElementById('historyCardList').innerHTML = `
+              <div class="history-state history-state-card error">
+                <span class="history-state-icon" aria-hidden="true">!</span>
+                <strong>無法讀取測驗紀錄</strong>
+                <p>請確認網路連線後重新整理頁面。</p>
+              </div>`;
             tbody.innerHTML = `
               <tr>
-                <td colspan="5" style="text-align:center;padding:40px;color:#c0392b">
-                  加載測驗記錄失敗。
-                </td>
+                <td colspan="5" class="history-state error">載入測驗紀錄失敗。</td>
               </tr>`;
           }
         }
@@ -247,15 +274,50 @@
         // ====== 渲染表格：結果＝MBTI + 主色 chips；詳情＝連到結果頁 ======
         function displayHistoryRecords(records) {
           const tbody = document.getElementById('historyTableBody');
+          const cardList = document.getElementById('historyCardList');
+          const count = document.getElementById('historyCount');
           if (!Array.isArray(records) || records.length === 0) {
+            count.textContent = '0 筆紀錄';
+            cardList.innerHTML = `
+              <div class="history-state history-state-card">
+                <span class="history-state-icon" aria-hidden="true">✦</span>
+                <strong>還沒有測驗紀錄</strong>
+                <p>完成第一份測驗後，結果就會整理在這裡。</p>
+                <a class="history-state-action" href="/test/select.html">開始第一次測驗</a>
+              </div>`;
             tbody.innerHTML = `
               <tr>
-                <td colspan="5" style="text-align:center;padding:40px;color:#666">
-                  目前沒有測驗紀錄
-                </td>
+                <td colspan="5" class="history-state">目前沒有測驗紀錄</td>
               </tr>`;
             return;
           }
+
+          count.textContent = `${records.length} 筆紀錄`;
+
+          cardList.innerHTML = records.map((rec, idx) => {
+            const id = rec._id || rec.id || String(idx);
+            const date = fmtDate(rec.timestamp || rec.createdAt || rec.date);
+            const test = rec.testType || rec.testName || '色彩性格測驗';
+            const mbti = (rec.mbtiResult || rec.result || '—').toString();
+            const primary = normalizePrimary(rec?.colorResult?.primary);
+            const chips = primary.length ? renderColorChips(primary) : '';
+            const detailUrl = `/test/result.html?id=${encodeURIComponent(id)}`;
+
+            return `
+              <article class="history-card">
+                <div class="history-card-topline">
+                  <span class="history-index">#${String(idx + 1).padStart(2, '0')}</span>
+                  <time>${date}</time>
+                </div>
+                <span class="history-label">測驗項目</span>
+                <h2>${escapeHtml(test)}</h2>
+                <div class="history-result">
+                  <span class="history-label">測驗結果</span>
+                  <div class="history-result-value"><strong>${escapeHtml(mbti)}</strong>${chips}</div>
+                </div>
+                <a class="history-detail-link" href="${detailUrl}"><span>查看完整分析</span><span aria-hidden="true">→</span></a>
+              </article>`;
+          }).join('');
         
           tbody.innerHTML = records.map((rec, idx) => {
             const id   = rec._id || rec.id || String(idx);

@@ -94,6 +94,10 @@
             // 取得 redirectTarget 參數
             const urlParams = new URLSearchParams(window.location.search);
             redirectTarget = urlParams.get('redirectTarget');
+            if (sessionStorage.getItem('userToken') && sessionStorage.getItem('userEmail') && sessionStorage.getItem('isGuest') !== 'true') {
+                window.location.replace(redirectTarget || '/main/common.html');
+                return;
+            }
             const guestBtn = document.getElementById('guestLoginBtn');
             if (guestBtn) {
                 guestBtn.addEventListener('click', function(e) {
@@ -133,6 +137,13 @@
                         sessionStorage.setItem('userId', userData.user.id || userData.user._id || '');
                         sessionStorage.removeItem('isGuest');
                         sessionStorage.removeItem('guestId');
+                        window.ColorLabAuth?.persistUserSession({
+                            token: userData.token,
+                            email,
+                            name: userData.user.name || userData.user.nickname || '使用者',
+                            user: userData.user,
+                            userId: userData.user.id || userData.user._id || ''
+                        });
                         successMessage.textContent = '登入成功！正在跳轉...';
                         successMessage.style.display = 'block';
                         setTimeout(() => {
@@ -231,6 +242,7 @@
     <!-- 修改登出邏輯，所有登出都回到 common.html -->
     <script>
         function logout() {
+            window.ColorLabAuth?.clearPersistentUserSession();
             sessionStorage.clear();
             window.location.href = 'common.html';
         }

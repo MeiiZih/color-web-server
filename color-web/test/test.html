@@ -14,7 +14,7 @@
 
     <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="page-test-hub">
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
@@ -35,20 +35,26 @@
         </div>
     </nav>
     <div class="main-container">
-        <h1 class="ux-visually-hidden">ColorLab 色彩心理測驗</h1>
+        <header class="test-page-header">
+            <span class="page-kicker">COLORLAB TEST</span>
+            <h1>從色彩開始，讀懂獨一無二的你</h1>
+            <p>用 20 道直覺題探索性格傾向，完成後立即查看你的代表色與分析。</p>
+        </header>
         <div class="card-grid">
             <div class="test-card">
-                <div class="card-icon">📝</div>
+                <div class="card-icon" aria-hidden="true">✦</div>
+                <span class="card-meta">20 題 · 約 6 分鐘</span>
                 <h2 class="card-title">進入測驗</h2>
                 <p class="card-desc">參加各種有趣的心理測驗，探索你的個性特質、心理狀態和潛意識傾向。</p>
-                <button class="card-button" id="enterTestBtn">開始測驗</button>
+                <button class="card-button" id="enterTestBtn"><span>開始測驗</span><span aria-hidden="true">→</span></button>
             </div>
 
             <div class="test-card">
-                <div class="card-icon">📊</div>
+                <div class="card-icon" aria-hidden="true">◫</div>
+                <span class="card-meta">登入帳號專屬</span>
                 <h2 class="card-title">測驗紀錄</h2>
                 <p class="card-desc">查看您之前的測驗結果和分析，追蹤您的心理成長和變化。</p>
-                <button class="card-button" id="viewHistoryBtn">查看紀錄</button>
+                <button class="card-button card-button-secondary" id="viewHistoryBtn"><span>查看紀錄</span><span aria-hidden="true">→</span></button>
             </div>
         </div>
     </div>

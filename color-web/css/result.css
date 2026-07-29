@@ -691,3 +691,46 @@ body {
         height: 35px !important;
     }
 }
+
+/* 結果頁底部操作與 ColorLab 主題一致 */
+.navigation-buttons {
+    align-items: stretch;
+    gap: 12px;
+}
+
+.navigation-buttons .back-button,
+.navigation-buttons .nav-button {
+    min-width: 132px;
+    min-height: 46px;
+    padding: 10px 18px;
+    border-radius: 14px;
+    font-weight: 800;
+}
+
+.navigation-buttons .back-button {
+    border: 1px solid #f0c2cb;
+    background: #fff;
+    color: #9b485a;
+}
+
+.navigation-buttons .nav-button {
+    border: 1px solid #ff677d;
+    background: #ff677d;
+    color: #fff;
+}
+
+@media (max-width: 576px) {
+    .navigation-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 20px auto 82px;
+        padding: 0 14px;
+    }
+
+    .navigation-buttons .back-button,
+    .navigation-buttons .nav-button {
+        width: 100%;
+        min-width: 0;
+        padding-inline: 10px;
+    }
+}

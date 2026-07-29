@@ -40,12 +40,11 @@
             <h2>最新資訊</h2>
         </div>
         <div class="single-carousel-container">
-            <div class="single-carousel" id="newsCarousel">
+            <div class="single-carousel" id="newsCarousel" aria-label="最新資訊，可左右滑動" tabindex="0">
                 <div class="carousel-loading">載入中...</div>
             </div>
-            <button type="button" class="carousel-arrow prev" onclick="moveNewsSlide(-1)" aria-label="上一則最新資訊">❮</button>
-            <button type="button" class="carousel-arrow next" onclick="moveNewsSlide(1)" aria-label="下一則最新資訊">❯</button>
             <div class="carousel-indicators" id="carouselIndicators"></div>
+            <p class="carousel-swipe-hint" aria-hidden="true"><span>↔</span> 左右滑動查看更多</p>
         </div>
         <a href="news/events.html" class="view-more-button">查看更多活動</a>
     </section>
@@ -53,13 +52,11 @@
     <section class="info-section">
         <h2 class="section-title">一般資訊</h2>
         <div class="info-carousel-container">
-            <div class="info-carousel" id="infoCarousel">
+            <div class="info-carousel" id="infoCarousel" aria-label="一般資訊，可左右滑動" tabindex="0">
                 <div class="carousel-loading">載入中...</div>
             </div>
-            <div class="info-carousel-arrows">
-                <button type="button" class="info-carousel-arrow left" aria-label="上一則一般資訊">&#8592;</button>
-                <button type="button" class="info-carousel-arrow right" aria-label="下一則一般資訊">&#8594;</button>
-            </div>
+            <div class="carousel-indicators info-indicators" id="infoIndicators"></div>
+            <p class="carousel-swipe-hint" aria-hidden="true"><span>↔</span> 左右滑動查看更多</p>
         </div>
         <a href="news/all.html" class="view-more-button">查看更多資訊</a>
     </section>
@@ -70,14 +67,55 @@
 
     <script src="../js/navbar.js"></script>
     <script>
-        // 最新資訊輪播相關變數
+        // 首頁資訊資料
         let newsData = [];
-        let currentNewsIndex = 0;
-        let newsCarouselTimer = null;
-
-        // 一般資訊輪播相關變數
         let commonData = [];
-        let infoIndex = 0;
+
+        function initializeSwipeCarousel(carousel, itemSelector, indicatorContainer) {
+            const items = Array.from(carousel.querySelectorAll(itemSelector));
+            if (!items.length) return;
+
+            indicatorContainer.innerHTML = items.map((_, index) => `
+                <button type="button" class="indicator ${index === 0 ? 'active' : ''}"
+                    aria-label="查看第 ${index + 1} 則資訊" aria-pressed="${index === 0 ? 'true' : 'false'}"
+                    data-carousel-index="${index}"></button>
+            `).join('');
+
+            const indicators = Array.from(indicatorContainer.querySelectorAll('.indicator'));
+            const updateIndicator = () => {
+                const carouselStart = carousel.getBoundingClientRect().left;
+                let activeIndex = 0;
+                let closestDistance = Infinity;
+
+                items.forEach((item, index) => {
+                    const distance = Math.abs(item.getBoundingClientRect().left - carouselStart);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        activeIndex = index;
+                    }
+                });
+
+                indicators.forEach((indicator, index) => {
+                    const active = index === activeIndex;
+                    indicator.classList.toggle('active', active);
+                    indicator.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            };
+
+            let scrollFrame = null;
+            carousel.addEventListener('scroll', () => {
+                if (scrollFrame) cancelAnimationFrame(scrollFrame);
+                scrollFrame = requestAnimationFrame(updateIndicator);
+            }, { passive: true });
+
+            indicators.forEach((indicator, index) => {
+                indicator.addEventListener('click', () => {
+                    items[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                });
+            });
+
+            updateIndicator();
+        }
 
         // 載入最新資訊資料
         async function loadNewsData() {
@@ -121,71 +159,7 @@
                 </div>
             `).join('');
 
-            // 渲染指示器
-            indicators.innerHTML = newsData.map((_, index) => 
-                `<button type="button" class="indicator ${index === 0 ? 'active' : ''}" aria-label="查看第 ${index + 1} 則最新資訊" aria-pressed="${index === 0 ? 'true' : 'false'}" onclick="goToNewsSlide(${index})"></button>`
-            ).join('');
-
-            // 開始自動輪播
-            startNewsAutoPlay();
-        }
-
-        // 切換到指定輪播（設為全局函數供HTML調用）
-        window.goToNewsSlide = function(index) {
-            currentNewsIndex = index;
-            updateNewsSlide();
-        }
-
-        // 移動輪播（設為全局函數供HTML調用）
-        window.moveNewsSlide = function(direction) {
-            currentNewsIndex += direction;
-            if (currentNewsIndex >= newsData.length) {
-                currentNewsIndex = 0;
-            } else if (currentNewsIndex < 0) {
-                currentNewsIndex = newsData.length - 1;
-            }
-            updateNewsSlide();
-        }
-
-        // 更新輪播顯示
-        function updateNewsSlide() {
-            const slides = document.querySelectorAll('.news-slide');
-            const indicators = document.querySelectorAll('.indicator');
-            
-            slides.forEach((slide, index) => {
-                if (index === currentNewsIndex) {
-                    slide.classList.add('active');
-                    slide.classList.remove('prev');
-                } else {
-                    slide.classList.remove('active');
-                    if (index < currentNewsIndex) {
-                        slide.classList.add('prev');
-                    } else {
-                        slide.classList.remove('prev');
-                    }
-                }
-            });
-            
-            indicators.forEach((indicator, index) => {
-                indicator.classList.toggle('active', index === currentNewsIndex);
-                indicator.setAttribute('aria-pressed', index === currentNewsIndex ? 'true' : 'false');
-            });
-        }
-
-        // 開始自動輪播
-        function startNewsAutoPlay() {
-            if (newsCarouselTimer) clearInterval(newsCarouselTimer);
-            newsCarouselTimer = setInterval(() => {
-                moveNewsSlide(1);
-            }, 8000); // 改為8秒切換
-        }
-
-        // 停止自動輪播
-        function stopNewsAutoPlay() {
-            if (newsCarouselTimer) {
-                clearInterval(newsCarouselTimer);
-                newsCarouselTimer = null;
-            }
+            initializeSwipeCarousel(carousel, '.news-slide', indicators);
         }
 
         // 載入一般資訊資料
@@ -210,6 +184,7 @@
         // 渲染一般資訊輪播內容
         function renderInfoCarousel() {
             const carousel = document.getElementById('infoCarousel');
+            const indicators = document.getElementById('infoIndicators');
             
             if (commonData.length === 0) {
                 carousel.innerHTML = '<div class="carousel-loading">暫無一般資訊</div>';
@@ -225,50 +200,7 @@
                 </a>
             `).join('');
             
-            // 渲染完成後初始化輪播功能
-            setTimeout(initializeInfoCarousel, 100);
-        }
-        
-        // info-carousel 輪播功能
-        function initializeInfoCarousel() {
-            const infoCarousel = document.getElementById("infoCarousel");
-            const infoCards = infoCarousel.querySelectorAll(".info-card");
-            
-            if (infoCards.length === 0) {
-                return; // 如果沒有卡片，就不初始化
-            }
-            
-            const infoGap = 40;
-            const infoCardWidth = infoCards[0].offsetWidth + infoGap;
-            const infoTotal = infoCards.length;
-
-            function showInfoSlide(idx, smooth = true) {
-                infoCarousel.scrollTo({
-                    left: idx * infoCardWidth,
-                    behavior: smooth ? "smooth" : "auto"
-                });
-            }
-            
-            function nextInfoSlide() {
-                infoIndex = (infoIndex + 1) % infoTotal;
-                showInfoSlide(infoIndex);
-            }
-            
-            function prevInfoSlide() {
-                infoIndex = (infoIndex - 1 + infoTotal) % infoTotal;
-                showInfoSlide(infoIndex);
-            }
-            
-            // 重設 infoIndex
-            infoIndex = 0;
-            
-            // 設置按鈕事件
-            const leftBtn = document.querySelector(".info-carousel-arrow.left");
-            const rightBtn = document.querySelector(".info-carousel-arrow.right");
-            if (leftBtn && rightBtn) {
-                leftBtn.onclick = prevInfoSlide;
-                rightBtn.onclick = nextInfoSlide;
-            }
+            initializeSwipeCarousel(carousel, '.info-card', indicators);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -277,14 +209,6 @@
             // 載入最新資訊
             loadNewsData();
             
-            // 添加滑鼠懸停暫停事件
-            const carouselContainer = document.querySelector('.single-carousel-container');
-            if (carouselContainer) {
-                carouselContainer.addEventListener('mouseenter', stopNewsAutoPlay);
-                carouselContainer.addEventListener('mouseleave', startNewsAutoPlay);
-            }
-
-            // ---------- 下方 info-carousel ----------
             // 載入一般資訊
             loadCommonData();
         });

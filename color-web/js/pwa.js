@@ -246,54 +246,10 @@
   }
 
   function enhanceCarousel() {
-    const newsCarousel = document.querySelector('.single-carousel-container');
-    if (!newsCarousel) return;
-
-    document.querySelectorAll('.carousel-arrow').forEach((arrow, index) => {
-      arrow.setAttribute('role', 'button');
-      arrow.tabIndex = 0;
-      arrow.setAttribute('aria-label', index === 0 ? '上一則資訊' : '下一則資訊');
-      if (arrow.tagName !== 'BUTTON') {
-        arrow.addEventListener('keydown', event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            arrow.click();
-          }
-        });
-      }
+    document.querySelectorAll('.single-carousel, .info-carousel').forEach(carousel => {
+      carousel.setAttribute('role', 'region');
+      carousel.setAttribute('aria-roledescription', '可滑動輪播');
     });
-
-    document.querySelectorAll('.info-carousel-arrow').forEach(arrow => {
-      arrow.setAttribute('aria-label', arrow.classList.contains('left') ? '上一則一般資訊' : '下一則一般資訊');
-    });
-
-    let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const pauseButton = document.createElement('button');
-    pauseButton.type = 'button';
-    pauseButton.className = 'ux-carousel-toggle';
-    pauseButton.textContent = paused ? '播放輪播' : '暫停輪播';
-    pauseButton.setAttribute('aria-pressed', String(paused));
-    pauseButton.addEventListener('click', () => {
-      paused = !paused;
-      if (paused && typeof window.stopNewsAutoPlay === 'function') window.stopNewsAutoPlay();
-      if (!paused && typeof window.startNewsAutoPlay === 'function') window.startNewsAutoPlay();
-      pauseButton.textContent = paused ? '播放輪播' : '暫停輪播';
-      pauseButton.setAttribute('aria-pressed', String(paused));
-    });
-    newsCarousel.appendChild(pauseButton);
-
-    if (paused) window.setTimeout(() => window.stopNewsAutoPlay?.(), 0);
-
-    let startX = null;
-    newsCarousel.addEventListener('pointerdown', event => { startX = event.clientX; }, { passive: true });
-    newsCarousel.addEventListener('pointerup', event => {
-      if (startX === null) return;
-      const delta = event.clientX - startX;
-      startX = null;
-      if (Math.abs(delta) >= 55 && typeof window.moveNewsSlide === 'function') {
-        window.moveNewsSlide(delta > 0 ? -1 : 1);
-      }
-    }, { passive: true });
   }
 
   function enhanceResponsiveTables(root = document) {

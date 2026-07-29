@@ -255,12 +255,32 @@
     }
 
     .single-carousel-container {
-        padding: 0 20px !important;
+        padding: 0 12px !important;
     }
 
     .single-carousel,
     .carousel-loading {
-        height: 220px !important;
+        height: auto !important;
+    }
+
+    .carousel-loading {
+        min-height: 220px !important;
+    }
+
+    .single-carousel {
+        gap: 12px !important;
+        padding: 4px 3vw 14px !important;
+        scroll-padding-inline: 3vw;
+    }
+
+    .news-slide,
+    .news-slide.active,
+    .news-slide.prev {
+        width: auto !important;
+        height: 260px !important;
+        flex: 0 0 88vw !important;
+        border-radius: 20px !important;
+        scroll-snap-align: center !important;
     }
 
     .news-slide img {
@@ -281,40 +301,33 @@
         line-height: 1.4 !important;
     }
 
-    .carousel-arrow {
-        width: 36px !important;
-        height: 36px !important;
-        font-size: 16px !important;
-    }
-
-    .carousel-arrow.prev {
-        left: 0 !important;
-    }
-
-    .carousel-arrow.next {
-        right: 0 !important;
-    }
-
     .info-section {
         min-height: auto !important;
         padding: 28px 0 22px !important;
     }
 
     .info-carousel-container {
-        padding: 0 12px 76px !important;
+        padding: 0 12px 20px !important;
     }
 
     .info-carousel {
         gap: 14px !important;
-        scroll-snap-type: x mandatory;
+        padding: 5px 3vw 16px !important;
+        scroll-padding-inline: 3vw;
     }
 
     .info-card {
-        min-width: calc(100vw - 40px) !important;
-        max-width: calc(100vw - 40px) !important;
-        flex-basis: calc(100vw - 40px) !important;
+        min-width: 84vw !important;
+        max-width: 84vw !important;
+        flex-basis: 84vw !important;
         min-height: 310px !important;
         scroll-snap-align: center;
+        border-radius: 20px !important;
+    }
+
+    .carousel-swipe-hint {
+        display: flex !important;
+        margin-top: 4px !important;
     }
 
     .view-more-button {
@@ -681,5 +694,72 @@
     .form-actions > * {
         flex: 1 1 100% !important;
         width: 100% !important;
+    }
+}
+
+/* 測驗流程的頁面層級間距，需覆蓋共用容器規則以避開固定導覽列。 */
+@media (max-width: 768px) {
+    .page-test-hub .main-container,
+    .page-test-select .main-container,
+    .page-test-history .main-container,
+    .page-test-question .main-container {
+        padding: 90px 14px 34px !important;
+    }
+
+    .page-test-hub .test-page-header,
+    .page-test-select .test-page-header {
+        text-align: left !important;
+    }
+
+    .page-test-hub .test-card {
+        padding: 23px !important;
+    }
+
+    .page-test-select .test-card {
+        padding: 0 !important;
+    }
+
+    .page-test-select .test-content {
+        padding: 21px !important;
+    }
+
+    .page-test-history .history-table {
+        display: none !important;
+    }
+
+    .page-test-history .history-card-list {
+        display: grid !important;
+    }
+
+    .page-test-question .question-container {
+        padding: 19px 14px !important;
+    }
+
+    .page-test-intro .intro-back-section {
+        margin: 86px auto 8px !important;
+        padding: 0 !important;
+    }
+
+    .page-test-intro .main-container {
+        padding: 8px 14px 24px !important;
+    }
+
+    .page-test-intro .back-button,
+    .page-test-select .back-button,
+    .page-test-history .back-button {
+        margin: 0 !important;
+    }
+
+    .page-test-result > .navigation-buttons {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        margin: 20px auto 34px !important;
+        padding: 0 14px !important;
+    }
+
+    .page-test-result > .navigation-buttons > button {
+        width: 100% !important;
+        min-width: 0 !important;
     }
 }

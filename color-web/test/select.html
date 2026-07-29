@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="../css/select.css">
     <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="page-test-select">
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
@@ -34,13 +34,18 @@
     </nav>
 
     <div class="main-container">
-        <div id="surveyList" class="test-grid">
+        <header class="test-page-header compact">
+            <span class="page-kicker">CHOOSE A TEST</span>
+            <h1>選擇你的色彩測驗</h1>
+            <p>跟著第一直覺作答，不需要想得太久，每一個選擇都沒有對錯。</p>
+        </header>
+        <div id="surveyList" class="test-grid" aria-live="polite">
             <!-- 問卷卡片將由 JS 動態渲染 -->
         </div>
     </div>
 
     <div class="back-section">
-        <a href="/test/test.html" class="back-button">返回</a>
+        <a href="/test/test.html" class="back-button"><span aria-hidden="true">←</span><span>返回測驗首頁</span></a>
     </div>
 
     <div class="login-modal" id="loginModal">
@@ -125,27 +130,28 @@
 
     async function loadSurveyList() {
         const surveyListDiv = document.getElementById('surveyList');
-        surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;">載入中...</div>';
+        surveyListDiv.innerHTML = '<div class="test-list-state">載入測驗中...</div>';
         try {
             const response = await fetch('/api/test/surveys');
             if (!response.ok) throw new Error('無法取得問卷列表');
             const surveys = await response.json();
             if (!Array.isArray(surveys) || surveys.length === 0) {
-                surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;">目前沒有可用問卷</div>';
+                surveyListDiv.innerHTML = '<div class="test-list-state">目前沒有可用問卷</div>';
                 return;
             }
             surveyListDiv.innerHTML = surveys.map(survey => `
                 <div class="test-card">
-                    <div class="test-image">🎨</div>
+                    <div class="test-image" aria-hidden="true">✦</div>
                     <div class="test-content">
+                        <span class="test-meta">20 題 · 約 6 分鐘</span>
                         <h2 class="test-title">${survey.testType || '未命名問卷'}</h2>
                         <p class="test-desc">${survey.description ? survey.description.split('\n')[0] : ''}</p>
-                        <a href="color-test-intro.html?id=${survey._id}" class="test-button">開始測驗</a>
+                        <a href="color-test-intro.html?id=${survey._id}" class="test-button"><span>開始測驗</span><span aria-hidden="true">→</span></a>
                     </div>
                 </div>
             `).join('');
         } catch (e) {
-            surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;color:red;">載入失敗</div>';
+            surveyListDiv.innerHTML = '<div class="test-list-state error">載入失敗，請稍後重試</div>';
         }
     }
     // 訪客登入功能
