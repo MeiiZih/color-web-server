@@ -3,21 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#100a24">
-  <meta name="description" content="ColorMind Lab 啟動頁：顯示待機動畫並喚醒伺服器。">
-  <title>正在啟動 ColorMind Lab</title>
+  <meta name="theme-color" content="#f8bcc8">
+  <meta name="description" content="喚醒 ColorMind Lab 伺服器並自動進入網站。">
+  <title>正在開啟 ColorMind Lab</title>
   <style>
     :root {
-      color-scheme: dark;
-      font-family: Inter, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-      --ink: #f8f7ff;
-      --muted: #c8c3dc;
-      --panel: rgba(20, 13, 43, 0.72);
-      --line: rgba(255, 255, 255, 0.13);
-      --violet: #9f7aea;
-      --pink: #f472b6;
-      --cyan: #67e8f9;
-      --green: #86efac;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: #3f3a42;
+      background: #fff9f7;
+      --coral: #f36f83;
+      --pink: #f7b9c6;
+      --rose: #fff0f2;
+      --blue: #dff1fa;
+      --blue-strong: #79bfe3;
+      --yellow: #ffd66b;
+      --green: #a9d584;
+      --ink-soft: #736b75;
+      --line: rgba(89, 73, 82, .12);
     }
 
     * { box-sizing: border-box; }
@@ -29,205 +31,287 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      overflow: hidden;
-      color: var(--ink);
+      overflow-x: hidden;
       background:
-        radial-gradient(circle at 18% 20%, rgba(103, 232, 249, 0.18), transparent 32rem),
-        radial-gradient(circle at 82% 78%, rgba(244, 114, 182, 0.2), transparent 34rem),
-        linear-gradient(145deg, #080511 0%, #130a2a 48%, #081725 100%);
+        radial-gradient(circle at 12% 16%, rgba(247, 185, 198, .55) 0 7rem, transparent 7.1rem),
+        radial-gradient(circle at 90% 80%, rgba(223, 241, 250, .9) 0 11rem, transparent 11.1rem),
+        linear-gradient(145deg, #fffafa 0%, #fff6f2 54%, #eef8fd 100%);
     }
 
-    body::before {
-      content: "";
+    .shape {
       position: fixed;
-      inset: -40%;
+      z-index: 0;
+      border-radius: 999px;
       pointer-events: none;
-      opacity: 0.36;
-      background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-      background-size: 42px 42px;
-      transform: perspective(700px) rotateX(62deg) translateY(18%);
-      mask-image: linear-gradient(to bottom, transparent 10%, #000 70%);
+      filter: blur(.2px);
+      opacity: .72;
+      animation: drift 8s ease-in-out infinite alternate;
     }
+
+    .shape.one { width: 150px; height: 48px; top: 8%; right: -34px; rotate: -18deg; background: var(--yellow); }
+    .shape.two { width: 95px; height: 95px; left: 5%; bottom: 9%; background: var(--green); animation-delay: -3s; }
+    .shape.three { width: 62px; height: 62px; right: 12%; top: 16%; background: var(--blue-strong); animation-delay: -5s; }
 
     .shell {
       position: relative;
       z-index: 1;
-      width: min(92vw, 580px);
-      padding: clamp(28px, 6vw, 48px);
-      text-align: center;
-      border: 1px solid var(--line);
-      border-radius: 30px;
-      background: var(--panel);
-      box-shadow: 0 30px 90px rgba(0, 0, 0, .42), inset 0 1px rgba(255, 255, 255, .07);
-      backdrop-filter: blur(22px);
+      width: min(92vw, 940px);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .9);
+      border-radius: 34px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: 0 28px 80px rgba(151, 105, 118, .2);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar {
+      min-height: 74px;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      background: rgba(249, 191, 202, .72);
     }
 
     .brand {
-      margin: 0 0 8px;
-      font-size: clamp(1.75rem, 5vw, 2.5rem);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.08rem;
+      font-weight: 800;
       letter-spacing: .02em;
     }
 
-    .brand span {
-      background: linear-gradient(100deg, var(--cyan), #fff 45%, var(--pink));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, .85);
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 7px 18px rgba(104, 72, 80, .12);
+    }
+
+    .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+
+    .wake-tag {
+      padding: 7px 12px;
+      border-radius: 999px;
+      color: #8b5360;
+      background: rgba(255, 255, 255, .58);
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    .content {
+      min-height: 500px;
+      padding: clamp(30px, 6vw, 62px);
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      align-items: center;
+      gap: clamp(28px, 6vw, 70px);
     }
 
     .eyebrow {
-      margin: 0 0 28px;
-      color: var(--muted);
-      font-size: .82rem;
-      letter-spacing: .22em;
-      text-transform: uppercase;
+      margin: 0 0 13px;
+      color: var(--coral);
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: .18em;
     }
 
-    .loader {
-      position: relative;
-      width: 142px;
-      height: 142px;
-      margin: 0 auto 28px;
-      display: grid;
-      place-items: center;
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 6vw, 4.2rem);
+      line-height: 1.12;
+      letter-spacing: -.045em;
     }
 
-    .loader::before, .loader::after, .ring {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid transparent;
+    h1 em { color: var(--coral); font-style: normal; }
+
+    .lead {
+      max-width: 34rem;
+      margin: 19px 0 24px;
+      color: var(--ink-soft);
+      font-size: 1rem;
+      line-height: 1.8;
     }
 
-    .loader::before {
-      inset: 0;
-      border-top-color: var(--cyan);
-      border-right-color: rgba(103, 232, 249, .25);
-      animation: spin 2.1s linear infinite;
-    }
-
-    .loader::after {
-      inset: 15px;
-      border-bottom-color: var(--pink);
-      border-left-color: rgba(244, 114, 182, .25);
-      animation: spin-reverse 1.55s linear infinite;
-    }
-
-    .ring {
-      inset: 31px;
-      border-top-color: var(--violet);
-      animation: spin 1.2s linear infinite;
-    }
-
-    .core {
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #fff, var(--cyan) 28%, var(--violet) 66%, #391e73);
-      box-shadow: 0 0 28px rgba(103, 232, 249, .68), 0 0 62px rgba(159, 122, 234, .4);
-      animation: pulse 1.6s ease-in-out infinite;
-    }
-
-    .loader.ready .core {
-      background: radial-gradient(circle at 35% 30%, #fff, var(--green) 35%, #16a34a 75%);
-      box-shadow: 0 0 34px rgba(134, 239, 172, .8);
+    .status-card {
+      padding: 18px 19px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: 0 10px 30px rgba(96, 77, 86, .08);
     }
 
     .status-row {
       display: flex;
-      justify-content: center;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-      font-size: 1.05rem;
-      font-weight: 700;
+      gap: 12px;
+      font-weight: 800;
     }
 
-    .dot {
-      width: 9px;
-      height: 9px;
+    .status-dot {
+      width: 11px;
+      height: 11px;
+      flex: 0 0 auto;
       border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 16px var(--cyan);
-      animation: blink 1.2s ease-in-out infinite;
+      background: var(--coral);
+      box-shadow: 0 0 0 7px rgba(243, 111, 131, .14);
+      animation: breathe 1.35s ease-in-out infinite;
     }
 
-    .ready .dot { background: var(--green); box-shadow: 0 0 16px var(--green); }
+    .ready .status-dot { background: var(--green); box-shadow: 0 0 0 7px rgba(169, 213, 132, .2); animation: none; }
 
     .detail {
       min-height: 2.8em;
-      margin: 0;
-      color: var(--muted);
-      font-size: .92rem;
+      margin: 10px 0 0 23px;
+      color: var(--ink-soft);
+      font-size: .86rem;
       line-height: 1.55;
     }
 
     .progress {
-      height: 5px;
-      margin: 22px 0 12px;
+      height: 7px;
+      margin-top: 17px;
       overflow: hidden;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, .09);
+      border-radius: 99px;
+      background: #f2edf0;
     }
 
     .progress-bar {
-      width: 38%;
+      width: 34%;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--cyan), var(--violet), var(--pink));
-      animation: travel 1.5s ease-in-out infinite;
+      background: linear-gradient(90deg, var(--coral), var(--yellow), var(--blue-strong), var(--green));
+      animation: travel 1.65s ease-in-out infinite;
     }
 
-    .progress.ready .progress-bar {
-      width: 100%;
-      animation: none;
-      background: var(--green);
-      transition: width .35s ease;
-    }
+    .progress.ready .progress-bar { width: 100%; animation: none; transition: width .35s ease; }
 
-    .elapsed {
-      margin: 0 0 20px;
-      color: rgba(255, 255, 255, .58);
-      font-size: .78rem;
+    .meta {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #9a9199;
+      font-size: .75rem;
       font-variant-numeric: tabular-nums;
     }
 
-    .actions {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .actions { margin-top: 17px; display: flex; flex-wrap: wrap; gap: 9px; }
 
     .button {
-      min-height: 42px;
+      min-height: 41px;
       padding: 10px 17px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid var(--line);
+      border: 0;
       border-radius: 999px;
-      color: var(--ink);
-      background: rgba(255, 255, 255, .06);
+      color: #fff;
+      background: var(--coral);
+      box-shadow: 0 8px 20px rgba(243, 111, 131, .24);
       text-decoration: none;
       font: inherit;
-      font-size: .86rem;
+      font-size: .84rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: transform .2s ease, background .2s ease;
+      transition: transform .18s ease, box-shadow .18s ease;
     }
 
-    .button:hover { transform: translateY(-2px); background: rgba(255, 255, 255, .12); }
-    .button.primary { border-color: rgba(103, 232, 249, .38); }
+    .button.secondary { color: #705d66; background: #f5eff1; box-shadow: none; }
+    .button:hover { transform: translateY(-2px); box-shadow: 0 11px 24px rgba(243, 111, 131, .28); }
     .button[hidden] { display: none; }
 
+    .visual {
+      min-height: 330px;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .orbit {
+      position: relative;
+      width: min(74vw, 310px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #fff, #fff6f3);
+      box-shadow: 0 25px 55px rgba(129, 96, 106, .15), inset 0 0 0 1px rgba(90, 75, 83, .06);
+    }
+
+    .orbit::before, .orbit::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      border: 1px dashed rgba(115, 107, 117, .18);
+      animation: spin 13s linear infinite;
+    }
+
+    .orbit::before { inset: 20px; }
+    .orbit::after { inset: 48px; animation-direction: reverse; animation-duration: 10s; }
+
+    .logo-card {
+      z-index: 2;
+      width: 54%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border: 9px solid #fff;
+      border-radius: 50%;
+      background: var(--rose);
+      box-shadow: 0 17px 34px rgba(104, 80, 88, .13);
+      animation: float 3.2s ease-in-out infinite;
+    }
+
+    .logo-card img { width: 100%; height: 100%; object-fit: cover; }
+
+    .color-dot {
+      position: absolute;
+      z-index: 3;
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border: 5px solid #fff;
+      border-radius: 50%;
+      color: rgba(65, 55, 61, .55);
+      box-shadow: 0 11px 23px rgba(88, 68, 76, .16);
+      font-size: .72rem;
+      font-weight: 900;
+      animation: hop 1.6s ease-in-out infinite;
+    }
+
+    .color-dot.red { top: 7%; left: 18%; background: var(--coral); }
+    .color-dot.yellow { top: 19%; right: 3%; background: var(--yellow); animation-delay: -.4s; }
+    .color-dot.blue { bottom: 7%; right: 17%; background: var(--blue-strong); animation-delay: -.8s; }
+    .color-dot.green { bottom: 17%; left: 1%; background: var(--green); animation-delay: -1.2s; }
+
+    .ready .color-dot { animation-duration: .85s; }
+
+    @keyframes travel { 0% { transform: translateX(-115%); } 100% { transform: translateX(355%); } }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes spin-reverse { to { transform: rotate(-360deg); } }
-    @keyframes pulse { 50% { transform: scale(.86); opacity: .72; } }
-    @keyframes blink { 50% { opacity: .35; } }
-    @keyframes travel {
-      0% { transform: translateX(-115%); }
-      100% { transform: translateX(365%); }
+    @keyframes breathe { 50% { transform: scale(.75); opacity: .55; } }
+    @keyframes float { 50% { transform: translateY(-8px) rotate(1.5deg); } }
+    @keyframes hop { 50% { transform: translateY(-7px) scale(1.05); } }
+    @keyframes drift { to { transform: translate3d(14px, -10px, 0) rotate(5deg); } }
+
+    @media (max-width: 760px) {
+      body { padding: 18px 0; overflow-y: auto; }
+      .topbar { padding: 12px 18px; }
+      .wake-tag { display: none; }
+      .content { min-height: auto; padding: 34px 24px 38px; grid-template-columns: 1fr; text-align: center; }
+      .lead { margin-inline: auto; }
+      .detail { margin-left: 0; }
+      .actions, .status-row { justify-content: center; }
+      .visual { min-height: 270px; order: -1; }
+      .orbit { width: min(68vw, 270px); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -236,29 +320,56 @@
   </style>
 </head>
 <body>
+  <span class="shape one"></span>
+  <span class="shape two"></span>
+  <span class="shape three"></span>
+
   <main class="shell" aria-live="polite">
-    <h1 class="brand"><span>ColorMind Lab</span></h1>
-    <p class="eyebrow">Server Wake-up</p>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark"><img src="https://color-web-server-jprj.onrender.com/assets/images/logo.png" alt=""></span>
+        <span>ColorMind Lab</span>
+      </div>
+      <span class="wake-tag">測出潛能，探索自己</span>
+    </header>
 
-    <div class="loader" id="loader" aria-hidden="true">
-      <span class="ring"></span>
-      <span class="core"></span>
-    </div>
+    <div class="content">
+      <section>
+        <p class="eyebrow">網站準備中</p>
+        <h1>讓色彩，慢慢<em>醒來</em></h1>
+        <p class="lead">ColorMind Lab 正在同步喚醒伺服器。免費主機休眠後需要一點時間，準備完成就會自動帶你進入網站。</p>
 
-    <div class="status-row" id="statusRow">
-      <span class="dot"></span>
-      <span id="status">正在喚醒伺服器</span>
-    </div>
-    <p class="detail" id="detail">免費伺服器休眠後，重新啟動通常需要約 30–60 秒，請稍候。</p>
+        <div class="status-card" id="statusCard">
+          <div class="status-row">
+            <span class="status-dot"></span>
+            <span id="status">正在喚醒伺服器</span>
+          </div>
+          <p class="detail" id="detail">第一次開啟通常需要 30～60 秒，請先停留在這個畫面。</p>
+          <div class="progress" id="progress" aria-label="伺服器啟動進度">
+            <div class="progress-bar"></div>
+          </div>
+          <div class="meta">
+            <span id="elapsed">已等待 0 秒</span>
+            <span id="attempt">第 1 次連線</span>
+          </div>
+          <div class="actions">
+            <button class="button" id="retry" type="button" hidden>重新連線</button>
+            <a class="button secondary" id="directLink" href="https://color-web-server-jprj.onrender.com/">直接前往網站</a>
+          </div>
+        </div>
+      </section>
 
-    <div class="progress" id="progress" aria-label="伺服器啟動進度">
-      <div class="progress-bar"></div>
-    </div>
-    <p class="elapsed" id="elapsed">已等待 0 秒 · 第 1 次連線</p>
-
-    <div class="actions">
-      <button class="button primary" id="retry" type="button" hidden>立即重試</button>
-      <a class="button" id="directLink" href="https://color-web-server-jprj.onrender.com/">直接開啟網站</a>
+      <section class="visual" aria-hidden="true">
+        <div class="orbit" id="orbit">
+          <span class="color-dot red">R</span>
+          <span class="color-dot yellow">Y</span>
+          <span class="color-dot blue">B</span>
+          <span class="color-dot green">G</span>
+          <div class="logo-card">
+            <img src="https://color-web-server-jprj.onrender.com/assets/images/logo.png" alt="">
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -275,9 +386,10 @@
       const status = document.getElementById('status');
       const detail = document.getElementById('detail');
       const elapsed = document.getElementById('elapsed');
-      const loader = document.getElementById('loader');
+      const attemptLabel = document.getElementById('attempt');
       const progress = document.getElementById('progress');
-      const statusRow = document.getElementById('statusRow');
+      const statusCard = document.getElementById('statusCard');
+      const orbit = document.getElementById('orbit');
       const retry = document.getElementById('retry');
       const directLink = document.getElementById('directLink');
 
@@ -291,17 +403,19 @@
 
       const updateElapsed = () => {
         const seconds = Math.floor((Date.now() - startedAt) / 1000);
-        elapsed.textContent = `已等待 ${seconds} 秒 · 第 ${Math.max(attempt, 1)} 次連線`;
+        elapsed.textContent = `已等待 ${seconds} 秒`;
+        attemptLabel.textContent = `第 ${Math.max(attempt, 1)} 次連線`;
       };
 
       const markReady = () => {
         completed = true;
-        status.textContent = '伺服器已就緒';
-        detail.textContent = '連線成功，正在為你開啟 ColorMind Lab…';
-        loader.classList.add('ready');
+        status.textContent = '網站準備完成';
+        detail.textContent = 'ColorMind Lab 已醒來，現在帶你進入網站。';
         progress.classList.add('ready');
-        statusRow.classList.add('ready');
+        statusCard.classList.add('ready');
+        orbit.classList.add('ready');
         retry.hidden = true;
+
         const visibleTime = Date.now() - startedAt;
         const redirectDelay = Math.max(850, minimumVisibleTime - visibleTime);
         window.setTimeout(() => window.location.replace(destination), redirectDelay);
@@ -312,7 +426,7 @@
         attempt += 1;
         retry.hidden = true;
         status.textContent = attempt === 1 ? '正在喚醒伺服器' : '正在重新連線';
-        detail.textContent = '已送出啟動請求，伺服器準備完成後會自動進入網站。';
+        detail.textContent = '正在確認網站狀態，準備完成後會自動開啟。';
         updateElapsed();
 
         const controller = new AbortController();
@@ -328,10 +442,10 @@
           const body = await response.text();
           if (!body.trim().toUpperCase().includes('OK')) throw new Error('Health check failed');
           markReady();
-        } catch (_) {
+        } catch (_error) {
           if (completed) return;
           status.textContent = '伺服器仍在啟動';
-          detail.textContent = '這是免費主機喚醒時的正常情況，3 秒後會自動再試。';
+          detail.textContent = '這次還沒有回應，我們會在 3 秒後自動再試一次。';
           retry.hidden = false;
           retryTimer = window.setTimeout(wakeServer, 3000);
         } finally {

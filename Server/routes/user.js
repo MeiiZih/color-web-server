@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const Feedback = require('../models/Feedback');
+const TestRecord = require('../models/TestRecord');
 
 const router = express.Router();
 
@@ -217,6 +218,34 @@ const protect = async (req, res, next) => {
         res.status(401).json({ message: '未授權，沒有token' });
     }
 };
+
+// 將同一瀏覽器中的訪客測驗紀錄轉入剛建立的正式帳號
+router.post('/sync-guest-records', protect, async (req, res) => {
+    try {
+        const { guestId, newEmail } = req.body || {};
+
+        if (!guestId || !newEmail) {
+            return res.status(400).json({ message: '缺少訪客編號或電子郵件' });
+        }
+
+        if (!req.user || req.user.email !== newEmail) {
+            return res.status(403).json({ message: '只能同步到目前登入的帳號' });
+        }
+
+        const result = await TestRecord.updateMany(
+            { guestId },
+            {
+                $set: { email: newEmail, userId: req.user._id },
+                $unset: { guestId: '' }
+            }
+        );
+
+        return res.json({ success: true, synced: result.modifiedCount });
+    } catch (error) {
+        console.error('同步訪客測驗紀錄失敗:', error);
+        return res.status(500).json({ message: '同步訪客測驗紀錄失敗' });
+    }
+});
 
 // 獲取用戶資料
 router.get('/profile', protect, async (req, res) => {

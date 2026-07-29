@@ -10,15 +10,13 @@ const testRoutes = require('./routes/test');
 const surveyRoutes = require('./routes/survey');
 const adminRoutes = require('./routes/admin');
 const homepageRoutes = require('./routes/homepage');
+const seedDefaultContent = require('./services/seedDefaultContent');
 
 // ---- 環境/基礎設定 ----
 const isDevelopment = process.env.NODE_ENV !== 'production';
 console.log(`運行環境: ${isDevelopment ? '開發環境' : '生產環境'}`);
 
 const app = express();
-
-// 先連 DB（會讀取 MONGODB_URI）
-connectDB();
 
 // CORS（如需鎖網域可改成陣列白名單）
 app.use(cors({
@@ -76,7 +74,18 @@ app.use((err, _req, res, _next) => {
 
 // ---- 啟動 ----
 const PORT = process.env.PORT || 3000;          // Render 會提供 PORT
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Serving static files from: ${STATIC_DIR}`);
+
+async function startServer() {
+  await connectDB();
+  await seedDefaultContent();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Serving static files from: ${STATIC_DIR}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error('Server startup failed:', error);
+  process.exit(1);
 });

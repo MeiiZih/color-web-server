@@ -176,7 +176,7 @@
                     showSuccess('註冊成功！正在同步訪客測驗記錄...');
                     
                     // 同步訪客測驗記錄到新註冊的帳號
-                    await syncGuestRecords(email);
+                    await syncGuestRecords(email, data.token);
                     
                     setTimeout(() => {
                         window.location.href = '../login-user.html';
@@ -203,7 +203,7 @@
         }
 
         // 同步訪客測驗記錄到新註冊的帳號
-        async function syncGuestRecords(newEmail) {
+        async function syncGuestRecords(newEmail, token) {
             const guestId = sessionStorage.getItem('guestId');
             const isGuest = sessionStorage.getItem('isGuest') === 'true';
             
@@ -217,6 +217,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({
                         guestId: guestId,
@@ -308,4 +309,4 @@
         document.addEventListener('DOMContentLoaded', initializeDateSelects);
     </script>
 </body>
-</html> 
+</html>

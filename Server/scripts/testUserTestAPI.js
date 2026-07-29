@@ -4,7 +4,8 @@ const TestRecord = require('../models/TestRecord');
 
 async function testUserTestAPI() {
     try {
-        const mongoURI = 'mongodb+srv://meiizih04:G591eJaRx2YuixPW@cluster0.yq5jdcr.mongodb.net/survey_db';
+        const mongoURI = process.env.MONGODB_URI;
+        if (!mongoURI) throw new Error('MONGODB_URI is required');
         await mongoose.connect(mongoURI);
         console.log('✅ 資料庫連接成功');
 

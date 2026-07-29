@@ -28,6 +28,7 @@ async function connectDB() {
 
     console.log('✅ MongoDB Atlas 連接成功');
     console.log('資料庫名稱:', conn.connection.db.databaseName);
+    return conn;
   } catch (error) {
     console.error('❌ MongoDB 連接錯誤:', error.message);
     process.exit(1);
