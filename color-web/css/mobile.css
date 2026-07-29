@@ -56,10 +56,10 @@
         position: sticky !important;
         inset: 0 auto auto 0 !important;
         width: 100% !important;
-        padding: 8px 10px 7px !important;
+        padding: 6px 10px !important;
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) !important;
-        gap: 7px !important;
+        gap: 4px !important;
         background: rgba(255, 211, 220, 0.98) !important;
         backdrop-filter: blur(12px);
         box-shadow: 0 3px 14px rgba(94, 54, 65, 0.12);
@@ -72,20 +72,20 @@
         display: flex !important;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 7px;
     }
 
     .site-logo {
-        width: 34px !important;
-        height: 34px !important;
+        width: 30px !important;
+        height: 30px !important;
         margin: 0 !important;
-        flex: 0 0 34px;
+        flex: 0 0 30px;
         object-fit: contain;
     }
 
     .site-title {
         min-width: 0;
-        font-size: 18px !important;
+        font-size: 17px !important;
         line-height: 1.15;
         white-space: nowrap;
     }
@@ -101,9 +101,9 @@
 
     .nav-link {
         min-width: 0 !important;
-        min-height: 40px;
+        min-height: 36px;
         margin: 0 !important;
-        padding: 8px 2px !important;
+        padding: 6px 2px !important;
         display: flex !important;
         align-items: center;
         justify-content: center;
@@ -124,9 +124,9 @@
     .user-icon,
     .admin-dropdown .user-icon {
         width: 100%;
-        min-height: 40px;
+        min-height: 36px;
         margin: 0 !important;
-        padding: 8px !important;
+        padding: 6px !important;
         justify-content: center;
         text-align: center;
     }
@@ -197,12 +197,21 @@
     }
 
     /* Landing page */
+    body.landing-page {
+        position: relative;
+        height: 100dvh !important;
+        min-height: 100dvh !important;
+        overflow: hidden !important;
+        background-position: 46% center !important;
+    }
+
     .first-overlay {
+        height: 100dvh !important;
         min-height: 100dvh;
     }
 
     .first-content {
-        top: 8% !important;
+        top: 10% !important;
         left: 0 !important;
         width: 100%;
         padding: 0 22px;
@@ -210,8 +219,8 @@
     }
 
     .first-title {
-        margin-bottom: 24px !important;
-        font-size: clamp(28px, 8vw, 38px) !important;
+        margin-bottom: 20px !important;
+        font-size: clamp(27px, 7.5vw, 34px) !important;
         line-height: 1.35;
     }
 
@@ -222,34 +231,34 @@
     }
 
     .main-logo-right {
-        top: 60% !important;
+        top: 61% !important;
         right: 50% !important;
-        width: min(72vw, 290px) !important;
-        padding: 26px !important;
+        width: min(64vw, 250px) !important;
+        padding: 22px !important;
         transform: translate(50%, -50%) !important;
     }
 
     /* Home carousels */
     .carousel-section {
-        padding: 24px 12px 34px !important;
+        padding: 20px 0 28px !important;
     }
 
     .section-header {
-        padding: 8px 10px 18px !important;
+        padding: 8px 10px 16px !important;
     }
 
     .section-header h2,
     .section-title {
-        font-size: 24px !important;
+        font-size: 22px !important;
     }
 
     .single-carousel-container {
-        padding: 0 34px !important;
+        padding: 0 20px !important;
     }
 
     .single-carousel,
     .carousel-loading {
-        height: 250px !important;
+        height: 220px !important;
     }
 
     .news-slide img {
@@ -257,16 +266,22 @@
     }
 
     .news-content {
-        padding: 54px 18px 18px !important;
+        padding: 46px 16px 15px !important;
     }
 
     .news-content h3 {
-        font-size: 19px !important;
+        font-size: 18px !important;
+        line-height: 1.35 !important;
+    }
+
+    .news-content p {
+        font-size: 14px !important;
+        line-height: 1.4 !important;
     }
 
     .carousel-arrow {
-        width: 40px !important;
-        height: 40px !important;
+        width: 36px !important;
+        height: 36px !important;
         font-size: 16px !important;
     }
 
@@ -280,11 +295,11 @@
 
     .info-section {
         min-height: auto !important;
-        padding: 34px 0 26px !important;
+        padding: 28px 0 22px !important;
     }
 
     .info-carousel-container {
-        padding: 0 12px 84px !important;
+        padding: 0 12px 76px !important;
     }
 
     .info-carousel {
@@ -293,16 +308,16 @@
     }
 
     .info-card {
-        min-width: calc(100vw - 54px) !important;
-        max-width: calc(100vw - 54px) !important;
-        flex-basis: calc(100vw - 54px) !important;
-        min-height: 330px !important;
+        min-width: calc(100vw - 40px) !important;
+        max-width: calc(100vw - 40px) !important;
+        flex-basis: calc(100vw - 40px) !important;
+        min-height: 310px !important;
         scroll-snap-align: center;
     }
 
     .view-more-button {
-        margin: 28px auto !important;
-        padding: 13px 28px !important;
+        margin: 22px auto !important;
+        padding: 12px 26px !important;
     }
 
     /* Forms and dialogs */
@@ -423,7 +438,23 @@
         height: auto !important;
         min-height: 0 !important;
         margin: 0 !important;
-        padding: 24px 20px !important;
+        padding: 20px 18px !important;
+    }
+
+    .test-card .card-icon {
+        margin-bottom: 12px !important;
+        font-size: 34px !important;
+    }
+
+    .test-card .card-title {
+        margin: 0 0 10px !important;
+        font-size: 20px !important;
+    }
+
+    .test-card .card-desc {
+        margin-bottom: 18px !important;
+        font-size: 15px !important;
+        line-height: 1.55 !important;
     }
 
     .admin-card .card-image,
@@ -627,11 +658,7 @@
     }
 
     .site-title {
-        font-size: 17px !important;
-    }
-
-    .nav-link {
-        font-size: 12px !important;
+        font-size: 16px !important;
     }
 
     .register-container,
