@@ -35,6 +35,7 @@ app.use(express.json());
 // color-web 放在 Server 的上一層目錄
 const STATIC_DIR = path.join(__dirname, '..', 'color-web');
 const LAUNCHER_FILE = path.join(__dirname, '..', 'launcher-site', 'index.html');
+const LAUNCHER_LOGO_FILE = path.join(__dirname, '..', 'launcher-site', 'colorlab-mark.svg');
 const REPORTS_DIR = path.join(STATIC_DIR, 'test', 'detailed-reports');
 const VALID_MBTI_TYPES = new Set([
   'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
@@ -95,6 +96,11 @@ app.get('/health', (_req, res) => res.send('OK'));
 app.get('/wake.html', (_req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(LAUNCHER_FILE, (error) => (error ? next(error) : null));
+});
+
+app.get('/colorlab-mark.svg', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'public, max-age=604800');
+  res.sendFile(LAUNCHER_LOGO_FILE, (error) => (error ? next(error) : null));
 });
 
 function resolveReportFile(req, res) {
