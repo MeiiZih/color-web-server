@@ -7,7 +7,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
     <script src="/js/pwa.js" defer></script>
-    <title>測驗端登入 - ColorMind Lab</title>
+    <title>測驗端登入 - ColorLab</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/login-user.css">
     <link rel="stylesheet" href="/css/mobile.css">
@@ -16,7 +16,7 @@
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link active">首頁</a>
@@ -32,16 +32,18 @@
           <span class="back-text">返回</span>
         </a>
         <div class="login-container">
-            <h2 class="login-title">登入</h2>
+            <h1 class="login-title">登入</h1>
             <form id="loginForm">
                 <div class="form-group">
-                    <input type="text" id="email" placeholder="帳號" required>
+                    <label for="email">電子郵件</label>
+                    <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" placeholder="密碼" required>
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" name="password" placeholder="請輸入密碼" autocomplete="current-password" required>
                 </div>
-                <div id="errorMessage" class="error-message"></div>
-                <div id="successMessage" class="success-message"></div>
+                <div id="errorMessage" class="error-message" role="alert"></div>
+                <div id="successMessage" class="success-message" role="status" aria-live="polite"></div>
                 <button type="submit" class="login-button">登入</button>
                 <div class="action-row">
                   <a href="#" class="guest-link" id="guestLoginBtn">訪客登入</a>
@@ -56,7 +58,7 @@
         <div class="guest-notice-container">
             <h3>訪客登入注意事項</h3>
             <div class="notice-content">
-                <p>請注意，訪客登入不會儲存本次的測驗紀錄及結果，請妥善保存此次的測驗紀錄，若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。</p>
+                <p>訪客模式會以匿名訪客編號保存測驗答案與分析結果，但不會綁定姓名、電話或一般帳號；若之後建立帳號，可將同一瀏覽器中的訪客紀錄同步到新帳號。</p>
                 <div class="checkbox-container">
                     <label class="checkbox-label">
                         <input type="checkbox" id="guestNoticeCheckbox">
@@ -126,6 +128,11 @@
                         sessionStorage.setItem('userEmail', email);
                         sessionStorage.setItem('userName', userData.user.name || userData.user.nickname || '用戶');
                         sessionStorage.setItem('user', JSON.stringify(userData.user));
+                        sessionStorage.setItem('token', userData.token || '');
+                        sessionStorage.setItem('userToken', userData.token || '');
+                        sessionStorage.setItem('userId', userData.user.id || userData.user._id || '');
+                        sessionStorage.removeItem('isGuest');
+                        sessionStorage.removeItem('guestId');
                         successMessage.textContent = '登入成功！正在跳轉...';
                         successMessage.style.display = 'block';
                         setTimeout(() => {

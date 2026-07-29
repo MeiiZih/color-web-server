@@ -7,7 +7,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
     <script src="/js/pwa.js" defer></script>
-    <title>ColorMind Lab - 色彩心理測驗</title>
+    <title>ColorLab - 色彩心理測驗</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/test.css">
     <script src="../js/navbar.js"></script>
@@ -18,7 +18,7 @@
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title">ColorMind Lab</a>
+            <a href="/index.html" class="site-title">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link">首頁</a>
@@ -35,6 +35,7 @@
         </div>
     </nav>
     <div class="main-container">
+        <h1 class="ux-visually-hidden">ColorLab 色彩心理測驗</h1>
         <div class="card-grid">
             <div class="test-card">
                 <div class="card-icon">📝</div>
@@ -77,6 +78,10 @@
                         <input type="radio" name="gender" value="female" required>
                         女性
                     </label>
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="unknown" required>
+                        不願透露
+                    </label>
                 </div>
                 <div class="date-fields">
                     <input type="number" class="date-field" id="year" placeholder="年" min="1950" max="2025">
@@ -84,9 +89,12 @@
                     <input type="number" class="date-field" id="day" placeholder="日" min="1" max="31">
                 </div>
                 <input type="email" class="input-field" placeholder="電子郵件" id="regEmail">
-                <input type="tel" class="input-field" placeholder="行動電話" id="regPhone">
+                <input type="tel" class="input-field" placeholder="行動電話（選填）" id="regPhone">
                 <input type="password" class="input-field" placeholder="密碼" id="regPassword">
                 <input type="password" class="input-field" placeholder="確認密碼" id="regConfirmPassword">
+                <div class="ux-privacy-note">
+                    <label><input type="checkbox" id="modalPrivacyConsent">我已閱讀並同意 <a href="/main/privacy.html" target="_blank" rel="noopener">隱私與資料使用說明</a></label>
+                </div>
                 <button class="login-button" onclick="handleRegister()">建立帳號</button>
                 <div class="login-options">
                     <button class="option-button" onclick="showLoginForm()">返回登入</button>
@@ -200,9 +208,14 @@
                 if (response.ok) {
                     const data = await response.json();
                     sessionStorage.setItem('userEmail', username);
-                    sessionStorage.setItem('userName', data.name);
-                    sessionStorage.setItem('token', data.token);
-                    sessionStorage.setItem('user', JSON.stringify({email: username, name: data.name}));
+                    const loggedInUser = data.user || { email: username, name: data.name };
+                    sessionStorage.setItem('userName', loggedInUser.name || loggedInUser.nickname || '用戶');
+                    sessionStorage.setItem('token', data.token || '');
+                    sessionStorage.setItem('userToken', data.token || '');
+                    sessionStorage.setItem('userId', loggedInUser.id || loggedInUser._id || '');
+                    sessionStorage.setItem('user', JSON.stringify(loggedInUser));
+                    sessionStorage.setItem('isGuest', 'false');
+                    sessionStorage.removeItem('guestId');
                     document.getElementById('loginModal').style.display = 'none';
                     
                     // 更新導航欄
@@ -298,12 +311,14 @@
             const phone = document.getElementById('regPhone').value;
             const password = document.getElementById('regPassword').value;
             const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const privacyConsent = document.getElementById('modalPrivacyConsent').checked;
 
             // 驗證所有欄位都已填寫
-            if (!name || !gender || !year || !month || !day || !email || !phone || !password || !confirmPassword) {
-                alert('請填寫所有欄位');
+            if (!name || !gender || !year || !month || !day || !email || !password || !confirmPassword) {
+                alert('請填寫所有必填欄位');
                 return;
             }
+            if (!privacyConsent) return alert('請先閱讀並同意隱私與資料使用說明');
 
             // 驗證密碼
             if (password !== confirmPassword) {

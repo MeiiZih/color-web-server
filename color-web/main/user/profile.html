@@ -7,7 +7,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
     <script src="/js/pwa.js" defer></script>
-    <title>基本個人資料 - ColorMind Lab</title>
+    <title>基本個人資料 - ColorLab</title>
     <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/profile.css">
     <script src="../../js/navbar.js"></script>
@@ -17,7 +17,7 @@
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title">ColorMind Lab</a>
+            <a href="/index.html" class="site-title">ColorLab</a>
           </div>
           <div class="nav-links">
             <a href="/main/common.html" class="nav-link">首頁</a>
@@ -35,7 +35,7 @@
     </nav>
 
     <div class="profile-container">
-        <h2 class="profile-title">個人基本資料</h2>
+        <h1 class="profile-title">個人基本資料</h1>
         
         <div class="profile-form">
             <form id="profileForm">
@@ -47,7 +47,7 @@
                         <div class="form-icon">👤</div>
                         <div class="form-label">姓名：</div>
                         <div class="form-value">
-                            <input type="text" id="userNameInput" class="form-input" disabled>
+                            <input type="text" id="userNameInput" name="name" class="form-input" aria-label="姓名" autocomplete="name" disabled>
                         </div>
                     </div>
                     
@@ -59,6 +59,7 @@
                                 <option value="">請選擇</option>
                                 <option value="男">男</option>
                                 <option value="女">女</option>
+                                <option value="不願透露">不願透露</option>
                             </select>
                         </div>
                     </div>
@@ -67,7 +68,7 @@
                         <div class="form-icon">📅</div>
                         <div class="form-label">出生日期：</div>
                         <div class="form-value">
-                            <input type="text" id="birthDateInput" class="form-input" placeholder="YYYY/MM/DD" disabled>
+                            <input type="date" id="birthDateInput" name="birthDate" class="form-input" aria-label="出生日期" disabled>
                         </div>
                     </div>
                 </div>
@@ -80,7 +81,7 @@
                         <div class="form-icon">📱</div>
                         <div class="form-label">行動電話：</div>
                         <div class="form-value">
-                            <input type="text" id="phoneInput" class="form-input" disabled>
+                            <input type="tel" id="phoneInput" name="phone" class="form-input" aria-label="行動電話（選填）" autocomplete="tel" inputmode="tel" placeholder="選填" disabled>
                         </div>
                     </div>
                     
@@ -88,7 +89,7 @@
                         <div class="form-icon">📧</div>
                         <div class="form-label">電子郵件：</div>
                         <div class="form-value">
-                            <input type="email" id="emailInput" class="form-input" disabled>
+                            <input type="email" id="emailInput" name="email" class="form-input" aria-label="電子郵件" autocomplete="email" disabled>
                         </div>
                     </div>
                 </div>
@@ -101,7 +102,7 @@
                         <div class="form-icon">💼</div>
                         <div class="form-label">職業：</div>
                         <div class="form-value">
-                            <input type="text" id="occupationInput" class="form-input" disabled>
+                            <input type="text" id="occupationInput" name="occupation" class="form-input" aria-label="職業（選填）" autocomplete="organization-title" placeholder="選填" disabled>
                         </div>
                     </div>
                 </div>
@@ -111,6 +112,7 @@
                     <button type="submit" class="save-button" id="saveButton" style="display: none;">完成</button>
                     <button type="button" class="cancel-button" id="cancelButton" style="display: none;">取消</button>
                 </div>
+                <p class="ux-profile-privacy"><a href="/main/privacy.html">查看隱私與資料使用說明</a></p>
             </form>
         </div>
 
@@ -221,13 +223,15 @@
             document.getElementById('genderSelect').value = user.gender || '';
             
             // 解析出生日期
-            const birthDate = user.birthDate ? new Date(user.birthDate) : new Date(1991, 3, 14);
-            document.getElementById('birthDateInput').value = `${birthDate.getFullYear()}/${(birthDate.getMonth() + 1).toString().padStart(2, '0')}/${birthDate.getDate().toString().padStart(2, '0')}`;
+            const birthDate = user.birthDate ? new Date(user.birthDate) : null;
+            document.getElementById('birthDateInput').value = birthDate && !Number.isNaN(birthDate.getTime())
+                ? `${birthDate.getFullYear()}-${(birthDate.getMonth() + 1).toString().padStart(2, '0')}-${birthDate.getDate().toString().padStart(2, '0')}`
+                : '';
             
             // 設定其他資訊
-            document.getElementById('occupationInput').value = user.occupation || '學生';
-            document.getElementById('phoneInput').value = user.phone || '0912345678';
-            document.getElementById('emailInput').value = sessionUserEmail || user.email || 'example@email.com';
+            document.getElementById('occupationInput').value = user.occupation || '';
+            document.getElementById('phoneInput').value = user.phone || '';
+            document.getElementById('emailInput').value = sessionUserEmail || user.email || '';
         }
 
         // 切換編輯模式
@@ -297,8 +301,8 @@
             const occupation = document.getElementById('occupationInput').value;
             const phone = document.getElementById('phoneInput').value;
             
-            if (!name || !gender || !birthDateStr || !occupation || !phone) {
-                showError('請填寫所有欄位');
+            if (!name || !gender || !birthDateStr) {
+                showError('請填寫姓名、性別與出生日期');
                 return;
             }
             

@@ -7,7 +7,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
     <script src="/js/pwa.js" defer></script>
-    <title>帳號管理 - ColorMind Lab</title>
+    <title>帳號管理 - ColorLab</title>
     <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/account-manage.css">
     <script src="../../js/navbar.js"></script>
@@ -17,12 +17,18 @@
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-            <span class="site-title">ColorMind Lab</span>
+            <span class="site-title">ColorLab</span>
         </div>
         <div class="nav-links"></div>
     </nav>
 
     <main class="main-content">
+        <h1 class="ux-page-heading">帳號管理</h1>
+        <div class="ux-admin-tools">
+            <label for="accountSearch">搜尋帳號</label>
+            <input type="search" id="accountSearch" class="ux-admin-search" placeholder="搜尋全部帳號、姓名、電話或登入日期" autocomplete="off">
+            <span id="accountSearchCount" role="status" aria-live="polite"></span>
+        </div>
         <div class="account-table">
             <table>
                 <thead>
@@ -62,7 +68,29 @@
         let currentPage = 1;
         const itemsPerPage = 5;
         let allUsers = [];
+        let filteredUsers = [];
         let totalPages = 1;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            })[character]);
+        }
+
+        function applyAccountSearch() {
+            const query = document.getElementById('accountSearch').value.trim().toLocaleLowerCase('zh-TW');
+            filteredUsers = allUsers.filter(user => {
+                const loginDate = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('zh-TW') : '尚未登入';
+                return [user.email, user.name, user.phone, loginDate]
+                    .some(value => String(value || '').toLocaleLowerCase('zh-TW').includes(query));
+            });
+            currentPage = 1;
+            totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+            document.getElementById('accountSearchCount').textContent = query
+                ? `找到 ${filteredUsers.length} 筆` : `共 ${allUsers.length} 筆`;
+            displayCurrentPage();
+            updateNavigationButtons();
+        }
 
         // 自動同步 localStorage 與 sessionStorage
         (function syncAdminSession() {
@@ -87,6 +115,7 @@
             
             // 載入用戶數據
             loadUserData();
+            document.getElementById('accountSearch').addEventListener('input', applyAccountSearch);
             
             // 綁定分頁按鈕事件
             document.getElementById('nextPageBtn').addEventListener('click', function(e) {
@@ -129,9 +158,11 @@
             .then(users => {
                 // 只顯示普通用戶，不顯示管理員
                 allUsers = users.filter(user => user.role !== 'admin');
+                filteredUsers = [...allUsers];
                 
                 // 計算總頁數
-                totalPages = Math.ceil(allUsers.length / itemsPerPage);
+                totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+                document.getElementById('accountSearchCount').textContent = `共 ${allUsers.length} 筆`;
                 
                 // 顯示第一頁
                 currentPage = 1;
@@ -157,17 +188,18 @@
             // 清空表格
             tableBody.innerHTML = '';
             
-            if (!allUsers || allUsers.length === 0) {
+            if (!filteredUsers || filteredUsers.length === 0) {
                 // 顯示空資料行
                 const noDataRow = document.createElement('tr');
                 noDataRow.innerHTML = `
-                    <td colspan="5" style="text-align: center;">暫無用戶數據</td>
+                    <td colspan="5" style="text-align: center;">沒有符合條件的帳號</td>
                 `;
                 tableBody.appendChild(noDataRow);
                 
                 // 如果沒有資料，添加空行來保持表格高度
                 for (let i = 1; i < 5; i++) {
                     const emptyRow = document.createElement('tr');
+                    emptyRow.className = 'ux-empty-row';
                     emptyRow.innerHTML = `
                         <td>&nbsp;</td>
                         <td>&nbsp;</td>
@@ -182,8 +214,8 @@
             
             // 計算當前頁面的起始和結束索引
             const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = Math.min(startIndex + itemsPerPage, allUsers.length);
-            const currentPageUsers = allUsers.slice(startIndex, endIndex);
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredUsers.length);
+            const currentPageUsers = filteredUsers.slice(startIndex, endIndex);
             
             // 填充表格
             currentPageUsers.forEach((user, index) => {
@@ -201,11 +233,11 @@
                 
                 row.innerHTML = `
                     <td>${actualIndex.toString().padStart(2, '0')}</td>
-                    <td>${loginDate}</td>
-                    <td>${user.email}</td>
-                    <td><button class="detail-btn" data-id="${user._id}">more</button></td>
+                    <td>${escapeHtml(loginDate)}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td><button type="button" class="detail-btn" data-id="${escapeHtml(user._id)}">查看</button></td>
                     <td>
-                        <button class="delete-btn" data-id="${user._id}" style="background:transparent;border:none;cursor:pointer;">
+                        <button type="button" class="delete-btn" data-id="${escapeHtml(user._id)}" style="background:transparent;border:none;cursor:pointer;" aria-label="刪除 ${escapeHtml(user.email)}">
                             <img src="../../assets/icons/delete.png" alt="刪除" class="delete-icon" style="width:24px;height:24px;">
                         </button>
                     </td>
@@ -218,6 +250,7 @@
             const remainingRows = itemsPerPage - currentPageUsers.length;
             for (let i = 0; i < remainingRows; i++) {
                 const emptyRow = document.createElement('tr');
+                emptyRow.className = 'ux-empty-row';
                 emptyRow.innerHTML = `
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>

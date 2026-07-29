@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f8bcc8">
+    <meta name="description" content="ColorLab 隱私與資料使用說明。">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>隱私與資料說明 - ColorLab</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/mobile.css">
+    <style>
+        .privacy-main{max-width:820px;margin:0 auto;padding:110px 20px 56px}.privacy-card{padding:clamp(22px,5vw,42px);border:1px solid rgba(78,62,72,.12);border-radius:22px;background:#fff;box-shadow:0 12px 34px rgba(95,65,76,.09)}.privacy-card h1{margin:0 0 12px;font-size:clamp(28px,5vw,40px)}.privacy-lead{margin:0 0 28px;color:#6f6871;line-height:1.75}.privacy-card section{margin-top:28px}.privacy-card h2{margin:0 0 8px;color:#8f3e50;font-size:20px}.privacy-card p,.privacy-card li{color:#453f46;line-height:1.85}.privacy-card ul{padding-left:1.25rem}.privacy-note{padding:14px 16px;border-left:4px solid #79bfe3;border-radius:10px;background:#f2f9fd}.privacy-actions{margin-top:30px;display:flex;flex-wrap:wrap;gap:10px}.privacy-actions a{min-height:44px;padding:11px 20px;display:inline-flex;align-items:center;border-radius:999px;color:#fff;background:#ef6f82;text-decoration:none;font-weight:700}.privacy-actions a.secondary{color:#514850;background:#f3ecef}@media(max-width:768px){.privacy-main{padding:102px 14px 32px}}
+    </style>
+</head>
+<body>
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="/assets/images/logo.png" alt="ColorLab 標誌" class="site-logo">
+            <a href="/index.html" class="site-title">ColorLab</a>
+        </div>
+        <div class="nav-links">
+            <a href="/main/common.html" class="nav-link">首頁</a>
+            <a href="/test/test.html" class="nav-link">測驗系統</a>
+            <a href="/main/about.html" class="nav-link">關於我們</a>
+            <a href="/main/login-user.html" class="nav-link" id="loginButton">登入</a>
+        </div>
+    </nav>
+
+    <main class="privacy-main">
+        <article class="privacy-card">
+            <h1>隱私與資料說明</h1>
+            <p class="privacy-lead">ColorLab 以透明、必要與最少蒐集為原則，以下說明網站在不同使用方式下會處理哪些資料。</p>
+
+            <section>
+                <h2>一般帳號</h2>
+                <p>建立帳號時會使用電子郵件與密碼作為登入資訊；姓名、生日、性別、電話與職業用於個人資料及研究統計。電話為選填。密碼會以雜湊方式保存，不會以明文儲存。</p>
+            </section>
+
+            <section>
+                <h2>訪客模式</h2>
+                <p>訪客測驗會以隨機訪客編號保存答案與分析結果，但不會綁定姓名、電話或一般帳號。若稍後建立帳號，可以選擇將同一瀏覽器中的訪客紀錄同步到新帳號。</p>
+            </section>
+
+            <section>
+                <h2>測驗與意見資料</h2>
+                <ul>
+                    <li>測驗答案、MBTI 分析、色彩結果與完成時間會用於產生報告及統計。</li>
+                    <li>意見反饋的姓名與 Email 為選填，只用於必要的後續聯絡。</li>
+                    <li>ColorLab 的測驗用於自我探索與教學研究，不構成醫療、心理診斷或治療建議。</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>瀏覽器內資料</h2>
+                <p>網站會在裝置上保存登入狀態、PWA 快取、未完成的測驗進度與最近一次結果，讓重新整理或離線時仍能延續操作。登出後會清除登入狀態。</p>
+            </section>
+
+            <section class="privacy-note">
+                <h2>資料查詢與更正</h2>
+                <p>登入後可在「個人資料」更正帳戶資訊。如需查詢或刪除資料，可透過網站的「意見反饋」留下聯絡方式與需求。</p>
+            </section>
+
+            <div class="privacy-actions">
+                <a href="/main/user/register.html">建立帳號</a>
+                <a href="/test/information.html" class="secondary">聯絡與反饋</a>
+                <a href="/main/common.html" class="secondary">返回首頁</a>
+            </div>
+        </article>
+    </main>
+
+    <footer class="footer">國立臺中科技大學－資訊管理系114學年專題</footer>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

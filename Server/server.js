@@ -1,6 +1,7 @@
 // Server/server.js
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 
 // 你自己的模組
@@ -17,6 +18,8 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 console.log(`運行環境: ${isDevelopment ? '開發環境' : '生產環境'}`);
 
 const app = express();
+app.disable('x-powered-by');
+app.use(compression());
 
 // CORS（如需鎖網域可改成陣列白名單）
 app.use(cors({
@@ -31,13 +34,27 @@ app.use(express.json());
 // ---- 靜態檔與頁面路由 ----
 // color-web 放在 Server 的上一層目錄
 const STATIC_DIR = path.join(__dirname, '..', 'color-web');
-app.use(express.static(STATIC_DIR));                         // 直接提供整個 color-web
-app.use('/main', express.static(path.join(STATIC_DIR, 'main')));
+const staticOptions = {
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+    if (extension === '.html' || filePath.endsWith('service-worker.js') || extension === '.webmanifest') {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico', '.woff', '.woff2'].includes(extension)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else if (extension === '.css' || extension === '.js') {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+};
+app.use(express.static(STATIC_DIR, staticOptions));          // 直接提供整個 color-web
+app.use('/main', express.static(path.join(STATIC_DIR, 'main'), staticOptions));
 
 // 上傳檔（如果有）
 app.use(
   '/uploads/homepage',
-  express.static(path.join(__dirname, 'uploads', 'homepage'))
+  express.static(path.join(__dirname, 'uploads', 'homepage'), { maxAge: '1d', etag: true })
 );
 
 // 首頁（/ 直接丟 color-web/index.html）

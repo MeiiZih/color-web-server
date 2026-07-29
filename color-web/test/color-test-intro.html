@@ -7,7 +7,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
     <script src="/js/pwa.js" defer></script>
-    <title>ColorMind Lab - 色彩性格測驗介紹</title>
+    <title>ColorLab - 色彩性格測驗介紹</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/test-intro.css">
     <script src="../js/navbar.js"></script>
@@ -17,7 +17,7 @@
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title">ColorMind Lab</a>
+            <a href="/index.html" class="site-title">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link">首頁</a>
@@ -60,7 +60,7 @@
             </div>
             
             <div class="intro-actions">
-                <a href="/test/color-test.html" class="start-test-button">開始測驗</a>
+                <a href="/test/color-test-new.html?restart=1" class="start-test-button">開始測驗</a>
               </div>
         </div>
     </div>
@@ -177,7 +177,7 @@
                     const urlParams = new URLSearchParams(window.location.search);
                     const testId = urlParams.get('id');
                     if (testId) {
-                        startButton.href = `color-test.html?id=${testId}`;
+                        startButton.href = `color-test-new.html?id=${testId}&restart=1`;
                     }
                 }
                 
