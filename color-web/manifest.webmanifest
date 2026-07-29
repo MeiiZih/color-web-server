@@ -4,7 +4,7 @@
   "short_name": "ColorLab",
   "description": "結合色彩心理與 MBTI 的自我探索平台。",
   "lang": "zh-TW",
-  "start_url": "/main/common.html?source=pwa",
+  "start_url": "/wake.html?source=pwa",
   "scope": "/",
   "display": "standalone",
   "display_override": [

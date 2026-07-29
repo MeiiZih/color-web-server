@@ -382,7 +382,7 @@
       const requestedPath = params.get('next');
       const safePath = requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//')
         ? requestedPath
-        : '/';
+        : '/main/common.html';
       const destination = `${SERVER_ORIGIN}${safePath}`;
 
       const status = document.getElementById('status');

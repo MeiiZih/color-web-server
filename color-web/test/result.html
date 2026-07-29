@@ -46,7 +46,7 @@
             <div class="action-buttons">
                 <button class="action-button active">測驗報告</button>
                 <button class="action-button" onclick="goToInformation()">問卷回饋</button>
-                <button class="action-button" id="downloadReportButton" type="button" onclick="downloadReport()">下載 PDF 報告</button>
+                <button class="action-button" id="downloadReportButton" type="button" onclick="downloadReport()">預覽／下載 PDF</button>
                 <button class="action-button" onclick="shareResult()">分享小卡</button>
             </div>
             <div class="content-section">
@@ -678,22 +678,8 @@
             }
 
             const colorKey = colors.join('-');
-            const endpoint = `/api/reports/download/${encodeURIComponent(mbtiType)}/${encodeURIComponent(colorKey)}`;
-            // 必須在點擊事件中立刻開啟連結；若先 await，iOS Safari 會失去
-            // 使用者操作授權並阻擋下載。target=_blank 同時提供手機 PDF 預覽備援。
-            const link = document.createElement('a');
-            link.href = endpoint;
-            link.download = `ColorLab-${mbtiType}-${colorKey}-完整報告.pdf`;
-            link.target = '_blank';
-            link.rel = 'noopener';
-            link.hidden = true;
-            document.body.appendChild(link);
-            link.click();
-            window.setTimeout(() => link.remove(), 1000);
-
-            if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
-                window.ColorLabUX.toast('完整 PDF 已開啟；手機可用「分享」儲存到檔案', 'success');
-            }
+            const previewUrl = `/test/report-preview.html?mbti=${encodeURIComponent(mbtiType)}&colors=${encodeURIComponent(colorKey)}`;
+            window.location.href = previewUrl;
         }
 
         async function fetchRecordByIdMultiTry(id, headers = {}) {

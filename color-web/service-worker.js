@@ -1,19 +1,22 @@
-const CACHE_VERSION = 'colorlab-v10';
+const CACHE_VERSION = 'colorlab-v11';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
 const APP_SHELL = [
   '/',
   '/index.html',
+  '/wake.html',
   '/main/common.html',
   '/main/about.html',
   '/main/privacy.html',
   '/test/test.html',
+  '/test/report-preview.html',
   '/offline.html',
   '/manifest.webmanifest',
   '/js/pwa.js',
   '/css/common.css',
   '/css/mobile.css',
+  '/css/report-preview.css',
   '/css/ux.css',
   '/assets/images/logo.png',
   '/assets/icons/icon-192.png',
@@ -50,6 +53,15 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
+    const isPwaEntry = url.pathname === '/'
+      || url.pathname === '/index.html'
+      || url.pathname === '/wake.html'
+      || (url.pathname === '/main/common.html' && url.searchParams.get('source') === 'pwa');
+
+    if (isPwaEntry) {
+      event.respondWith(cachedWakePage(request));
+      return;
+    }
     event.respondWith(networkFirstPage(request));
     return;
   }
@@ -58,6 +70,12 @@ self.addEventListener('fetch', event => {
     event.respondWith(staleWhileRevalidate(request));
   }
 });
+
+async function cachedWakePage(request) {
+  const cached = await caches.match('/wake.html', { ignoreSearch: true });
+  if (cached) return cached;
+  return networkFirstPage(request);
+}
 
 async function networkFirstPage(request) {
   try {

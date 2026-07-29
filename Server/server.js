@@ -34,6 +34,7 @@ app.use(express.json());
 // ---- 靜態檔與頁面路由 ----
 // color-web 放在 Server 的上一層目錄
 const STATIC_DIR = path.join(__dirname, '..', 'color-web');
+const LAUNCHER_FILE = path.join(__dirname, '..', 'launcher-site', 'index.html');
 const REPORTS_DIR = path.join(STATIC_DIR, 'test', 'detailed-reports');
 const VALID_MBTI_TYPES = new Set([
   'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
@@ -90,30 +91,60 @@ app.get('/main/:page', (req, res, next) => {
 // 健康檢查（雲端監測、你自己也可測）
 app.get('/health', (_req, res) => res.send('OK'));
 
-// Download the original complete report that matches the user's MBTI and color result.
-app.get('/api/reports/download/:mbti/:colors', (req, res, next) => {
+// PWA 開啟時會優先從快取顯示這個品牌等待頁，再於背景喚醒 Render。
+app.get('/wake.html', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(LAUNCHER_FILE, (error) => (error ? next(error) : null));
+});
+
+function resolveReportFile(req, res) {
   const mbti = String(req.params.mbti || '').toUpperCase();
   const colors = String(req.params.colors || '').toLowerCase();
 
   if (!VALID_MBTI_TYPES.has(mbti) || !VALID_REPORT_COLORS.has(colors)) {
-    return res.status(400).json({ message: 'Invalid report selection.' });
+    res.status(400).json({ message: 'Invalid report selection.' });
+    return null;
   }
 
-  const reportPath = path.join(REPORTS_DIR, `${mbti}-${colors}.pdf`);
-  const downloadName = `ColorLab-${mbti}-${colors}-full-report.pdf`;
+  return {
+    reportPath: path.join(REPORTS_DIR, `${mbti}-${colors}.pdf`),
+    downloadName: `ColorLab-${mbti}-${colors}-full-report.pdf`
+  };
+}
 
-  res.download(reportPath, downloadName, {
+function handleReportError(error, res, next) {
+  if (!error) return;
+  if (res.headersSent) return next(error);
+  if (error.code === 'ENOENT' || error.statusCode === 404) {
+    return res.status(404).json({ message: 'Report not found.' });
+  }
+  return next(error);
+}
+
+// Preview the original report inside the ColorLab report viewer.
+app.get('/api/reports/preview/:mbti/:colors', (req, res, next) => {
+  const report = resolveReportFile(req, res);
+  if (!report) return;
+
+  res.sendFile(report.reportPath, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${report.downloadName}"`,
+      'Cache-Control': 'private, no-store'
+    }
+  }, (error) => handleReportError(error, res, next));
+});
+
+// Download the original complete report that matches the user's MBTI and color result.
+app.get('/api/reports/download/:mbti/:colors', (req, res, next) => {
+  const report = resolveReportFile(req, res);
+  if (!report) return;
+
+  res.download(report.reportPath, report.downloadName, {
     headers: {
       'Cache-Control': 'private, no-store'
     }
-  }, (error) => {
-    if (!error) return;
-    if (res.headersSent) return next(error);
-    if (error.code === 'ENOENT') {
-      return res.status(404).json({ message: 'Report not found.' });
-    }
-    return next(error);
-  });
+  }, (error) => handleReportError(error, res, next));
 });
 
 // ---- API 路由（保持你原本的）----

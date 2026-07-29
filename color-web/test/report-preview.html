@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>ColorLab - 完整報告預覽</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/report-preview.css">
+    <script src="/js/navbar.js"></script>
+    <link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body class="page-report-preview">
+    <nav class="nav-header">
+        <div class="site-logo-title">
+            <img src="/assets/images/logo.png" alt="ColorLab 標誌" class="site-logo">
+            <a href="/index.html" class="site-title">ColorLab</a>
+        </div>
+        <div class="nav-links">
+            <a href="/main/common.html" class="nav-link">首頁</a>
+            <a href="/test/test.html" class="nav-link">測驗系統</a>
+            <a href="/main/about.html" class="nav-link">關於我們</a>
+            <a href="/main/login-user.html" class="nav-link" id="loginButton">登入</a>
+        </div>
+    </nav>
+
+    <main class="report-preview-main">
+        <a href="/test/result.html" class="preview-back" id="previewBack">
+            <span aria-hidden="true">←</span>
+            <span>返回測驗結果</span>
+        </a>
+
+        <section class="report-preview-shell" aria-labelledby="previewTitle">
+            <header class="report-preview-header">
+                <div>
+                    <span class="preview-kicker">COLORLAB FULL REPORT</span>
+                    <h1 id="previewTitle">完整報告預覽</h1>
+                    <p id="previewSubtitle">正在準備你的專屬色彩性格報告。</p>
+                    <div class="report-tags" id="reportTags" aria-label="報告類型"></div>
+                </div>
+                <div class="preview-actions">
+                    <button type="button" class="preview-action primary" id="downloadPdf" disabled aria-busy="true">
+                        <span aria-hidden="true">⇩</span>
+                        <span id="downloadLabel">正在準備 PDF…</span>
+                    </button>
+                    <a class="preview-action secondary" id="openPdf" href="#" target="_blank" rel="noopener">
+                        <span>在新頁開啟</span>
+                        <span aria-hidden="true">↗</span>
+                    </a>
+                </div>
+            </header>
+
+            <aside class="iphone-guide" id="iphoneGuide" hidden>
+                <span class="guide-icon" aria-hidden="true">i</span>
+                <p><strong>iPhone／桌面 PWA：</strong>點「下載完整 PDF」後，在系統選單中選擇「儲存到檔案」即可保存。</p>
+            </aside>
+
+            <div class="preview-status" id="previewStatus" role="status" aria-live="polite">
+                <span class="preview-spinner" aria-hidden="true"></span>
+                <span>正在載入完整報告，請稍候…</span>
+            </div>
+
+            <div class="pdf-viewer" id="pdfViewer">
+                <iframe id="pdfFrame" title="ColorLab 完整 PDF 報告" hidden></iframe>
+            </div>
+
+            <div class="preview-error" id="previewError" hidden>
+                <span aria-hidden="true">!</span>
+                <h2>報告暫時無法顯示</h2>
+                <p id="previewErrorText">請返回測驗結果後再試一次。</p>
+                <button type="button" class="preview-action primary" onclick="location.reload()">重新載入</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">國立臺中科技大學－資訊管理系114學年專題</footer>
+
+    <script>
+        (() => {
+            const VALID_MBTI = new Set([
+                'ENFJ', 'ENFP', 'ENTJ', 'ENTP', 'ESFJ', 'ESFP', 'ESTJ', 'ESTP',
+                'INFJ', 'INFP', 'INTJ', 'INTP', 'ISFJ', 'ISFP', 'ISTJ', 'ISTP'
+            ]);
+            const VALID_COLORS = new Set([
+                'blue', 'green', 'red', 'yellow',
+                'blue-green', 'blue-red', 'blue-yellow', 'green-red', 'green-yellow', 'red-yellow',
+                'blue-green-red', 'blue-green-yellow', 'blue-red-yellow', 'green-red-yellow',
+                'blue-green-red-yellow'
+            ]);
+            const COLOR_LABELS = { red: '紅色', yellow: '黃色', green: '綠色', blue: '藍色' };
+
+            const params = new URLSearchParams(window.location.search);
+            const mbti = String(params.get('mbti') || '').toUpperCase();
+            const colors = String(params.get('colors') || '').toLowerCase();
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+
+            const frame = document.getElementById('pdfFrame');
+            const viewer = document.getElementById('pdfViewer');
+            const status = document.getElementById('previewStatus');
+            const errorPanel = document.getElementById('previewError');
+            const errorText = document.getElementById('previewErrorText');
+            const downloadButton = document.getElementById('downloadPdf');
+            const downloadLabel = document.getElementById('downloadLabel');
+            const openPdf = document.getElementById('openPdf');
+            const guide = document.getElementById('iphoneGuide');
+            const tags = document.getElementById('reportTags');
+            const subtitle = document.getElementById('previewSubtitle');
+            const backLink = document.getElementById('previewBack');
+
+            let preparedFile = null;
+            let previewEndpoint = '';
+            let downloadEndpoint = '';
+            let filename = '';
+
+            backLink.addEventListener('click', event => {
+                if (window.history.length > 1) {
+                    event.preventDefault();
+                    window.history.back();
+                }
+            });
+
+            function showError(message) {
+                status.hidden = true;
+                viewer.hidden = true;
+                errorText.textContent = message;
+                errorPanel.hidden = false;
+                downloadButton.disabled = true;
+                downloadButton.removeAttribute('aria-busy');
+            }
+
+            function showMessage(message, type = 'success') {
+                if (window.ColorLabUX?.toast) {
+                    window.ColorLabUX.toast(message, type);
+                    return;
+                }
+                const note = document.createElement('div');
+                note.className = `preview-toast ${type}`;
+                note.textContent = message;
+                document.body.appendChild(note);
+                window.setTimeout(() => note.remove(), 4200);
+            }
+
+            async function prepareReport() {
+                if (!VALID_MBTI.has(mbti) || !VALID_COLORS.has(colors)) {
+                    showError('報告參數不完整，請返回測驗結果後重新開啟。');
+                    return;
+                }
+
+                const encodedMbti = encodeURIComponent(mbti);
+                const encodedColors = encodeURIComponent(colors);
+                previewEndpoint = `/api/reports/preview/${encodedMbti}/${encodedColors}`;
+                downloadEndpoint = `/api/reports/download/${encodedMbti}/${encodedColors}`;
+                filename = `ColorLab-${mbti}-${colors}-完整報告.pdf`;
+
+                const colorKeys = colors.split('-');
+                subtitle.textContent = `${mbti} × ${colorKeys.map(key => COLOR_LABELS[key]).filter(Boolean).join('／')} 專屬完整分析`;
+                tags.innerHTML = [mbti, ...colorKeys.map(key => COLOR_LABELS[key]).filter(Boolean)]
+                    .map((label, index) => `<span class="report-tag ${index ? colorKeys[index - 1] : 'mbti'}">${label}</span>`)
+                    .join('');
+                openPdf.href = previewEndpoint;
+                guide.hidden = !(isIOS || isStandalone);
+
+                try {
+                    const response = await fetch(previewEndpoint, { cache: 'no-store' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const blob = await response.blob();
+                    if (!blob.type.includes('pdf')) throw new Error('Invalid PDF response');
+
+                    preparedFile = new File([blob], filename, { type: 'application/pdf' });
+                    frame.src = previewEndpoint;
+                    frame.hidden = false;
+                    status.hidden = true;
+                    downloadButton.disabled = false;
+                    downloadButton.setAttribute('aria-busy', 'false');
+                    downloadLabel.textContent = '下載完整 PDF';
+                } catch (error) {
+                    console.error('載入完整報告失敗：', error);
+                    showError('完整報告載入失敗，請確認網路連線後重新嘗試。');
+                }
+            }
+
+            downloadButton.addEventListener('click', async () => {
+                if (!preparedFile) return;
+
+                const shareData = { files: [preparedFile], title: `${mbti} ColorLab 完整報告` };
+                if ((isIOS || isStandalone) && navigator.share && navigator.canShare?.(shareData)) {
+                    try {
+                        await navigator.share(shareData);
+                        showMessage('請在系統選單中選擇「儲存到檔案」', 'success');
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            console.error('分享 PDF 失敗：', error);
+                            window.open(previewEndpoint, '_blank', 'noopener');
+                            showMessage('已改用新頁預覽，請使用分享按鈕儲存 PDF', 'warning');
+                        }
+                    }
+                    return;
+                }
+
+                const link = document.createElement('a');
+                link.href = downloadEndpoint;
+                link.download = filename;
+                link.rel = 'noopener';
+                link.hidden = true;
+                document.body.appendChild(link);
+                link.click();
+                window.setTimeout(() => link.remove(), 1000);
+                showMessage('完整 PDF 已開始下載', 'success');
+            });
+
+            prepareReport();
+        })();
+    </script>
+</body>
+</html>
