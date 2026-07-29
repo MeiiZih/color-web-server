@@ -217,6 +217,7 @@
                 option.setAttribute('aria-pressed', i === optionIndex ? 'true' : 'false');
             });
             document.getElementById('nextButton').disabled = false;
+            updateProgress();
             saveTestProgress();
         }
 
