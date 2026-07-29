@@ -15,6 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.plugin.standard_fonts_metrics.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="/js/report-pdf.js" defer></script>
     <style>
         /* 隱藏次要顏色和測驗分數部分 */
         .secondary-color, .result-section:last-of-type {
@@ -49,7 +50,7 @@
             <div class="action-buttons">
                 <button class="action-button active">測驗報告</button>
                 <button class="action-button" onclick="goToInformation()">問卷回饋</button>
-                <button class="action-button" onclick="downloadReport()">下載報告</button>
+                <button class="action-button" id="downloadReportButton" type="button" onclick="downloadReport()">下載 PDF 報告</button>
                 <button class="action-button" onclick="shareResult()">分享小卡</button>
             </div>
             <div class="content-section">
@@ -221,7 +222,7 @@
         }
         
         // 下載報告功能
-        function downloadReport() {
+        async function downloadReport() {
             // 取得當前測驗結果 - 優先使用 window.currentTestResult（通過 id 載入的數據）
             let resultData = null;
             
@@ -611,8 +612,40 @@
             }
             // ======================================
 
-            // 開啟下載連結
-            window.open(pdfUrl, '_blank');
+            // 使用站內報告素材直接產生 PDF，不再跳轉至 Dropbox 預覽頁。
+            const reportImagePath = getCardImagePath(topColors, mbtiType);
+            const sortedColorNames = [...topColors]
+                .sort((a, b) => a.en.localeCompare(b.en))
+                .map(color => color.zh)
+                .join('-');
+            const pdfFileName = `ColorLab-${mbtiType}-${sortedColorNames}-完整報告.pdf`;
+            const downloadButton = document.getElementById('downloadReportButton');
+            const originalButtonText = downloadButton ? downloadButton.textContent : '';
+
+            try {
+                if (downloadButton) {
+                    downloadButton.disabled = true;
+                    downloadButton.textContent = '正在產生 PDF…';
+                    downloadButton.setAttribute('aria-busy', 'true');
+                }
+
+                if (!window.ColorLabReportPdf) {
+                    throw new Error('PDF 下載元件尚未就緒');
+                }
+                await window.ColorLabReportPdf.downloadImageAsPdf(reportImagePath, pdfFileName);
+                if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
+                    window.ColorLabUX.toast('PDF 報告已開始下載', 'success');
+                }
+            } catch (error) {
+                console.error('產生 PDF 報告失敗:', error);
+                alert('PDF 報告產生失敗，請稍後再試。');
+            } finally {
+                if (downloadButton) {
+                    downloadButton.disabled = false;
+                    downloadButton.textContent = originalButtonText || '下載 PDF 報告';
+                    downloadButton.removeAttribute('aria-busy');
+                }
+            }
         }
 
         // ========== PATCH 1: 相容的「用 id 取單筆紀錄」 ==========
@@ -791,6 +824,10 @@
             } else if (colorCount === 3) {
                 folderPath = `Full-report/three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
                 fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
+                // 既有 ENFJ 藍紅黃素材的檔名誤植為「藍綠黃」，內容本身仍是正確的藍紅黃報告。
+                if (mbtiType === 'ENFJ' && sortedColors.map(color => color.en).join(' x ') === 'Blue x Red x Yellow') {
+                    fileName = 'ENFJ主人公x藍綠黃.png';
+                }
             } else if (colorCount === 4) {
                 folderPath = `Full-report/four color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en} x ${sortedColors[3].en}`;
                 fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');

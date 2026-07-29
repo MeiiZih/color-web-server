@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'colorlab-v6';
+const CACHE_VERSION = 'colorlab-v7';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -12,6 +12,7 @@ const APP_SHELL = [
   '/offline.html',
   '/manifest.webmanifest',
   '/js/pwa.js',
+  '/js/report-pdf.js',
   '/css/common.css',
   '/css/mobile.css',
   '/css/ux.css',
