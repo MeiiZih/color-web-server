@@ -15,7 +15,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.plugin.standard_fonts_metrics.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="/js/report-pdf.js" defer></script>
     <style>
         /* 隱藏次要顏色和測驗分數部分 */
         .secondary-color, .result-section:last-of-type {
@@ -612,13 +611,7 @@
             }
             // ======================================
 
-            // 使用站內報告素材直接產生 PDF，不再跳轉至 Dropbox 預覽頁。
-            const reportImagePath = getCardImagePath(topColors, mbtiType);
-            const sortedColorNames = [...topColors]
-                .sort((a, b) => a.en.localeCompare(b.en))
-                .map(color => color.zh)
-                .join('-');
-            const pdfFileName = `ColorLab-${mbtiType}-${sortedColorNames}-完整報告.pdf`;
+            // 將目前頁面上載入的完整分析內容直接產生多頁 A4 PDF，不再跳轉至 Dropbox。
             const downloadButton = document.getElementById('downloadReportButton');
             const originalButtonText = downloadButton ? downloadButton.textContent : '';
 
@@ -629,10 +622,7 @@
                     downloadButton.setAttribute('aria-busy', 'true');
                 }
 
-                if (!window.ColorLabReportPdf) {
-                    throw new Error('PDF 下載元件尚未就緒');
-                }
-                await window.ColorLabReportPdf.downloadImageAsPdf(reportImagePath, pdfFileName);
+                await generatePDF(null, topColors, mbtiType);
                 if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
                     window.ColorLabUX.toast('PDF 報告已開始下載', 'success');
                 }
@@ -2014,7 +2004,18 @@ ${colorInfo.description}
                 
                 // 下載 PDF - 使用新的檔案名稱格式
                 const fileName = getFileName(mbtiType, topColors).replace('.txt', '完整報告.pdf');
-                pdf.save(fileName);
+                const pdfBlob = pdf.output('blob');
+                const downloadUrl = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.download = fileName;
+                downloadLink.hidden = true;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+                return { fileName, size: pdfBlob.size, type: pdfBlob.type, pages: totalPages };
                 
             } catch (error) {
                 console.error('生成 PDF 時發生錯誤:', error);

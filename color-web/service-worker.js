@@ -12,7 +12,6 @@ const APP_SHELL = [
   '/offline.html',
   '/manifest.webmanifest',
   '/js/pwa.js',
-  '/js/report-pdf.js',
   '/css/common.css',
   '/css/mobile.css',
   '/css/ux.css',
