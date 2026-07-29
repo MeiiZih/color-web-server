@@ -10,7 +10,6 @@ const testRoutes = require('./routes/test');
 const surveyRoutes = require('./routes/survey');
 const adminRoutes = require('./routes/admin');
 const homepageRoutes = require('./routes/homepage');
-const seedRequestedAdmin = require('./scripts/seedRequestedAdmin');
 
 // ---- 環境/基礎設定 ----
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -19,9 +18,7 @@ console.log(`運行環境: ${isDevelopment ? '開發環境' : '生產環境'}`);
 const app = express();
 
 // 先連 DB（會讀取 MONGODB_URI）
-connectDB()
-  .then(seedRequestedAdmin)
-  .catch((error) => console.error('Admin seed failed:', error.message));
+connectDB();
 
 // CORS（如需鎖網域可改成陣列白名單）
 app.use(cors({
