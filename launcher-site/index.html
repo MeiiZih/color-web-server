@@ -282,6 +282,7 @@
       const directLink = document.getElementById('directLink');
 
       const startedAt = Date.now();
+      const minimumVisibleTime = 3500;
       let attempt = 0;
       let retryTimer;
       let completed = false;
@@ -301,7 +302,9 @@
         progress.classList.add('ready');
         statusRow.classList.add('ready');
         retry.hidden = true;
-        window.setTimeout(() => window.location.replace(destination), 850);
+        const visibleTime = Date.now() - startedAt;
+        const redirectDelay = Math.max(850, minimumVisibleTime - visibleTime);
+        window.setTimeout(() => window.location.replace(destination), redirectDelay);
       };
 
       const wakeServer = async () => {
