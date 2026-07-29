@@ -12,9 +12,6 @@
     <link rel="stylesheet" href="../css/result.css">
     <script src="../js/navbar.js"></script>
     <script src="../js/test-api.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.plugin.standard_fonts_metrics.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* 隱藏次要顏色和測驗分數部分 */
         .secondary-color, .result-section:last-of-type {
@@ -221,7 +218,7 @@
         }
         
         // 下載報告功能
-        async function downloadReport() {
+        async function downloadGeneratedReportLegacy() {
             // 取得當前測驗結果 - 優先使用 window.currentTestResult（通過 id 載入的數據）
             let resultData = null;
             
@@ -639,6 +636,87 @@
         }
 
         // ========== PATCH 1: 相容的「用 id 取單筆紀錄」 ==========
+        async function downloadReport() {
+            let resultData = window.currentTestResult || null;
+
+            if (!resultData) {
+                try {
+                    const stored = localStorage.getItem('currentTestResult');
+                    resultData = stored ? JSON.parse(stored) : null;
+                } catch (error) {
+                    console.error('無法讀取測驗結果：', error);
+                }
+            }
+
+            if (!resultData) {
+                alert('無法取得測驗結果，請重新進行測驗。');
+                return;
+            }
+
+            const normalized = typeof normalizeColorResult === 'function'
+                ? normalizeColorResult(resultData)
+                : resultData.colorResult;
+            const mbtiType = String(resultData.mbtiResult || resultData.mbtiType || '').toUpperCase();
+            const scores = resultData.scores;
+
+            let topColors = [];
+            if (normalized && Array.isArray(normalized.primary) && normalized.primary.length > 0) {
+                topColors = parseTopColorsFromColorResult(normalized);
+            } else if (scores) {
+                topColors = getTopColors(scores);
+            }
+
+            const validColors = new Set(['blue', 'green', 'red', 'yellow']);
+            const colors = [...new Set(topColors.map(color => {
+                const key = color && (color.color || color.en || color);
+                return String(key || '').toLowerCase();
+            }).filter(color => validColors.has(color)))].sort();
+
+            if (!/^[A-Z]{4}$/.test(mbtiType) || colors.length === 0) {
+                alert('測驗結果資料不完整，無法下載完整報告。');
+                return;
+            }
+
+            const colorKey = colors.join('-');
+            const endpoint = `/api/reports/download/${encodeURIComponent(mbtiType)}/${encodeURIComponent(colorKey)}`;
+            const downloadButton = document.getElementById('downloadReportButton');
+            const originalButtonText = downloadButton ? downloadButton.textContent : '';
+
+            try {
+                if (downloadButton) {
+                    downloadButton.disabled = true;
+                    downloadButton.textContent = '正在準備完整 PDF…';
+                    downloadButton.setAttribute('aria-busy', 'true');
+                }
+
+                const response = await fetch(endpoint, { method: 'HEAD', cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Report request failed (${response.status})`);
+                }
+
+                const link = document.createElement('a');
+                link.href = endpoint;
+                link.download = `ColorLab-${mbtiType}-${colorKey}-完整報告.pdf`;
+                link.hidden = true;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+
+                if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
+                    window.ColorLabUX.toast('完整 PDF 報告已開始下載', 'success');
+                }
+            } catch (error) {
+                console.error('下載完整 PDF 報告失敗：', error);
+                alert('目前無法下載完整報告，請稍後再試。');
+            } finally {
+                if (downloadButton) {
+                    downloadButton.disabled = false;
+                    downloadButton.textContent = originalButtonText || '下載 PDF 報告';
+                    downloadButton.removeAttribute('aria-busy');
+                }
+            }
+        }
+
         async function fetchRecordByIdMultiTry(id, headers = {}) {
             // 優先策略：直接從用戶記錄列表中查找（這是最可靠的方式）
             const userEmail = sessionStorage.getItem('userEmail');

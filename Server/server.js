@@ -34,6 +34,20 @@ app.use(express.json());
 // ---- 靜態檔與頁面路由 ----
 // color-web 放在 Server 的上一層目錄
 const STATIC_DIR = path.join(__dirname, '..', 'color-web');
+const REPORTS_DIR = path.join(STATIC_DIR, 'test', 'detailed-reports');
+const VALID_MBTI_TYPES = new Set([
+  'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
+  'ESFJ', 'ESFP', 'ESTJ', 'ESTP',
+  'INFJ', 'INFP', 'INTJ', 'INTP',
+  'ISFJ', 'ISFP', 'ISTJ', 'ISTP'
+]);
+const VALID_REPORT_COLORS = new Set([
+  'blue', 'green', 'red', 'yellow',
+  'blue-green', 'blue-red', 'blue-yellow',
+  'green-red', 'green-yellow', 'red-yellow',
+  'blue-green-red', 'blue-green-yellow', 'blue-red-yellow',
+  'green-red-yellow', 'blue-green-red-yellow'
+]);
 const staticOptions = {
   etag: true,
   lastModified: true,
@@ -75,6 +89,32 @@ app.get('/main/:page', (req, res, next) => {
 
 // 健康檢查（雲端監測、你自己也可測）
 app.get('/health', (_req, res) => res.send('OK'));
+
+// Download the original complete report that matches the user's MBTI and color result.
+app.get('/api/reports/download/:mbti/:colors', (req, res, next) => {
+  const mbti = String(req.params.mbti || '').toUpperCase();
+  const colors = String(req.params.colors || '').toLowerCase();
+
+  if (!VALID_MBTI_TYPES.has(mbti) || !VALID_REPORT_COLORS.has(colors)) {
+    return res.status(400).json({ message: 'Invalid report selection.' });
+  }
+
+  const reportPath = path.join(REPORTS_DIR, `${mbti}-${colors}.pdf`);
+  const downloadName = `ColorLab-${mbti}-${colors}-full-report.pdf`;
+
+  res.download(reportPath, downloadName, {
+    headers: {
+      'Cache-Control': 'private, no-store'
+    }
+  }, (error) => {
+    if (!error) return;
+    if (res.headersSent) return next(error);
+    if (error.code === 'ENOENT') {
+      return res.status(404).json({ message: 'Report not found.' });
+    }
+    return next(error);
+  });
+});
 
 // ---- API 路由（保持你原本的）----
 app.use('/api/survey', surveyRoutes);
