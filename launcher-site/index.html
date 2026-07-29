@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8bcc8">
   <meta name="description" content="喚醒 ColorMind Lab 伺服器並自動進入網站。">
+  <link rel="preconnect" href="https://color-web-server-jprj.onrender.com">
+  <link rel="dns-prefetch" href="https://color-web-server-jprj.onrender.com">
   <title>正在開啟 ColorMind Lab</title>
   <style>
     :root {
@@ -394,7 +396,8 @@
       const directLink = document.getElementById('directLink');
 
       const startedAt = Date.now();
-      const minimumVisibleTime = 3500;
+      // 已在線時只短暫展示品牌畫面；休眠時仍會持續顯示喚醒進度。
+      const minimumVisibleTime = 900;
       let attempt = 0;
       let retryTimer;
       let completed = false;
