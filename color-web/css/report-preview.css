@@ -177,6 +177,8 @@
     color: var(--preview-muted);
 }
 
+.preview-status[hidden] { display: none; }
+
 .preview-spinner {
     width: 22px;
     height: 22px;
