@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Color Web Backend Server",
   "main": "server.js",
+  "engines": {
+    "node": ">=20 <25"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "set NODE_ENV=development && nodemon server.js",
