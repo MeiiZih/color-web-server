@@ -478,9 +478,11 @@
 
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(error => {
-      console.warn(`${APP_NAME} PWA registration failed:`, error);
-    });
+    navigator.serviceWorker.register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
+      .then(registration => registration.update())
+      .catch(error => {
+        console.warn(`${APP_NAME} PWA registration failed:`, error);
+      });
   }
 
   function initialize() {

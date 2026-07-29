@@ -44,7 +44,7 @@ const staticOptions = {
     } else if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico', '.woff', '.woff2'].includes(extension)) {
       res.setHeader('Cache-Control', 'public, max-age=604800');
     } else if (extension === '.css' || extension === '.js') {
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Cache-Control', 'no-cache');
     }
   }
 };
