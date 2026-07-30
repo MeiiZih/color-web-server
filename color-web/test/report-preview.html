@@ -9,7 +9,7 @@
     <script src="/js/pwa.js" defer></script>
     <title>ColorLab - 完整報告預覽</title>
     <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/report-preview.css?v=13">
+    <link rel="stylesheet" href="/css/report-preview.css?v=14">
     <script src="/js/navbar.js"></script>
     <link rel="stylesheet" href="/css/mobile.css">
 </head>
@@ -43,12 +43,16 @@
                 </div>
                 <div class="preview-actions">
                     <button type="button" class="preview-action primary" id="downloadPdf" disabled aria-busy="true">
-                        <span aria-hidden="true">⇩</span>
+                        <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 18v2h14v-2" />
+                        </svg>
                         <span id="downloadLabel">正在準備 PDF…</span>
                     </button>
                     <a class="preview-action secondary" id="openPdf" href="#" target="_blank" rel="noopener">
-                        <span>在新頁開啟</span>
-                        <span aria-hidden="true">↗</span>
+                        <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M14 5h5v5m0-5-8 8M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" />
+                        </svg>
+                        <span>另頁預覽 PDF</span>
                     </a>
                 </div>
             </header>
@@ -60,11 +64,15 @@
 
             <div class="preview-status" id="previewStatus" role="status" aria-live="polite">
                 <span class="preview-spinner" aria-hidden="true"></span>
-                <span>正在載入完整報告，請稍候…</span>
+                <span id="previewStatusText">正在載入完整報告，請稍候…</span>
             </div>
 
             <div class="pdf-viewer" id="pdfViewer">
-                <iframe id="pdfFrame" title="ColorLab 完整 PDF 報告" hidden></iframe>
+                <div class="pdf-toolbar" id="pdfToolbar" hidden>
+                    <span class="pdf-page-summary" id="pageSummary">正在確認頁數…</span>
+                    <span class="pdf-fit-note">已自動符合螢幕寬度</span>
+                </div>
+                <div class="pdf-pages" id="pdfPages" aria-label="ColorLab 完整 PDF 報告"></div>
             </div>
 
             <div class="preview-error" id="previewError" hidden>
@@ -100,9 +108,12 @@
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
 
-            const frame = document.getElementById('pdfFrame');
             const viewer = document.getElementById('pdfViewer');
             const status = document.getElementById('previewStatus');
+            const statusText = document.getElementById('previewStatusText');
+            const toolbar = document.getElementById('pdfToolbar');
+            const pageSummary = document.getElementById('pageSummary');
+            const pages = document.getElementById('pdfPages');
             const errorPanel = document.getElementById('previewError');
             const errorText = document.getElementById('previewErrorText');
             const downloadButton = document.getElementById('downloadPdf');
@@ -128,6 +139,7 @@
             function showError(message) {
                 status.hidden = true;
                 viewer.hidden = true;
+                pages.replaceChildren();
                 errorText.textContent = message;
                 errorPanel.hidden = false;
                 downloadButton.disabled = true;
@@ -173,8 +185,48 @@
                     if (!blob.type.includes('pdf')) throw new Error('Invalid PDF response');
 
                     preparedFile = new File([blob], filename, { type: 'application/pdf' });
-                    frame.src = previewEndpoint;
-                    frame.hidden = false;
+                    const pdfjsLib = await import('/vendor/pdfjs/pdf.min.mjs');
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+                    const pdf = await pdfjsLib.getDocument({
+                        data: new Uint8Array(await blob.arrayBuffer())
+                    }).promise;
+
+                    pageSummary.textContent = `共 ${pdf.numPages} 頁`;
+                    toolbar.hidden = false;
+                    pages.replaceChildren();
+
+                    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+                        statusText.textContent = `正在呈現完整報告（${pageNumber} / ${pdf.numPages}）…`;
+                        const page = await pdf.getPage(pageNumber);
+                        const baseViewport = page.getViewport({ scale: 1 });
+                        const availableWidth = Math.max(280, Math.min(pages.clientWidth || 920, 920));
+                        const cssScale = availableWidth / baseViewport.width;
+                        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+                        const viewport = page.getViewport({ scale: cssScale * outputScale });
+
+                        const pageElement = document.createElement('section');
+                        pageElement.className = 'pdf-page';
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.floor(viewport.width);
+                        canvas.height = Math.floor(viewport.height);
+                        canvas.style.aspectRatio = `${baseViewport.width} / ${baseViewport.height}`;
+                        canvas.setAttribute('role', 'img');
+                        canvas.setAttribute('aria-label', `第 ${pageNumber} 頁，共 ${pdf.numPages} 頁`);
+
+                        const label = document.createElement('span');
+                        label.className = 'pdf-page-number';
+                        label.textContent = `${pageNumber} / ${pdf.numPages}`;
+
+                        pageElement.append(canvas, label);
+                        pages.appendChild(pageElement);
+
+                        await page.render({
+                            canvasContext: canvas.getContext('2d', { alpha: false }),
+                            viewport
+                        }).promise;
+                    }
+
                     status.hidden = true;
                     downloadButton.disabled = false;
                     downloadButton.setAttribute('aria-busy', 'false');

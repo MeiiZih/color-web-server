@@ -23,7 +23,8 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^8",
     "multer": "^2.0.2",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "pdfjs-dist": "5.4.624"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

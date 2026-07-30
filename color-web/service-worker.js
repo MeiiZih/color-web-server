@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'colorlab-v16';
+const CACHE_VERSION = 'colorlab-v17';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -17,7 +17,7 @@ const APP_SHELL = [
   '/js/pwa.js',
   '/css/common.css',
   '/css/mobile.css',
-  '/css/report-preview.css?v=13',
+  '/css/report-preview.css?v=14',
   '/css/ux.css',
   '/assets/images/logo.png',
   '/assets/icons/icon-192.png',

@@ -37,6 +37,7 @@ const STATIC_DIR = path.join(__dirname, '..', 'color-web');
 const LAUNCHER_FILE = path.join(__dirname, '..', 'launcher-site', 'index.html');
 const LAUNCHER_LOGO_FILE = path.join(__dirname, '..', 'launcher-site', 'colorlab-mark.svg');
 const REPORTS_DIR = path.join(STATIC_DIR, 'test', 'detailed-reports');
+const PDFJS_BUILD_DIR = path.join(__dirname, 'node_modules', 'pdfjs-dist', 'build');
 const VALID_MBTI_TYPES = new Set([
   'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
   'ESFJ', 'ESFP', 'ESTJ', 'ESTP',
@@ -59,11 +60,12 @@ const staticOptions = {
       res.setHeader('Cache-Control', 'no-cache');
     } else if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico', '.woff', '.woff2'].includes(extension)) {
       res.setHeader('Cache-Control', 'public, max-age=604800');
-    } else if (extension === '.css' || extension === '.js') {
+    } else if (extension === '.css' || extension === '.js' || extension === '.mjs') {
       res.setHeader('Cache-Control', 'no-cache');
     }
   }
 };
+app.use('/vendor/pdfjs', express.static(PDFJS_BUILD_DIR, staticOptions));
 app.use(express.static(STATIC_DIR, staticOptions));          // 直接提供整個 color-web
 app.use('/main', express.static(path.join(STATIC_DIR, 'main'), staticOptions));
 
