@@ -14,9 +14,13 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const loginId = String(email || '').trim().toLowerCase();
+        const adminEmail = loginId === 'admin'
+            ? (process.env.ADMIN_EMAIL || 'yehpty@gmail.com').toLowerCase()
+            : loginId;
 
         // 查找管理員
-        const admin = await Admin.findOne({ email });
+        const admin = await Admin.findOne({ email: adminEmail });
 
         if (!admin) {
             return res.status(401).json({ message: '無效的管理員帳號' });
@@ -375,4 +379,4 @@ router.get('/feedbacks', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

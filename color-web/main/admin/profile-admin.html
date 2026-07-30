@@ -62,7 +62,7 @@
                     <div class="form-icon">🔒</div>
                     <div class="form-label">新密碼：</div>
                     <div class="form-value">
-                        <input type="password" id="adminPassword" class="form-input" minlength="6" placeholder="請輸入新密碼" disabled>
+                        <input type="password" id="adminPassword" class="form-input" minlength="5" placeholder="請輸入新密碼" disabled>
                     </div>
                 </div>
 
@@ -190,7 +190,7 @@
             if (!name) return showError('請輸入姓名');
             if (!department) return showError('請輸入處室');
             if (password) {
-                if (password.length < 6) return showError('密碼長度必須至少6個字符');
+                if (password.length < 5) return showError('密碼長度必須至少5個字符');
                 if (password !== confirmPassword) return showError('兩次輸入的密碼不一致');
             }
             const adminToken = sessionStorage.getItem('adminToken');

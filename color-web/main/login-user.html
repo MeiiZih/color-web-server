@@ -108,6 +108,11 @@
             if (isAdminLoginMode) {
                 document.querySelector('.login-title').textContent = '管理員登入';
                 document.querySelector('.login-button').textContent = '登入管理後臺';
+                const emailInput = document.getElementById('email');
+                emailInput.type = 'text';
+                emailInput.placeholder = '請輸入管理員帳號';
+                emailInput.autocomplete = 'username';
+                document.querySelector('label[for="email"]').textContent = '管理員帳號';
             }
             const guestBtn = document.getElementById('guestLoginBtn');
             if (guestBtn) {

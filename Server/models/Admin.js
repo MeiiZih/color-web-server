@@ -12,7 +12,7 @@ const adminSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        minlength: 6
+        minlength: 5
     },
     name: {
         type: String,
@@ -59,4 +59,4 @@ adminSchema.methods.generateToken = function() {
     });
 };
 
-module.exports = mongoose.model('Admin', adminSchema); 
+module.exports = mongoose.model('Admin', adminSchema);
