@@ -697,3 +697,13 @@ footer {
 .info-indicators {
     margin-top: 2px;
 }
+
+/* 資訊圖片若因網路或快取失敗，改用 ColorLab 品牌圖示，避免出現空白或破圖。 */
+.news-slide img.image-fallback,
+.info-card img.info-image.image-fallback {
+    object-fit: contain;
+    padding: clamp(28px, 8vw, 72px);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)),
+        linear-gradient(135deg, #ffe1e7, #fff2cf 48%, #dff2fb);
+}

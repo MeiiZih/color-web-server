@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#fff8f6">
   <meta name="description" content="在 ColorLab 醒來以前，調一杯屬於今天的心情色。">
   <link rel="icon" href="./colorlab-mark.svg" type="image/svg+xml">
+  <link rel="preload" href="./colorlab-mark.svg" as="image" type="image/svg+xml">
   <link rel="preconnect" href="https://color-web-server-jprj.onrender.com">
   <link rel="dns-prefetch" href="https://color-web-server-jprj.onrender.com">
   <title>ColorLab｜調一杯今日心情色</title>
@@ -602,6 +603,47 @@
       const startedAt = Date.now();
       const minimumVisibleTime = 1800;
 
+      const warmDestination = async () => {
+        if (!safePath.startsWith('/main/common.html')) return;
+
+        const warmAsset = path => fetch(`${SERVER_ORIGIN}${path}`, {
+          cache: 'force-cache',
+          mode: 'cors'
+        }).catch(() => null);
+
+        const warmFeed = async type => {
+          try {
+            const response = await fetch(`${SERVER_ORIGIN}/api/homepage?type=${type}`, {
+              cache: 'no-store',
+              mode: 'cors'
+            });
+            if (!response.ok) return;
+            const items = await response.json();
+            const firstImage = Array.isArray(items) && items[0] && items[0].imageUrl;
+            if (firstImage) {
+              const imageUrl = new URL(firstImage, SERVER_ORIGIN).href;
+              await fetch(imageUrl, { cache: 'force-cache', mode: 'cors' }).catch(() => null);
+            }
+          } catch (_error) {
+            // 預熱失敗不會阻擋進入網站，首頁仍有圖片備援。
+          }
+        };
+
+        const warming = Promise.allSettled([
+          warmAsset('/main/common.html'),
+          warmAsset('/css/common.css'),
+          warmAsset('/css/mobile.css'),
+          warmAsset('/assets/images/logo.png'),
+          warmFeed('news'),
+          warmFeed('common')
+        ]);
+
+        await Promise.race([
+          warming,
+          new Promise(resolve => window.setTimeout(resolve, 900))
+        ]);
+      };
+
       const pairKey = colors => colors.slice().sort((a, b) => ['coral', 'sun', 'sky', 'leaf'].indexOf(a) - ['coral', 'sun', 'sky', 'leaf'].indexOf(b)).join('+');
 
       const burst = (x, y, color) => {
@@ -733,6 +775,7 @@
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const body = await response.text();
           if (!body.trim().toUpperCase().includes('OK')) throw new Error('Health check failed');
+          await warmDestination();
           markReady();
         } catch (_error) {
           if (!completed) wakeTimer = window.setTimeout(wakeServer, 2600);

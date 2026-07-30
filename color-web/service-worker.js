@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'colorlab-v15';
+const CACHE_VERSION = 'colorlab-v16';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 

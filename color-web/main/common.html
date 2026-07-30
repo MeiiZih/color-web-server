@@ -71,6 +71,42 @@
         let newsData = [];
         let commonData = [];
 
+        function preloadImage(src, timeout = 1800) {
+            if (!src) return Promise.resolve(false);
+
+            return Promise.race([
+                new Promise(resolve => {
+                    const image = new Image();
+                    image.onload = async () => {
+                        try {
+                            if (image.decode) await image.decode();
+                        } catch (_error) {
+                            // 圖片已載入時，解碼失敗不影響後續顯示。
+                        }
+                        resolve(true);
+                    };
+                    image.onerror = () => resolve(false);
+                    image.src = src;
+                }),
+                new Promise(resolve => setTimeout(() => resolve(false), timeout))
+            ]);
+        }
+
+        function applyImageFallbacks(container) {
+            container.querySelectorAll('img[data-card-image]').forEach(image => {
+                const showFallback = () => {
+                    if (image.dataset.fallbackApplied === 'true') return;
+                    image.dataset.fallbackApplied = 'true';
+                    image.classList.add('image-fallback');
+                    image.alt = `${image.alt || 'ColorLab 資訊'}（圖片暫時無法顯示）`;
+                    image.src = '/colorlab-mark.svg';
+                };
+
+                image.addEventListener('error', showFallback, { once: true });
+                if (image.complete && image.naturalWidth === 0) showFallback();
+            });
+        }
+
         function initializeSwipeCarousel(carousel, itemSelector, indicatorContainer) {
             const items = Array.from(carousel.querySelectorAll(itemSelector));
             if (!items.length) return;
@@ -125,6 +161,7 @@
                     newsData = await response.json();
                     // 只取最新的6個
                     newsData = newsData.slice(0, 6);
+                    await preloadImage(newsData[0] && newsData[0].imageUrl);
                     renderNewsCarousel();
                 } else {
                     console.error('載入最新資訊失敗');
@@ -150,7 +187,8 @@
             carousel.innerHTML = newsData.map((item, index) => `
                 <div class="news-slide ${index === 0 ? 'active' : ''}">
                     <a href="${item.link || '#'}" target="_blank" rel="noopener noreferrer" aria-label="${item.title}（另開新分頁）">
-                        <img src="${item.imageUrl}" alt="${item.title}" />
+                        <img src="${item.imageUrl}" alt="${item.title}" data-card-image
+                            decoding="async" loading="eager" ${index === 0 ? 'fetchpriority="high"' : ''} />
                         <div class="news-content">
                             <h3>${item.title}</h3>
                             <p>${item.description}</p>
@@ -159,6 +197,7 @@
                 </div>
             `).join('');
 
+            applyImageFallbacks(carousel);
             initializeSwipeCarousel(carousel, '.news-slide', indicators);
         }
 
@@ -170,6 +209,7 @@
                     commonData = await response.json();
                     // 只取最新的6個
                     commonData = commonData.slice(0, 6);
+                    await preloadImage(commonData[0] && commonData[0].imageUrl);
                     renderInfoCarousel();
                 } else {
                     console.error('載入一般資訊失敗');
@@ -194,12 +234,14 @@
             // 渲染輪播內容
             carousel.innerHTML = commonData.map((item, index) => `
                 <a href="${item.link || '#'}" class="info-card" target="_blank" rel="noopener noreferrer" aria-label="${item.title || '一般資訊'}（另開新分頁）">
-                    <img src="${item.imageUrl}" alt="${item.title || ''}" class="info-image">
+                    <img src="${item.imageUrl}" alt="${item.title || ''}" class="info-image" data-card-image
+                        decoding="async" loading="eager" ${index === 0 ? 'fetchpriority="high"' : ''}>
                     <h3 class="info-title">${item.title || ''}</h3>
                     <p class="info-desc">${item.description || ''}</p>
                 </a>
             `).join('');
-            
+
+            applyImageFallbacks(carousel);
             initializeSwipeCarousel(carousel, '.info-card', indicators);
         }
 
