@@ -35,8 +35,8 @@
             <h1 class="login-title">登入</h1>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="email">電子郵件</label>
-                    <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required>
+                    <label for="email">電子郵件或管理員帳號</label>
+                    <input type="text" id="email" name="email" placeholder="you@example.com 或 admin" autocomplete="username" inputmode="email" required>
                 </div>
                 <div class="form-group">
                     <label for="password">密碼</label>
@@ -49,6 +49,7 @@
                   <a href="#" class="guest-link" id="guestLoginBtn">訪客登入</a>
                   <a href="/main/user/register.html" class="register-link">建立帳號</a>
                 </div>
+                <a href="/main/login-user.html?mode=admin" class="admin-login-link">使用管理員帳號登入</a>
             </form>
         </div>
     </div>
