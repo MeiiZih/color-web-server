@@ -72,6 +72,9 @@ const staticOptions = {
 };
 app.use('/vendor/pdfjs', express.static(PDFJS_BUILD_DIR, staticOptions));
 app.use(express.static(STATIC_DIR, staticOptions));          // 直接提供整個 color-web
+app.get('/main/login-admin.html', (_req, res) => {
+  res.redirect('/main/login-user.html?mode=admin');
+});
 app.use('/main', express.static(path.join(STATIC_DIR, 'main'), staticOptions));
 
 // 上傳檔（如果有）
@@ -87,7 +90,7 @@ app.get('/', (_req, res) => {
 
 // 讓 /login-admin.html 重新導向舊路徑（若前端仍有舊連結）
 app.get('/login-admin.html', (_req, res) => {
-  res.redirect('/main/login-admin.html');
+  res.redirect('/main/login-user.html?mode=admin');
 });
 
 // 允許以 /main/xxx.html 直接存取（例如 /main/register.html）

@@ -88,15 +88,26 @@
         const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
             ? `${protocol}//${hostname}:${port || '3000'}`
             : ''; // Render 生產環境使用相對路徑
+        const isAdminLoginMode = new URLSearchParams(window.location.search).get('mode') === 'admin';
+
+        if (isAdminLoginMode) {
+            window.ColorLabAuth?.clearPersistentUserSession();
+            ['token', 'userToken', 'userEmail', 'userName', 'userId', 'user', 'isGuest', 'guestId']
+                .forEach(key => sessionStorage.removeItem(key));
+        }
 
         let redirectTarget = null;
         document.addEventListener('DOMContentLoaded', function() {
             // 取得 redirectTarget 參數
             const urlParams = new URLSearchParams(window.location.search);
             redirectTarget = urlParams.get('redirectTarget');
-            if (sessionStorage.getItem('userToken') && sessionStorage.getItem('userEmail') && sessionStorage.getItem('isGuest') !== 'true') {
+            if (!isAdminLoginMode && sessionStorage.getItem('userToken') && sessionStorage.getItem('userEmail') && sessionStorage.getItem('isGuest') !== 'true') {
                 window.location.replace(redirectTarget || '/main/common.html');
                 return;
+            }
+            if (isAdminLoginMode) {
+                document.querySelector('.login-title').textContent = '管理員登入';
+                document.querySelector('.login-button').textContent = '登入管理後臺';
             }
             const guestBtn = document.getElementById('guestLoginBtn');
             if (guestBtn) {
@@ -116,8 +127,41 @@
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
             try {
+                // 同一個 Email 可能同時存在一般帳號與管理員帳號，必須先確認管理員。
+                let adminData = {};
+                try {
+                    const adminResponse = await fetch(`${apiBaseUrl}/api/admin/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    adminData = await adminResponse.json();
+                    if (adminResponse.ok && adminData.user) {
+                        window.ColorLabAuth?.clearPersistentUserSession();
+                        ['token', 'userToken', 'userEmail', 'userName', 'userId', 'user', 'isGuest', 'guestId']
+                            .forEach(key => sessionStorage.removeItem(key));
+                        sessionStorage.setItem('adminEmail', email);
+                        sessionStorage.setItem('adminName', adminData.user.name || '管理員');
+                        sessionStorage.setItem('admin', JSON.stringify(adminData.user));
+                        sessionStorage.setItem('adminToken', adminData.token);
+                        localStorage.setItem('adminEmail', email);
+                        localStorage.setItem('adminName', adminData.user.name || '管理員');
+                        localStorage.setItem('admin', JSON.stringify(adminData.user));
+                        localStorage.setItem('adminToken', adminData.token);
+                        successMessage.textContent = '管理端登入成功！正在跳轉...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            window.location.href = '/main/admin/admin.html';
+                        }, 1000);
+                        return;
+                    }
+                } catch (err) {
+                    // admin login 失敗時，繼續嘗試一般使用者登入
+                }
+
                 // 先查 users 資料表
-                let userOk = false;
                 let userData = {};
                 try {
                     const userResponse = await fetch(`${apiBaseUrl}/api/user/login`, {
@@ -157,36 +201,6 @@
                     }
                 } catch (err) {
                     // user login 失敗不影響 admin login
-                }
-                // 查詢 admin 資料表
-                let adminData = {};
-                try {
-                    const adminResponse = await fetch(`${apiBaseUrl}/api/admin/login`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ email, password })
-                    });
-                    adminData = await adminResponse.json();
-                    if (adminResponse.ok && adminData.user) {
-                        sessionStorage.setItem('adminEmail', email);
-                        sessionStorage.setItem('adminName', adminData.user.name || '管理員');
-                        sessionStorage.setItem('admin', JSON.stringify(adminData.user));
-                        sessionStorage.setItem('adminToken', adminData.token);
-                        localStorage.setItem('adminEmail', email);
-                        localStorage.setItem('adminName', adminData.user.name || '管理員');
-                        localStorage.setItem('admin', JSON.stringify(adminData.user));
-                        localStorage.setItem('adminToken', adminData.token);
-                        successMessage.textContent = '管理端登入成功！正在跳轉...';
-                        successMessage.style.display = 'block';
-                        setTimeout(() => {
-                            window.location.href = '/main/admin/admin.html';
-                        }, 1000);
-                        return;
-                    }
-                } catch (err) {
-                    // admin login 失敗
                 }
                 // 兩者都失敗
                 errorMessage.textContent = (userData && userData.message) || (adminData && adminData.message) || '登入失敗，請檢查帳號密碼';
