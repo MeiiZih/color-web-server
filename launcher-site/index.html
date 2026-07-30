@@ -2,379 +2,550 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f8bcc8">
-  <meta name="description" content="喚醒 ColorLab 伺服器並自動進入網站。">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff8f6">
+  <meta name="description" content="在 ColorLab 醒來以前，調一杯屬於今天的心情色。">
   <link rel="icon" href="./colorlab-mark.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://color-web-server-jprj.onrender.com">
   <link rel="dns-prefetch" href="https://color-web-server-jprj.onrender.com">
-  <title>正在開啟 ColorLab</title>
+  <title>ColorLab｜調一杯今日心情色</title>
   <style>
     :root {
       font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-      color: #3f3a42;
-      background: #fff9f7;
-      --coral: #f36f83;
-      --pink: #f7b9c6;
-      --rose: #fff0f2;
-      --blue: #dff1fa;
-      --blue-strong: #79bfe3;
-      --yellow: #ffd66b;
-      --green: #a9d584;
-      --ink-soft: #736b75;
-      --line: rgba(89, 73, 82, .12);
+      color: #413b41;
+      background: #fff8f6;
+      --coral: #ef7180;
+      --coral-soft: #facbd3;
+      --sun: #f5ca66;
+      --sky: #80c7e8;
+      --leaf: #a8d584;
+      --cream: #fff8f6;
+      --paper: rgba(255, 255, 255, .88);
+      --ink: #413b41;
+      --muted: #7b7179;
+      --line: rgba(111, 86, 99, .13);
+      --grid: rgba(128, 199, 232, .11);
+      --mix-a: #ef7180;
+      --mix-b: #f5ca66;
     }
 
     * { box-sizing: border-box; }
 
-    html, body { min-height: 100%; }
+    html { min-height: 100%; background: var(--cream); }
 
     body {
-      margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
+      min-height: 100dvh;
+      margin: 0;
+      padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
       overflow-x: hidden;
       background:
-        radial-gradient(circle at 12% 16%, rgba(247, 185, 198, .55) 0 7rem, transparent 7.1rem),
-        radial-gradient(circle at 90% 80%, rgba(223, 241, 250, .9) 0 11rem, transparent 11.1rem),
-        linear-gradient(145deg, #fffafa 0%, #fff6f2 54%, #eef8fd 100%);
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        radial-gradient(circle at 10% 8%, rgba(250, 203, 211, .72) 0 11rem, transparent 11.2rem),
+        radial-gradient(circle at 92% 92%, rgba(128, 199, 232, .28) 0 15rem, transparent 15.2rem),
+        linear-gradient(150deg, #fffaf9 0%, #fff8f4 50%, #f5fbfd 100%);
+      background-size: 52px 52px, 52px 52px, auto, auto, auto;
     }
 
-    .shape {
+    button { font: inherit; }
+
+    .ambient-shape {
       position: fixed;
       z-index: 0;
       border-radius: 999px;
       pointer-events: none;
-      filter: blur(.2px);
-      opacity: .72;
-      animation: drift 8s ease-in-out infinite alternate;
+      filter: blur(.1px);
+      opacity: .78;
+      animation: ambient-drift 8s ease-in-out infinite alternate;
     }
 
-    .shape.one { width: 150px; height: 48px; top: 8%; right: -34px; rotate: -18deg; background: var(--yellow); }
-    .shape.two { width: 95px; height: 95px; left: 5%; bottom: 9%; background: var(--green); animation-delay: -3s; }
-    .shape.three { width: 62px; height: 62px; right: 12%; top: 16%; background: var(--blue-strong); animation-delay: -5s; }
+    .ambient-shape.one { width: 118px; height: 36px; top: 7%; right: -28px; rotate: -16deg; background: var(--sun); }
+    .ambient-shape.two { width: 78px; height: 78px; left: 3%; bottom: 9%; background: var(--leaf); animation-delay: -2.5s; }
+    .ambient-shape.three { width: 46px; height: 46px; top: 30%; left: 7%; background: var(--sky); animation-delay: -5s; }
 
-    .shell {
+    .experience {
       position: relative;
       z-index: 1;
-      width: min(92vw, 940px);
+      width: min(1160px, 100%);
+      min-height: calc(100dvh - 36px);
+      margin: 0 auto;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, .9);
+      border: 1px solid rgba(255, 255, 255, .92);
       border-radius: 34px;
-      background: rgba(255, 255, 255, .82);
-      box-shadow: 0 28px 80px rgba(151, 105, 118, .2);
+      background: rgba(255, 255, 255, .76);
+      box-shadow: 0 28px 88px rgba(135, 98, 114, .17);
       backdrop-filter: blur(18px);
     }
 
     .topbar {
-      min-height: 74px;
-      padding: 14px 28px;
+      min-height: 76px;
+      padding: 14px clamp(20px, 3vw, 34px);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 18px;
       border-bottom: 1px solid var(--line);
-      background: rgba(249, 191, 202, .72);
+      background: rgba(248, 190, 201, .68);
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 1.08rem;
-      font-weight: 800;
-      letter-spacing: .02em;
-    }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 1.12rem; font-weight: 900; letter-spacing: .015em; }
 
     .brand-mark {
-      width: 42px;
-      height: 42px;
-      display: grid;
-      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
       overflow: hidden;
-      border: 2px solid rgba(255, 255, 255, .85);
+      border: 2px solid rgba(255, 255, 255, .9);
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 7px 18px rgba(104, 72, 80, .12);
+      box-shadow: 0 8px 22px rgba(98, 70, 83, .13);
     }
 
-    .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+    .brand-mark img { width: 100%; height: 100%; display: block; object-fit: cover; }
 
-    .wake-tag {
-      padding: 7px 12px;
-      border-radius: 999px;
-      color: #8b5360;
-      background: rgba(255, 255, 255, .58);
-      font-size: .76rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-    }
-
-    .content {
-      min-height: 500px;
-      padding: clamp(30px, 6vw, 62px);
-      display: grid;
-      grid-template-columns: 1.15fr .85fr;
+    .top-note {
+      display: inline-flex;
       align-items: center;
-      gap: clamp(28px, 6vw, 70px);
+      gap: 8px;
+      color: #845761;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .09em;
     }
+
+    .top-note::before { content: ""; width: 24px; height: 3px; border-radius: 99px; background: var(--coral); }
+
+    .layout {
+      min-height: calc(100dvh - 112px);
+      padding: clamp(26px, 5vw, 62px);
+      display: grid;
+      grid-template-columns: minmax(0, .88fr) minmax(390px, 1.12fr);
+      align-items: center;
+      gap: clamp(30px, 6vw, 78px);
+    }
+
+    .intro { max-width: 500px; }
 
     .eyebrow {
-      margin: 0 0 13px;
+      margin: 0 0 14px;
       color: var(--coral);
-      font-size: .8rem;
-      font-weight: 800;
+      font-size: .77rem;
+      font-weight: 900;
       letter-spacing: .18em;
     }
 
     h1 {
+      max-width: 10em;
       margin: 0;
-      font-size: clamp(2.2rem, 6vw, 4.2rem);
+      font-size: clamp(2.5rem, 5.5vw, 4.65rem);
       line-height: 1.12;
-      letter-spacing: -.045em;
+      letter-spacing: -.055em;
     }
 
     h1 em { color: var(--coral); font-style: normal; }
 
     .lead {
-      max-width: 34rem;
-      margin: 19px 0 24px;
-      color: var(--ink-soft);
+      max-width: 32rem;
+      margin: 20px 0 26px;
+      color: var(--muted);
       font-size: 1rem;
-      line-height: 1.8;
+      line-height: 1.85;
     }
 
-    .status-card {
+    .prompt-card {
       padding: 18px 19px;
       border: 1px solid var(--line);
-      border-radius: 20px;
-      background: rgba(255, 255, 255, .82);
-      box-shadow: 0 10px 30px rgba(96, 77, 86, .08);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .8);
+      box-shadow: 0 12px 34px rgba(100, 77, 88, .08);
     }
 
-    .status-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 800;
-    }
+    .prompt-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 
-    .status-dot {
-      width: 11px;
-      height: 11px;
-      flex: 0 0 auto;
-      border-radius: 50%;
-      background: var(--coral);
-      box-shadow: 0 0 0 7px rgba(243, 111, 131, .14);
-      animation: breathe 1.35s ease-in-out infinite;
-    }
+    .prompt-label { color: #9a626d; font-size: .72rem; font-weight: 900; letter-spacing: .12em; }
 
-    .ready .status-dot { background: var(--green); box-shadow: 0 0 0 7px rgba(169, 213, 132, .2); animation: none; }
-
-    .detail {
-      min-height: 2.8em;
-      margin: 10px 0 0 23px;
-      color: var(--ink-soft);
-      font-size: .86rem;
-      line-height: 1.55;
-    }
-
-    .progress {
-      height: 7px;
-      margin-top: 17px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: #f2edf0;
-    }
-
-    .progress-bar {
-      width: 34%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--coral), var(--yellow), var(--blue-strong), var(--green));
-      animation: travel 1.65s ease-in-out infinite;
-    }
-
-    .progress.ready .progress-bar { width: 100%; animation: none; transition: width .35s ease; }
-
-    .meta {
-      margin-top: 10px;
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      color: #9a9199;
-      font-size: .75rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .actions { margin-top: 17px; display: flex; flex-wrap: wrap; gap: 9px; }
-
-    .button {
-      min-height: 41px;
-      padding: 10px 17px;
+    .prompt-refresh {
+      min-height: 38px;
+      padding: 8px 12px;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
+      gap: 7px;
       border: 0;
       border-radius: 999px;
-      color: #fff;
-      background: var(--coral);
-      box-shadow: 0 8px 20px rgba(243, 111, 131, .24);
-      text-decoration: none;
-      font: inherit;
-      font-size: .84rem;
-      font-weight: 700;
+      color: #715f67;
+      background: #f7eff1;
       cursor: pointer;
-      transition: transform .18s ease, box-shadow .18s ease;
+      font-size: .78rem;
+      font-weight: 800;
+      transition: transform .18s ease, background .18s ease;
     }
 
-    .button.secondary { color: #705d66; background: #f5eff1; box-shadow: none; }
-    .button:hover { transform: translateY(-2px); box-shadow: 0 11px 24px rgba(243, 111, 131, .28); }
-    .button[hidden] { display: none; }
+    .prompt-refresh:hover { transform: translateY(-2px); background: #f2e5e9; }
+    .prompt-refresh:focus-visible, .swatch:focus-visible, .reset-mix:focus-visible, .mix-stage:focus-visible { outline: 3px solid rgba(239, 113, 128, .32); outline-offset: 3px; }
 
-    .visual {
-      min-height: 330px;
-      display: grid;
-      place-items: center;
-      position: relative;
+    .prompt-text { min-height: 3.2em; margin: 14px 0 2px; font-size: 1rem; font-weight: 750; line-height: 1.65; }
+    .prompt-text.is-changing { animation: prompt-swap .34s ease; }
+
+    .service-state {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: #796c74;
+      font-size: .86rem;
+      font-weight: 750;
     }
 
-    .orbit {
+    .state-orbit {
       position: relative;
-      width: min(74vw, 310px);
-      aspect-ratio: 1;
-      display: grid;
-      place-items: center;
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      border: 2px solid rgba(239, 113, 128, .2);
+      border-top-color: var(--coral);
       border-radius: 50%;
-      background: linear-gradient(145deg, #fff, #fff6f3);
-      box-shadow: 0 25px 55px rgba(129, 96, 106, .15), inset 0 0 0 1px rgba(90, 75, 83, .06);
+      animation: spin 1.15s linear infinite;
     }
 
-    .orbit::before, .orbit::after {
+    .state-orbit::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--coral-soft); }
+    .service-state.ready .state-orbit { border: 0; background: var(--leaf); animation: ready-pop .5s ease both; }
+    .service-state.ready .state-orbit::after { inset: 6px; background: #fff; }
+
+    .lab-panel {
+      position: relative;
+      padding: clamp(18px, 3vw, 28px);
+      overflow: hidden;
+      border: 1px solid rgba(112, 90, 101, .14);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, .86);
+      box-shadow: 0 24px 60px rgba(103, 78, 90, .12);
+    }
+
+    .lab-panel::after {
       content: "";
       position: absolute;
+      width: 170px;
+      height: 170px;
+      right: -74px;
+      bottom: -84px;
       border-radius: 50%;
-      border: 1px dashed rgba(115, 107, 117, .18);
-      animation: spin 13s linear infinite;
+      background: rgba(128, 199, 232, .16);
+      pointer-events: none;
     }
 
-    .orbit::before { inset: 20px; }
-    .orbit::after { inset: 48px; animation-direction: reverse; animation-duration: 10s; }
+    .lab-heading { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .lab-kicker { margin: 0 0 4px; color: #a36a74; font-size: .69rem; font-weight: 900; letter-spacing: .13em; }
+    .lab-heading h2 { margin: 0; font-size: clamp(1.15rem, 2.3vw, 1.48rem); }
 
-    .logo-card {
-      z-index: 2;
-      width: 54%;
-      aspect-ratio: 1;
-      overflow: hidden;
-      border: 9px solid #fff;
-      border-radius: 50%;
-      background: var(--rose);
-      box-shadow: 0 17px 34px rgba(104, 80, 88, .13);
-      animation: float 3.2s ease-in-out infinite;
-    }
+    .formula-dots { display: flex; gap: 6px; }
+    .formula-dots span { width: 9px; height: 22px; border-radius: 99px; animation: formula-wave 1.8s ease-in-out infinite; }
+    .formula-dots span:nth-child(1) { background: var(--coral); }
+    .formula-dots span:nth-child(2) { background: var(--sun); animation-delay: -.3s; }
+    .formula-dots span:nth-child(3) { background: var(--sky); animation-delay: -.6s; }
+    .formula-dots span:nth-child(4) { background: var(--leaf); animation-delay: -.9s; }
 
-    .logo-card img { width: 100%; height: 100%; object-fit: cover; }
-
-    .color-dot {
-      position: absolute;
-      z-index: 3;
-      width: 48px;
-      height: 48px;
+    .mix-stage {
+      position: relative;
+      min-height: clamp(285px, 34vw, 390px);
+      margin: 18px 0 17px;
       display: grid;
       place-items: center;
-      border: 5px solid #fff;
-      border-radius: 50%;
-      color: rgba(65, 55, 61, .55);
-      box-shadow: 0 11px 23px rgba(88, 68, 76, .16);
-      font-size: .72rem;
-      font-weight: 900;
-      animation: hop 1.6s ease-in-out infinite;
+      overflow: hidden;
+      border: 1px solid rgba(128, 199, 232, .19);
+      border-radius: 24px;
+      background:
+        linear-gradient(rgba(128, 199, 232, .11) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(128, 199, 232, .11) 1px, transparent 1px),
+        linear-gradient(165deg, #fffdfc, #f8fcfd);
+      background-size: 34px 34px, 34px 34px, auto;
+      cursor: crosshair;
+      isolation: isolate;
     }
 
-    .color-dot.red { top: 7%; left: 18%; background: var(--coral); }
-    .color-dot.yellow { top: 19%; right: 3%; background: var(--yellow); animation-delay: -.4s; }
-    .color-dot.blue { bottom: 7%; right: 17%; background: var(--blue-strong); animation-delay: -.8s; }
-    .color-dot.green { bottom: 17%; left: 1%; background: var(--green); animation-delay: -1.2s; }
+    .mix-stage::before, .mix-stage::after {
+      content: "";
+      position: absolute;
+      border: 1px dashed rgba(111, 86, 99, .15);
+      border-radius: 50%;
+      animation: spin 16s linear infinite;
+    }
 
-    .ready .color-dot { animation-duration: .85s; }
+    .mix-stage::before { width: 270px; height: 270px; }
+    .mix-stage::after { width: 208px; height: 208px; animation-direction: reverse; animation-duration: 12s; }
 
-    @keyframes travel { 0% { transform: translateX(-115%); } 100% { transform: translateX(355%); } }
+    .mix-orb {
+      position: relative;
+      z-index: 3;
+      width: clamp(158px, 22vw, 215px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 11px solid rgba(255, 255, 255, .9);
+      border-radius: 45% 55% 51% 49% / 53% 45% 55% 47%;
+      background: linear-gradient(135deg, var(--mix-a), var(--mix-b));
+      box-shadow: 0 22px 54px rgba(102, 72, 88, .18);
+      animation: orb-float 4s ease-in-out infinite, orb-morph 8s ease-in-out infinite alternate;
+      transition: background .55s ease, transform .35s ease;
+    }
+
+    .mix-orb::before {
+      content: "";
+      position: absolute;
+      inset: 13%;
+      border-radius: inherit;
+      background: rgba(255, 255, 255, .2);
+      backdrop-filter: blur(2px);
+    }
+
+    .mix-orb img {
+      position: relative;
+      z-index: 2;
+      width: 46%;
+      aspect-ratio: 1;
+      border: 5px solid rgba(255, 255, 255, .88);
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 10px 25px rgba(83, 63, 73, .16);
+    }
+
+    .mix-orb.bloom { animation: orb-pop .5s ease, orb-morph 8s ease-in-out infinite alternate; }
+
+    .float-chip {
+      position: absolute;
+      z-index: 2;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, .9);
+      border-radius: 999px;
+      color: rgba(65, 59, 65, .65);
+      background: rgba(255, 255, 255, .72);
+      box-shadow: 0 9px 24px rgba(95, 72, 84, .09);
+      font-size: .69rem;
+      font-weight: 850;
+      animation: chip-float 3.8s ease-in-out infinite;
+    }
+
+    .float-chip.one { top: 12%; left: 9%; rotate: -6deg; }
+    .float-chip.two { top: 17%; right: 8%; rotate: 7deg; animation-delay: -1.1s; }
+    .float-chip.three { right: 11%; bottom: 12%; rotate: -4deg; animation-delay: -2.2s; }
+
+    .spark {
+      position: absolute;
+      z-index: 5;
+      width: var(--spark-size, 14px);
+      height: var(--spark-size, 14px);
+      margin: calc(var(--spark-size, 14px) / -2);
+      border-radius: 50%;
+      background: var(--spark-color, var(--coral));
+      pointer-events: none;
+      animation: spark-out .9s ease-out forwards;
+    }
+
+    .mix-copy { position: relative; z-index: 2; text-align: center; }
+    .mix-name { margin: 0; font-size: 1.1rem; font-weight: 900; }
+    .mix-message { min-height: 2.8em; margin: 6px auto 0; color: var(--muted); font-size: .8rem; line-height: 1.55; }
+
+    .swatches {
+      position: relative;
+      z-index: 2;
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+    }
+
+    .swatch {
+      min-width: 0;
+      min-height: 58px;
+      padding: 8px 5px;
+      display: grid;
+      place-items: center;
+      gap: 5px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      color: #675b62;
+      background: rgba(255, 255, 255, .8);
+      cursor: pointer;
+      font-size: .69rem;
+      font-weight: 850;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .swatch:hover { transform: translateY(-3px); box-shadow: 0 9px 20px rgba(91, 69, 80, .08); }
+    .swatch[aria-pressed="true"] { border-color: var(--swatch); box-shadow: 0 0 0 3px color-mix(in srgb, var(--swatch) 22%, transparent); }
+    .swatch-dot { width: 22px; height: 22px; border: 4px solid #fff; border-radius: 50%; background: var(--swatch); box-shadow: 0 5px 13px color-mix(in srgb, var(--swatch) 35%, transparent); }
+
+    .reset-mix {
+      min-height: 38px;
+      margin: 12px auto 0;
+      padding: 8px 14px;
+      display: block;
+      border: 0;
+      border-radius: 999px;
+      color: #785f68;
+      background: #f8eef1;
+      cursor: pointer;
+      font-size: .75rem;
+      font-weight: 850;
+    }
+
+    .reset-mix[hidden] { display: none; }
+
+    .ready-curtain {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      padding: 24px;
+      display: grid;
+      place-items: center;
+      visibility: hidden;
+      opacity: 0;
+      background: rgba(255, 248, 246, .86);
+      backdrop-filter: blur(16px);
+      transition: opacity .48s ease, visibility .48s ease;
+    }
+
+    .ready-curtain.show { visibility: visible; opacity: 1; }
+
+    .ready-card { text-align: center; transform: translateY(12px) scale(.97); transition: transform .55s cubic-bezier(.2, .9, .2, 1); }
+    .ready-curtain.show .ready-card { transform: none; }
+    .ready-mark { width: 94px; height: 94px; margin: 0 auto 18px; display: block; filter: drop-shadow(0 14px 24px rgba(99, 71, 84, .15)); animation: ready-pop .6s ease both; }
+    .ready-card p { margin: 0 0 8px; color: var(--coral); font-size: .75rem; font-weight: 900; letter-spacing: .14em; }
+    .ready-card h2 { margin: 0; font-size: clamp(1.8rem, 6vw, 3rem); letter-spacing: -.035em; }
+
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes breathe { 50% { transform: scale(.75); opacity: .55; } }
-    @keyframes float { 50% { transform: translateY(-8px) rotate(1.5deg); } }
-    @keyframes hop { 50% { transform: translateY(-7px) scale(1.05); } }
-    @keyframes drift { to { transform: translate3d(14px, -10px, 0) rotate(5deg); } }
+    @keyframes ambient-drift { to { transform: translate3d(14px, -10px, 0) rotate(5deg); } }
+    @keyframes formula-wave { 50% { transform: scaleY(.55); opacity: .62; } }
+    @keyframes orb-float { 50% { transform: translateY(-9px) rotate(1.5deg); } }
+    @keyframes orb-morph { to { border-radius: 55% 45% 44% 56% / 43% 56% 44% 57%; } }
+    @keyframes orb-pop { 40% { transform: scale(1.08) rotate(-2deg); } }
+    @keyframes chip-float { 50% { transform: translateY(-7px); } }
+    @keyframes spark-out { 0% { transform: scale(.2); opacity: 0; } 25% { opacity: .9; } 100% { transform: translate(var(--spark-x), var(--spark-y)) scale(1.8); opacity: 0; } }
+    @keyframes prompt-swap { 0% { opacity: .2; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
+    @keyframes ready-pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
 
-    @media (max-width: 760px) {
-      body { padding: 18px 0; overflow-y: auto; }
-      .topbar { padding: 12px 18px; }
-      .wake-tag { display: none; }
-      .content { min-height: auto; padding: 34px 24px 38px; grid-template-columns: 1fr; text-align: center; }
+    @media (max-width: 860px) {
+      body { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+      .experience { min-height: calc(100dvh - 24px); border-radius: 28px; }
+      .layout { min-height: auto; padding: 24px; grid-template-columns: 1fr; gap: 30px; }
+      .lab-panel { grid-row: 1; }
+      .intro { grid-row: 2; max-width: none; text-align: center; }
+      h1 { max-width: 11em; margin-inline: auto; font-size: clamp(2.3rem, 11vw, 4rem); }
       .lead { margin-inline: auto; }
-      .detail { margin-left: 0; }
-      .actions, .status-row { justify-content: center; }
-      .visual { min-height: 270px; order: -1; }
-      .orbit { width: min(68vw, 270px); }
+      .service-state { justify-content: center; }
+      .prompt-card { text-align: left; }
+      .mix-stage { min-height: min(58vh, 390px); }
+    }
+
+    @media (max-width: 520px) {
+      .topbar { min-height: 68px; padding: 11px 16px; }
+      .brand { font-size: 1rem; }
+      .brand-mark { width: 40px; height: 40px; }
+      .top-note { font-size: .63rem; letter-spacing: .06em; }
+      .top-note::before { width: 15px; }
+      .layout { padding: 17px 15px 30px; gap: 27px; }
+      .lab-panel { padding: 15px; border-radius: 23px; }
+      .mix-stage { min-height: 285px; margin-top: 14px; border-radius: 19px; }
+      .mix-stage::before { width: 230px; height: 230px; }
+      .mix-stage::after { width: 180px; height: 180px; }
+      .mix-orb { width: 158px; border-width: 8px; }
+      .float-chip { font-size: .61rem; }
+      .float-chip.one { top: 9%; left: 5%; }
+      .float-chip.two { top: 12%; right: 4%; }
+      .float-chip.three { right: 5%; bottom: 9%; }
+      .swatches { gap: 7px; }
+      .swatch { min-height: 54px; border-radius: 14px; font-size: .62rem; }
+      .swatch-dot { width: 20px; height: 20px; }
+      .intro { padding-inline: 3px; }
+      .eyebrow { font-size: .68rem; }
+      .lead { font-size: .92rem; line-height: 1.75; }
+      .prompt-head { align-items: flex-start; }
+      .prompt-refresh { min-height: 36px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
     }
   </style>
 </head>
 <body>
-  <span class="shape one"></span>
-  <span class="shape two"></span>
-  <span class="shape three"></span>
+  <span class="ambient-shape one" aria-hidden="true"></span>
+  <span class="ambient-shape two" aria-hidden="true"></span>
+  <span class="ambient-shape three" aria-hidden="true"></span>
 
-  <main class="shell" aria-live="polite">
+  <main class="experience">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark"><img src="./colorlab-mark.svg" alt=""></span>
         <span>ColorLab</span>
       </div>
-      <span class="wake-tag">測出潛能，探索自己</span>
+      <span class="top-note">COLOR MOOD LAB</span>
     </header>
 
-    <div class="content">
-      <section>
-        <p class="eyebrow">網站準備中</p>
-        <h1>讓色彩，慢慢<em>醒來</em></h1>
-        <p class="lead">ColorLab 正在同步喚醒伺服器。免費主機休眠後需要一點時間，準備完成就會自動帶你進入網站。</p>
+    <div class="layout">
+      <section class="intro" aria-labelledby="pageTitle">
+        <p class="eyebrow">A SMALL PAUSE FOR YOU</p>
+        <h1 id="pageTitle">等候的時候，先替今天調一個<em>顏色</em></h1>
+        <p class="lead">ColorLab 正在準備你的探索空間。這段小小的空檔，就留給自己：選兩種顏色，看看它們會變成什麼心情。</p>
 
-        <div class="status-card" id="statusCard">
-          <div class="status-row">
-            <span class="status-dot"></span>
-            <span id="status">正在喚醒伺服器</span>
+        <div class="prompt-card">
+          <div class="prompt-head">
+            <span class="prompt-label">色彩小提問</span>
+            <button class="prompt-refresh" id="nextPrompt" type="button" aria-label="換一個色彩小提問">
+              <span aria-hidden="true">↻</span>
+              換一個靈感
+            </button>
           </div>
-          <p class="detail" id="detail">第一次開啟通常需要 30～60 秒，請先停留在這個畫面。</p>
-          <div class="progress" id="progress" aria-label="伺服器啟動進度">
-            <div class="progress-bar"></div>
-          </div>
-          <div class="meta">
-            <span id="elapsed">已等待 0 秒</span>
-            <span id="attempt">第 1 次連線</span>
-          </div>
-          <div class="actions">
-            <button class="button" id="retry" type="button" hidden>重新連線</button>
-            <a class="button secondary" id="directLink" href="https://color-web-server-jprj.onrender.com/">直接前往網站</a>
-          </div>
+          <p class="prompt-text" id="promptText">如果今天是一種顏色，你希望它帶給你什麼感受？</p>
+        </div>
+
+        <div class="service-state" id="serviceState" role="status" aria-live="polite">
+          <span class="state-orbit" aria-hidden="true"></span>
+          <span id="statusText">正在準備 ColorLab 空間</span>
         </div>
       </section>
 
-      <section class="visual" aria-hidden="true">
-        <div class="orbit" id="orbit">
-          <span class="color-dot red">R</span>
-          <span class="color-dot yellow">Y</span>
-          <span class="color-dot blue">B</span>
-          <span class="color-dot green">G</span>
-          <div class="logo-card">
+      <section class="lab-panel" aria-labelledby="labTitle">
+        <div class="lab-heading">
+          <div>
+            <p class="lab-kicker">TODAY'S COLOR FORMULA</p>
+            <h2 id="labTitle">調一杯今日心情色</h2>
+          </div>
+          <div class="formula-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        </div>
+
+        <div class="mix-stage" id="mixStage" role="button" tabindex="0" aria-label="互動色彩畫布，點擊可以灑下色彩">
+          <span class="float-chip one">感受</span>
+          <span class="float-chip two">個性</span>
+          <span class="float-chip three">此刻</span>
+          <div class="mix-orb" id="mixOrb" aria-hidden="true">
             <img src="./colorlab-mark.svg" alt="">
           </div>
         </div>
+
+        <div class="mix-copy" aria-live="polite">
+          <p class="mix-name" id="mixName">今天想從哪一種顏色開始？</p>
+          <p class="mix-message" id="mixMessage">點選下方兩種顏色，或在畫布上灑下幾滴色彩。</p>
+        </div>
+
+        <div class="swatches" role="group" aria-label="選擇兩種心情色">
+          <button class="swatch" type="button" data-color="coral" aria-pressed="false" style="--swatch:#ef7180"><span class="swatch-dot"></span><span>珊瑚紅</span></button>
+          <button class="swatch" type="button" data-color="sun" aria-pressed="false" style="--swatch:#f5ca66"><span class="swatch-dot"></span><span>暖陽黃</span></button>
+          <button class="swatch" type="button" data-color="sky" aria-pressed="false" style="--swatch:#80c7e8"><span class="swatch-dot"></span><span>天空藍</span></button>
+          <button class="swatch" type="button" data-color="leaf" aria-pressed="false" style="--swatch:#a8d584"><span class="swatch-dot"></span><span>嫩葉綠</span></button>
+        </div>
+        <button class="reset-mix" id="resetMix" type="button" hidden>重新調一杯</button>
       </section>
     </div>
   </main>
+
+  <div class="ready-curtain" id="readyCurtain" aria-hidden="true">
+    <div class="ready-card">
+      <img class="ready-mark" src="./colorlab-mark.svg" alt="ColorLab">
+      <p>YOUR SPACE IS READY</p>
+      <h2>帶著這份顏色，開始探索</h2>
+    </div>
+  </div>
 
   <script>
     (() => {
@@ -385,56 +556,173 @@
         ? requestedPath
         : '/main/common.html';
       const destination = `${SERVER_ORIGIN}${safePath}`;
+      const previewMode = params.get('preview') === '1';
 
-      const status = document.getElementById('status');
-      const detail = document.getElementById('detail');
-      const elapsed = document.getElementById('elapsed');
-      const attemptLabel = document.getElementById('attempt');
-      const progress = document.getElementById('progress');
-      const statusCard = document.getElementById('statusCard');
-      const orbit = document.getElementById('orbit');
-      const retry = document.getElementById('retry');
-      const directLink = document.getElementById('directLink');
-
-      const startedAt = Date.now();
-      // 已在線時只短暫展示品牌畫面；休眠時仍會持續顯示喚醒進度。
-      const minimumVisibleTime = 900;
-      let attempt = 0;
-      let retryTimer;
-      let completed = false;
-
-      directLink.href = destination;
-
-      const updateElapsed = () => {
-        const seconds = Math.floor((Date.now() - startedAt) / 1000);
-        elapsed.textContent = `已等待 ${seconds} 秒`;
-        attemptLabel.textContent = `第 ${Math.max(attempt, 1)} 次連線`;
+      const palette = {
+        coral: { hex: '#ef7180', soft: '#facbd3', single: '珊瑚勇氣', message: '保留熱情，也溫柔地照顧自己的步調。' },
+        sun: { hex: '#f5ca66', soft: '#fff0bd', single: '暖陽好奇', message: '讓一點好奇心，替今天打開新的窗。' },
+        sky: { hex: '#80c7e8', soft: '#dceffa', single: '天空自在', message: '給思緒多一點空間，答案會慢慢浮現。' },
+        leaf: { hex: '#a8d584', soft: '#e1f1d3', single: '嫩葉安定', message: '穩穩地呼吸，你已經走在自己的路上。' }
       };
 
-      const markReady = () => {
-        completed = true;
-        status.textContent = '網站準備完成';
-        detail.textContent = 'ColorLab 已醒來，現在帶你進入網站。';
-        progress.classList.add('ready');
-        statusCard.classList.add('ready');
-        orbit.classList.add('ready');
-        retry.hidden = true;
+      const mixes = {
+        'coral+sun': ['晨光珊瑚', '你把行動力與樂觀放在一起，今天適合勇敢開始。'],
+        'coral+sky': ['晚霞粉藍', '熱情與理性剛好平衡，適合說出真正的想法。'],
+        'coral+leaf': ['玫瑰花園', '溫柔裡帶著力量，照顧別人時也別忘了自己。'],
+        'sky+sun': ['晴空汽水', '輕盈、明亮又有想像力，讓好奇心帶你往前。'],
+        'sun+leaf': ['初夏草地', '安定中帶著期待，適合完成一件小小的好事。'],
+        'sky+leaf': ['湖畔薄荷', '清楚而平靜，慢一點也能看見更完整的方向。']
+      };
 
-        const visibleTime = Date.now() - startedAt;
-        const redirectDelay = Math.max(850, minimumVisibleTime - visibleTime);
-        window.setTimeout(() => window.location.replace(destination), redirectDelay);
+      const prompts = [
+        '如果今天是一種顏色，你希望它帶給你什麼感受？',
+        '最近哪一個小瞬間，讓你覺得自己正在慢慢變好？',
+        '如果能把一種心情留給明天，你會選擇哪一種？',
+        '此刻的你，比較需要勇氣、平靜、溫暖，還是自由？',
+        '今天有什麼事情，值得送自己一個小小的肯定？'
+      ];
+
+      const root = document.documentElement;
+      const mixStage = document.getElementById('mixStage');
+      const mixOrb = document.getElementById('mixOrb');
+      const mixName = document.getElementById('mixName');
+      const mixMessage = document.getElementById('mixMessage');
+      const swatches = [...document.querySelectorAll('.swatch')];
+      const resetMix = document.getElementById('resetMix');
+      const promptText = document.getElementById('promptText');
+      const nextPrompt = document.getElementById('nextPrompt');
+      const serviceState = document.getElementById('serviceState');
+      const statusText = document.getElementById('statusText');
+      const readyCurtain = document.getElementById('readyCurtain');
+
+      let selected = [];
+      let promptIndex = 0;
+      let completed = false;
+      let wakeTimer;
+      const startedAt = Date.now();
+      const minimumVisibleTime = 1800;
+
+      const pairKey = colors => colors.slice().sort((a, b) => ['coral', 'sun', 'sky', 'leaf'].indexOf(a) - ['coral', 'sun', 'sky', 'leaf'].indexOf(b)).join('+');
+
+      const burst = (x, y, color) => {
+        for (let index = 0; index < 8; index += 1) {
+          const spark = document.createElement('span');
+          const angle = (Math.PI * 2 * index) / 8 + Math.random() * .35;
+          const distance = 28 + Math.random() * 52;
+          spark.className = 'spark';
+          spark.style.left = `${x}px`;
+          spark.style.top = `${y}px`;
+          spark.style.setProperty('--spark-color', color);
+          spark.style.setProperty('--spark-size', `${8 + Math.random() * 9}px`);
+          spark.style.setProperty('--spark-x', `${Math.cos(angle) * distance}px`);
+          spark.style.setProperty('--spark-y', `${Math.sin(angle) * distance}px`);
+          mixStage.appendChild(spark);
+          window.setTimeout(() => spark.remove(), 950);
+        }
+      };
+
+      const animateOrb = () => {
+        mixOrb.classList.remove('bloom');
+        void mixOrb.offsetWidth;
+        mixOrb.classList.add('bloom');
+      };
+
+      const renderMix = () => {
+        swatches.forEach(button => button.setAttribute('aria-pressed', String(selected.includes(button.dataset.color))));
+        resetMix.hidden = selected.length === 0;
+
+        if (selected.length === 0) {
+          root.style.setProperty('--mix-a', '#ef7180');
+          root.style.setProperty('--mix-b', '#f5ca66');
+          mixName.textContent = '今天想從哪一種顏色開始？';
+          mixMessage.textContent = '點選下方兩種顏色，或在畫布上灑下幾滴色彩。';
+          return;
+        }
+
+        const first = palette[selected[0]];
+        const second = selected[1] ? palette[selected[1]] : first;
+        root.style.setProperty('--mix-a', first.hex);
+        root.style.setProperty('--mix-b', selected[1] ? second.hex : first.soft);
+
+        if (selected.length === 1) {
+          mixName.textContent = first.single;
+          mixMessage.textContent = first.message;
+        } else {
+          const [name, message] = mixes[pairKey(selected)];
+          mixName.textContent = name;
+          mixMessage.textContent = message;
+        }
+        animateOrb();
+      };
+
+      swatches.forEach(button => {
+        button.addEventListener('click', () => {
+          const color = button.dataset.color;
+          if (selected.includes(color)) {
+            selected = selected.filter(item => item !== color);
+          } else {
+            if (selected.length === 2) selected.shift();
+            selected.push(color);
+          }
+          const stageBox = mixStage.getBoundingClientRect();
+          burst(stageBox.width / 2, stageBox.height / 2, palette[color].hex);
+          renderMix();
+        });
+      });
+
+      resetMix.addEventListener('click', () => {
+        selected = [];
+        renderMix();
+        animateOrb();
+      });
+
+      const sprinkleStage = event => {
+        const box = mixStage.getBoundingClientRect();
+        const x = typeof event.clientX === 'number' && event.clientX ? event.clientX - box.left : box.width / 2;
+        const y = typeof event.clientY === 'number' && event.clientY ? event.clientY - box.top : box.height / 2;
+        const choices = selected.length ? selected : Object.keys(palette);
+        const color = palette[choices[Math.floor(Math.random() * choices.length)]].hex;
+        burst(x, y, color);
+      };
+
+      mixStage.addEventListener('click', event => {
+        if (event.target.closest('.swatch')) return;
+        sprinkleStage(event);
+      });
+      mixStage.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          sprinkleStage({});
+        }
+      });
+
+      nextPrompt.addEventListener('click', () => {
+        promptIndex = (promptIndex + 1) % prompts.length;
+        promptText.classList.remove('is-changing');
+        void promptText.offsetWidth;
+        promptText.textContent = prompts[promptIndex];
+        promptText.classList.add('is-changing');
+      });
+
+      const markReady = () => {
+        if (completed) return;
+        completed = true;
+        window.clearTimeout(wakeTimer);
+        statusText.textContent = 'ColorLab 空間準備好了';
+        serviceState.classList.add('ready');
+
+        const wait = Math.max(500, minimumVisibleTime - (Date.now() - startedAt));
+        window.setTimeout(() => {
+          readyCurtain.classList.add('show');
+          readyCurtain.setAttribute('aria-hidden', 'false');
+          window.setTimeout(() => window.location.replace(destination), 1150);
+        }, wait);
       };
 
       const wakeServer = async () => {
-        window.clearTimeout(retryTimer);
-        attempt += 1;
-        retry.hidden = true;
-        status.textContent = attempt === 1 ? '正在喚醒伺服器' : '正在重新連線';
-        detail.textContent = '正在確認網站狀態，準備完成後會自動開啟。';
-        updateElapsed();
-
+        if (completed) return;
         const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 15000);
+        const timeout = window.setTimeout(() => controller.abort(), 12000);
 
         try {
           const response = await fetch(`${SERVER_ORIGIN}/health?wake=${Date.now()}`, {
@@ -447,19 +735,17 @@
           if (!body.trim().toUpperCase().includes('OK')) throw new Error('Health check failed');
           markReady();
         } catch (_error) {
-          if (completed) return;
-          status.textContent = '伺服器仍在啟動';
-          detail.textContent = '這次還沒有回應，我們會在 3 秒後自動再試一次。';
-          retry.hidden = false;
-          retryTimer = window.setTimeout(wakeServer, 3000);
+          if (!completed) wakeTimer = window.setTimeout(wakeServer, 2600);
         } finally {
           window.clearTimeout(timeout);
         }
       };
 
-      retry.addEventListener('click', wakeServer);
-      window.setInterval(updateElapsed, 1000);
-      wakeServer();
+      if (previewMode) {
+        statusText.textContent = 'ColorLab 色彩空間預覽中';
+      } else {
+        wakeServer();
+      }
     })();
   </script>
 </body>
