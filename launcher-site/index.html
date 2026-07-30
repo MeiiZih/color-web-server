@@ -410,7 +410,9 @@
 
     .ready-card { text-align: center; transform: translateY(12px) scale(.97); transition: transform .55s cubic-bezier(.2, .9, .2, 1); }
     .ready-curtain.show .ready-card { transform: none; }
-    .ready-mark { width: 94px; height: 94px; margin: 0 auto 18px; display: block; filter: drop-shadow(0 14px 24px rgba(99, 71, 84, .15)); animation: ready-pop .6s ease both; }
+    .ready-mark { width: 94px; height: 94px; margin: 0 auto 18px; display: block; opacity: 0; transform: scale(.4); filter: drop-shadow(0 14px 24px rgba(99, 71, 84, .15)); }
+    .ready-mark svg { width: 100%; height: 100%; display: block; }
+    .ready-curtain.show .ready-mark { animation: ready-pop .6s ease both; }
     .ready-card p { margin: 0 0 8px; color: var(--coral); font-size: .75rem; font-weight: 900; letter-spacing: .14em; }
     .ready-card h2 { margin: 0; font-size: clamp(1.8rem, 6vw, 3rem); letter-spacing: -.035em; }
 
@@ -542,7 +544,25 @@
 
   <div class="ready-curtain" id="readyCurtain" aria-hidden="true">
     <div class="ready-card">
-      <img class="ready-mark" src="./colorlab-mark.svg" alt="ColorLab">
+      <div class="ready-mark" aria-hidden="true">
+        <svg viewBox="0 0 240 240" focusable="false">
+          <defs>
+            <filter id="readyMarkShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#725561" flood-opacity=".16" />
+            </filter>
+          </defs>
+          <circle cx="120" cy="120" r="112" fill="#fffaf8" />
+          <g filter="url(#readyMarkShadow)">
+            <circle cx="83" cy="83" r="47" fill="#f36f83" />
+            <circle cx="157" cy="83" r="47" fill="#ffd66b" />
+            <circle cx="83" cy="157" r="47" fill="#79bfe3" />
+            <circle cx="157" cy="157" r="47" fill="#a9d584" />
+            <circle cx="120" cy="120" r="38" fill="#fff" />
+          </g>
+          <path d="M105 103a25 25 0 1 0 0 34" fill="none" stroke="#4d4248" stroke-width="11" stroke-linecap="round" />
+          <path d="M130 101v38h23" fill="none" stroke="#4d4248" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
       <p>YOUR SPACE IS READY</p>
       <h2>帶著這份顏色，開始探索</h2>
     </div>
