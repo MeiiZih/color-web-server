@@ -6,10 +6,12 @@
     <meta name="theme-color" content="#f8bcc8">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <link rel="modulepreload" href="/vendor/pdfjs/pdf.min.mjs">
+    <link rel="preload" href="/vendor/pdfjs/pdf.worker.min.mjs" as="script">
     <script src="/js/pwa.js" defer></script>
     <title>ColorLab - 完整報告預覽</title>
     <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/report-preview.css?v=14">
+    <link rel="stylesheet" href="/css/report-preview.css?v=15">
     <script src="/js/navbar.js"></script>
     <link rel="stylesheet" href="/css/mobile.css">
 </head>
@@ -125,6 +127,8 @@
             const backLink = document.getElementById('previewBack');
 
             let preparedFile = null;
+            let preparedBlobUrl = '';
+            let reportBlobPromise = null;
             let previewEndpoint = '';
             let downloadEndpoint = '';
             let filename = '';
@@ -158,6 +162,102 @@
                 window.setTimeout(() => note.remove(), 4200);
             }
 
+            function setDownloadReady() {
+                downloadButton.disabled = false;
+                downloadButton.setAttribute('aria-busy', 'false');
+                downloadLabel.textContent = '下載完整 PDF';
+            }
+
+            function createPageShell(pageNumber, totalPages, ratio) {
+                const pageElement = document.createElement('section');
+                pageElement.className = 'pdf-page is-loading';
+                pageElement.dataset.page = String(pageNumber);
+                pageElement.dataset.state = 'waiting';
+                pageElement.style.setProperty('--pdf-ratio', String(ratio));
+                pageElement.setAttribute('aria-busy', 'true');
+
+                const loading = document.createElement('div');
+                loading.className = 'pdf-page-loading';
+                loading.innerHTML = '<span class="preview-spinner" aria-hidden="true"></span><span>滑到這裡時載入</span>';
+
+                const label = document.createElement('span');
+                label.className = 'pdf-page-number';
+                label.textContent = `${pageNumber} / ${totalPages}`;
+
+                pageElement.append(loading, label);
+                return pageElement;
+            }
+
+            async function renderPdfPage(pdf, pageNumber, pageElement, loadedPage = null) {
+                if (!pageElement || pageElement.dataset.state !== 'waiting') return;
+                pageElement.dataset.state = 'rendering';
+                const loadingText = pageElement.querySelector('.pdf-page-loading span:last-child');
+                if (loadingText) loadingText.textContent = `正在載入第 ${pageNumber} 頁…`;
+
+                try {
+                    const page = loadedPage || await pdf.getPage(pageNumber);
+                    const baseViewport = page.getViewport({ scale: 1 });
+                    const availableWidth = Math.max(280, Math.min(pages.clientWidth || 920, 920));
+                    const cssScale = availableWidth / baseViewport.width;
+                    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+                    const viewport = page.getViewport({ scale: cssScale * outputScale });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.floor(viewport.width);
+                    canvas.height = Math.floor(viewport.height);
+                    canvas.style.aspectRatio = `${baseViewport.width} / ${baseViewport.height}`;
+                    canvas.setAttribute('role', 'img');
+                    canvas.setAttribute('aria-label', `第 ${pageNumber} 頁，共 ${pdf.numPages} 頁`);
+                    pageElement.insertBefore(canvas, pageElement.querySelector('.pdf-page-number'));
+
+                    await page.render({
+                        canvasContext: canvas.getContext('2d', { alpha: false }),
+                        viewport
+                    }).promise;
+
+                    pageElement.querySelector('.pdf-page-loading')?.remove();
+                    pageElement.classList.remove('is-loading');
+                    pageElement.classList.add('is-ready');
+                    pageElement.dataset.state = 'ready';
+                    pageElement.setAttribute('aria-busy', 'false');
+                } catch (error) {
+                    pageElement.dataset.state = 'failed';
+                    pageElement.classList.add('is-failed');
+                    if (loadingText) loadingText.textContent = `第 ${pageNumber} 頁載入失敗，請重新整理`;
+                    throw error;
+                }
+            }
+
+            function observeRemainingPages(pdf, pageElements) {
+                if (!('IntersectionObserver' in window)) {
+                    pageElements.forEach((pageElement, index) => {
+                        window.setTimeout(() => {
+                            renderPdfPage(pdf, index + 2, pageElement).catch(error => {
+                                console.error(`第 ${index + 2} 頁載入失敗：`, error);
+                            });
+                        }, index * 120);
+                    });
+                    return;
+                }
+
+                const observer = new IntersectionObserver(entries => {
+                    entries.forEach(entry => {
+                        if (!entry.isIntersecting) return;
+                        observer.unobserve(entry.target);
+                        const pageNumber = Number(entry.target.dataset.page);
+                        renderPdfPage(pdf, pageNumber, entry.target).catch(error => {
+                            console.error(`第 ${pageNumber} 頁載入失敗：`, error);
+                        });
+                    });
+                }, {
+                    rootMargin: window.matchMedia('(max-width: 760px)').matches
+                        ? '450px 0px'
+                        : '900px 0px'
+                });
+
+                pageElements.forEach(pageElement => observer.observe(pageElement));
+            }
+
             async function prepareReport() {
                 if (!VALID_MBTI.has(mbti) || !VALID_COLORS.has(colors)) {
                     showError('報告參數不完整，請返回測驗結果後重新開啟。');
@@ -177,15 +277,23 @@
                     .join('');
                 openPdf.href = previewEndpoint;
                 guide.hidden = !(isIOS || isStandalone);
+                setDownloadReady();
 
                 try {
-                    const response = await fetch(previewEndpoint, { cache: 'no-store' });
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const blob = await response.blob();
-                    if (!blob.type.includes('pdf')) throw new Error('Invalid PDF response');
+                    statusText.textContent = '正在準備報告第 1 頁…';
+                    const pdfModulePromise = import('/vendor/pdfjs/pdf.min.mjs');
+                    reportBlobPromise = fetch(previewEndpoint, { cache: 'no-store' }).then(async response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const blob = await response.blob();
+                        if (!blob.type.includes('pdf')) throw new Error('Invalid PDF response');
+                        return blob;
+                    });
+
+                    const [pdfjsLib, blob] = await Promise.all([pdfModulePromise, reportBlobPromise]);
 
                     preparedFile = new File([blob], filename, { type: 'application/pdf' });
-                    const pdfjsLib = await import('/vendor/pdfjs/pdf.min.mjs');
+                    preparedBlobUrl = URL.createObjectURL(blob);
+                    openPdf.href = preparedBlobUrl;
                     pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
                     const pdf = await pdfjsLib.getDocument({
                         data: new Uint8Array(await blob.arrayBuffer())
@@ -194,43 +302,18 @@
                     pageSummary.textContent = `共 ${pdf.numPages} 頁`;
                     toolbar.hidden = false;
                     pages.replaceChildren();
+                    const firstPage = await pdf.getPage(1);
+                    const firstViewport = firstPage.getViewport({ scale: 1 });
+                    const ratio = firstViewport.width / firstViewport.height;
+                    const pageElements = Array.from({ length: pdf.numPages }, (_, index) =>
+                        createPageShell(index + 1, pdf.numPages, ratio)
+                    );
+                    pages.append(...pageElements);
 
-                    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-                        statusText.textContent = `正在呈現完整報告（${pageNumber} / ${pdf.numPages}）…`;
-                        const page = await pdf.getPage(pageNumber);
-                        const baseViewport = page.getViewport({ scale: 1 });
-                        const availableWidth = Math.max(280, Math.min(pages.clientWidth || 920, 920));
-                        const cssScale = availableWidth / baseViewport.width;
-                        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-                        const viewport = page.getViewport({ scale: cssScale * outputScale });
-
-                        const pageElement = document.createElement('section');
-                        pageElement.className = 'pdf-page';
-
-                        const canvas = document.createElement('canvas');
-                        canvas.width = Math.floor(viewport.width);
-                        canvas.height = Math.floor(viewport.height);
-                        canvas.style.aspectRatio = `${baseViewport.width} / ${baseViewport.height}`;
-                        canvas.setAttribute('role', 'img');
-                        canvas.setAttribute('aria-label', `第 ${pageNumber} 頁，共 ${pdf.numPages} 頁`);
-
-                        const label = document.createElement('span');
-                        label.className = 'pdf-page-number';
-                        label.textContent = `${pageNumber} / ${pdf.numPages}`;
-
-                        pageElement.append(canvas, label);
-                        pages.appendChild(pageElement);
-
-                        await page.render({
-                            canvasContext: canvas.getContext('2d', { alpha: false }),
-                            viewport
-                        }).promise;
-                    }
+                    await renderPdfPage(pdf, 1, pageElements[0], firstPage);
 
                     status.hidden = true;
-                    downloadButton.disabled = false;
-                    downloadButton.setAttribute('aria-busy', 'false');
-                    downloadLabel.textContent = '下載完整 PDF';
+                    observeRemainingPages(pdf, pageElements.slice(1));
                 } catch (error) {
                     console.error('載入完整報告失敗：', error);
                     showError('完整報告載入失敗，請確認網路連線後重新嘗試。');
@@ -238,25 +321,36 @@
             }
 
             downloadButton.addEventListener('click', async () => {
-                if (!preparedFile) return;
-
-                const shareData = { files: [preparedFile], title: `${mbti} ColorLab 完整報告` };
-                if ((isIOS || isStandalone) && navigator.share && navigator.canShare?.(shareData)) {
+                if (isIOS || isStandalone) {
                     try {
-                        await navigator.share(shareData);
-                        showMessage('請在系統選單中選擇「儲存到檔案」', 'success');
+                        if (!preparedFile && reportBlobPromise) {
+                            downloadButton.disabled = true;
+                            downloadButton.setAttribute('aria-busy', 'true');
+                            downloadLabel.textContent = '正在準備下載…';
+                            const blob = await reportBlobPromise;
+                            preparedFile = new File([blob], filename, { type: 'application/pdf' });
+                        }
+
+                        const shareData = { files: preparedFile ? [preparedFile] : [], title: `${mbti} ColorLab 完整報告` };
+                        if (preparedFile && navigator.share && navigator.canShare?.(shareData)) {
+                            await navigator.share(shareData);
+                            showMessage('請在系統選單中選擇「儲存到檔案」', 'success');
+                            return;
+                        }
                     } catch (error) {
                         if (error.name !== 'AbortError') {
                             console.error('分享 PDF 失敗：', error);
                             window.open(previewEndpoint, '_blank', 'noopener');
                             showMessage('已改用新頁預覽，請使用分享按鈕儲存 PDF', 'warning');
                         }
+                        return;
+                    } finally {
+                        setDownloadReady();
                     }
-                    return;
                 }
 
                 const link = document.createElement('a');
-                link.href = downloadEndpoint;
+                link.href = preparedBlobUrl || downloadEndpoint;
                 link.download = filename;
                 link.rel = 'noopener';
                 link.hidden = true;
@@ -265,6 +359,10 @@
                 window.setTimeout(() => link.remove(), 1000);
                 showMessage('完整 PDF 已開始下載', 'success');
             });
+
+            window.addEventListener('pagehide', () => {
+                if (preparedBlobUrl) URL.revokeObjectURL(preparedBlobUrl);
+            }, { once: true });
 
             prepareReport();
         })();

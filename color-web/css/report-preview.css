@@ -247,6 +247,32 @@
     box-shadow: 0 10px 32px rgba(50, 42, 45, 0.13);
 }
 
+.pdf-page.is-loading {
+    aspect-ratio: var(--pdf-ratio, 0.707);
+    min-height: 360px;
+}
+
+.pdf-page-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    background: linear-gradient(135deg, #fff 0%, #fff8fa 100%);
+    color: var(--preview-muted);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.pdf-page-loading .preview-spinner {
+    width: 18px;
+    height: 18px;
+    border-width: 2px;
+}
+
+.pdf-page.is-failed .pdf-page-loading { color: #a44759; }
+
 .pdf-page canvas {
     width: 100%;
     height: auto;
@@ -333,6 +359,7 @@
     .pdf-toolbar { margin-bottom: 9px; }
     .pdf-pages { gap: 12px; }
     .pdf-page { border-radius: 9px; }
+    .pdf-page.is-loading { min-height: 430px; }
 
     .preview-status,
     .preview-error { min-height: 500px; }
