@@ -273,7 +273,8 @@
 
 .pdf-page.is-failed .pdf-page-loading { color: #a44759; }
 
-.pdf-page canvas {
+.pdf-page canvas,
+.pdf-page img {
     width: 100%;
     height: auto;
     display: block;

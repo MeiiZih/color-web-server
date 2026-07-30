@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#f8bcc8">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
-    <link rel="modulepreload" href="/vendor/pdfjs/pdf.min.mjs">
-    <link rel="preload" href="/vendor/pdfjs/pdf.worker.min.mjs" as="script">
+    <link rel="modulepreload" href="/vendor/pdfjs/pdf.min.mjs?v=legacy-1">
+    <link rel="preload" href="/vendor/pdfjs/pdf.worker.min.mjs?v=legacy-1" as="script">
     <script src="/js/pwa.js" defer></script>
     <title>ColorLab - 完整報告預覽</title>
     <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/report-preview.css?v=15">
+    <link rel="stylesheet" href="/css/report-preview.css?v=16">
     <script src="/js/navbar.js"></script>
     <link rel="stylesheet" href="/css/mobile.css">
 </head>
@@ -109,6 +109,7 @@
                 || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches
                 || window.navigator.standalone === true;
+            const prefersImagePreview = isIOS || isStandalone || params.get('previewMode') === 'image';
 
             const viewer = document.getElementById('pdfViewer');
             const status = document.getElementById('previewStatus');
@@ -132,6 +133,7 @@
             let previewEndpoint = '';
             let downloadEndpoint = '';
             let filename = '';
+            const fallbackBlobUrls = [];
 
             backLink.addEventListener('click', event => {
                 if (window.history.length > 1) {
@@ -168,6 +170,18 @@
                 downloadLabel.textContent = '下載完整 PDF';
             }
 
+            function getReportBlob() {
+                if (!reportBlobPromise) {
+                    reportBlobPromise = fetch(previewEndpoint, { cache: 'no-store' }).then(async response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const blob = await response.blob();
+                        if (!blob.type.includes('pdf')) throw new Error('Invalid PDF response');
+                        return blob;
+                    });
+                }
+                return reportBlobPromise;
+            }
+
             function createPageShell(pageNumber, totalPages, ratio) {
                 const pageElement = document.createElement('section');
                 pageElement.className = 'pdf-page is-loading';
@@ -186,6 +200,70 @@
 
                 pageElement.append(loading, label);
                 return pageElement;
+            }
+
+            function loadReportImage(pageElement, source, pageNumber, totalPages, eager = false) {
+                return new Promise((resolve, reject) => {
+                    const image = document.createElement('img');
+                    image.alt = `第 ${pageNumber} 頁，共 ${totalPages} 頁`;
+                    image.decoding = 'async';
+                    image.loading = eager ? 'eager' : 'lazy';
+                    image.addEventListener('load', () => {
+                        pageElement.querySelector('.pdf-page-loading')?.remove();
+                        pageElement.classList.remove('is-loading');
+                        pageElement.classList.add('is-ready', 'is-image-preview');
+                        pageElement.dataset.state = 'ready';
+                        pageElement.setAttribute('aria-busy', 'false');
+                        resolve();
+                    }, { once: true });
+                    image.addEventListener('error', () => {
+                        pageElement.classList.add('is-failed');
+                        pageElement.dataset.state = 'failed';
+                        const loadingText = pageElement.querySelector('.pdf-page-loading span:last-child');
+                        if (loadingText) loadingText.textContent = `第 ${pageNumber} 頁載入失敗，請重新整理。`;
+                        reject(new Error(`Report image ${pageNumber} failed`));
+                    }, { once: true });
+                    pageElement.insertBefore(image, pageElement.querySelector('.pdf-page-number'));
+                    pageElement.dataset.state = 'rendering';
+                    image.src = source;
+                });
+            }
+
+            async function renderServerImagePreview() {
+                status.hidden = false;
+                statusText.textContent = '正在準備手機相容預覽…';
+                errorPanel.hidden = true;
+                viewer.hidden = false;
+                toolbar.hidden = true;
+                pages.replaceChildren();
+
+                const imageBase = `/api/reports/page/${encodeURIComponent(mbti)}/${encodeURIComponent(colors)}`;
+                const firstResponse = await fetch(`${imageBase}/1`, { cache: 'force-cache' });
+                if (!firstResponse.ok) throw new Error(`Image preview HTTP ${firstResponse.status}`);
+
+                const totalPages = Number.parseInt(firstResponse.headers.get('X-Report-Pages') || '0', 10);
+                const width = Number.parseInt(firstResponse.headers.get('X-Report-Width') || '0', 10);
+                const height = Number.parseInt(firstResponse.headers.get('X-Report-Height') || '0', 10);
+                if (!totalPages || !width || !height) throw new Error('Invalid image preview metadata');
+
+                const ratio = width / height;
+                const pageElements = Array.from({ length: totalPages }, (_, index) =>
+                    createPageShell(index + 1, totalPages, ratio)
+                );
+                pages.append(...pageElements);
+                pageSummary.textContent = `共 ${totalPages} 頁`;
+                toolbar.hidden = false;
+
+                const firstBlobUrl = URL.createObjectURL(await firstResponse.blob());
+                fallbackBlobUrls.push(firstBlobUrl);
+                await loadReportImage(pageElements[0], firstBlobUrl, 1, totalPages, true);
+                status.hidden = true;
+
+                pageElements.slice(1).forEach((pageElement, index) => {
+                    const pageNumber = index + 2;
+                    loadReportImage(pageElement, `${imageBase}/${pageNumber}`, pageNumber, totalPages)
+                        .catch(error => console.error(`第 ${pageNumber} 頁圖片預覽失敗：`, error));
+                });
             }
 
             async function renderPdfPage(pdf, pageNumber, pageElement, loadedPage = null) {
@@ -276,25 +354,30 @@
                     .map((label, index) => `<span class="report-tag ${index ? colorKeys[index - 1] : 'mbti'}">${label}</span>`)
                     .join('');
                 openPdf.href = previewEndpoint;
-                guide.hidden = !(isIOS || isStandalone);
+                guide.hidden = !prefersImagePreview;
                 setDownloadReady();
+
+                if (prefersImagePreview) {
+                    try {
+                        await renderServerImagePreview();
+                    } catch (error) {
+                        console.error('手機相容預覽載入失敗：', error);
+                        showError('完整報告預覽載入失敗，請重新整理後再試一次。');
+                    }
+                    return;
+                }
 
                 try {
                     statusText.textContent = '正在準備報告第 1 頁…';
-                    const pdfModulePromise = import('/vendor/pdfjs/pdf.min.mjs');
-                    reportBlobPromise = fetch(previewEndpoint, { cache: 'no-store' }).then(async response => {
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                        const blob = await response.blob();
-                        if (!blob.type.includes('pdf')) throw new Error('Invalid PDF response');
-                        return blob;
-                    });
+                    const pdfModulePromise = import('/vendor/pdfjs/pdf.min.mjs?v=legacy-1');
+                    const reportBlobRequest = getReportBlob();
 
-                    const [pdfjsLib, blob] = await Promise.all([pdfModulePromise, reportBlobPromise]);
+                    const [pdfjsLib, blob] = await Promise.all([pdfModulePromise, reportBlobRequest]);
 
                     preparedFile = new File([blob], filename, { type: 'application/pdf' });
                     preparedBlobUrl = URL.createObjectURL(blob);
                     openPdf.href = preparedBlobUrl;
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs?v=legacy-1';
                     const pdf = await pdfjsLib.getDocument({
                         data: new Uint8Array(await blob.arrayBuffer())
                     }).promise;
@@ -316,18 +399,23 @@
                     observeRemainingPages(pdf, pageElements.slice(1));
                 } catch (error) {
                     console.error('載入完整報告失敗：', error);
-                    showError('完整報告載入失敗，請確認網路連線後重新嘗試。');
+                    try {
+                        await renderServerImagePreview();
+                    } catch (fallbackError) {
+                        console.error('相容預覽載入失敗：', fallbackError);
+                        showError('完整報告載入失敗，請確認網路連線後重新嘗試。');
+                    }
                 }
             }
 
             downloadButton.addEventListener('click', async () => {
                 if (isIOS || isStandalone) {
                     try {
-                        if (!preparedFile && reportBlobPromise) {
+                        if (!preparedFile) {
                             downloadButton.disabled = true;
                             downloadButton.setAttribute('aria-busy', 'true');
                             downloadLabel.textContent = '正在準備下載…';
-                            const blob = await reportBlobPromise;
+                            const blob = await getReportBlob();
                             preparedFile = new File([blob], filename, { type: 'application/pdf' });
                         }
 
@@ -362,6 +450,7 @@
 
             window.addEventListener('pagehide', () => {
                 if (preparedBlobUrl) URL.revokeObjectURL(preparedBlobUrl);
+                fallbackBlobUrls.forEach(url => URL.revokeObjectURL(url));
             }, { once: true });
 
             prepareReport();

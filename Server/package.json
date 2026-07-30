@@ -16,6 +16,7 @@
     "backfill-imgurl": "node scripts/backfillImgUrl.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.100",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2",
