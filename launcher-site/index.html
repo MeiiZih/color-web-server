@@ -213,6 +213,12 @@
     .service-state.ready .state-orbit { border: 0; background: var(--leaf); animation: ready-pop .5s ease both; }
     .service-state.ready .state-orbit::after { inset: 6px; background: #fff; }
 
+    .wake-progress { margin-top: 13px; }
+    .wake-progress-copy { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: #8b727c; font-size: .72rem; font-weight: 850; }
+    .wake-progress-track { height: 10px; overflow: hidden; border: 1px solid rgba(239, 113, 128, .16); border-radius: 999px; background: rgba(255, 255, 255, .82); box-shadow: inset 0 2px 5px rgba(102, 77, 89, .08); }
+    .wake-progress-fill { width: var(--wake-progress, 8%); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--coral), var(--sun), var(--sky), var(--leaf)); transition: width .65s cubic-bezier(.22, 1, .36, 1); }
+    .wake-progress + .prompt-card { margin-top: 18px; }
+
     .lab-panel {
       position: relative;
       padding: clamp(18px, 3vw, 28px);
@@ -491,6 +497,15 @@
         <h1 id="pageTitle">等候的時候，先替今天調一個<em>顏色</em></h1>
         <p class="lead">ColorLab 正在準備你的探索空間。這段小小的空檔，就留給自己：選兩種顏色，看看它們會變成什麼心情。</p>
 
+        <div class="service-state" id="serviceState" role="status" aria-live="polite">
+          <span class="state-orbit" aria-hidden="true"></span>
+          <span id="statusText">正在準備 ColorLab 空間</span>
+        </div>
+        <div class="wake-progress" id="wakeProgress" role="progressbar" aria-label="ColorLab 準備進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8">
+          <div class="wake-progress-copy"><span>準備進度</span><span id="progressText">8%</span></div>
+          <div class="wake-progress-track"><div class="wake-progress-fill"></div></div>
+        </div>
+
         <div class="prompt-card">
           <div class="prompt-head">
             <span class="prompt-label">色彩小提問</span>
@@ -500,11 +515,6 @@
             </button>
           </div>
           <p class="prompt-text" id="promptText">如果今天是一種顏色，你希望它帶給你什麼感受？</p>
-        </div>
-
-        <div class="service-state" id="serviceState" role="status" aria-live="polite">
-          <span class="state-orbit" aria-hidden="true"></span>
-          <span id="statusText">正在準備 ColorLab 空間</span>
         </div>
       </section>
 
@@ -615,13 +625,32 @@
       const serviceState = document.getElementById('serviceState');
       const statusText = document.getElementById('statusText');
       const readyCurtain = document.getElementById('readyCurtain');
+      const wakeProgress = document.getElementById('wakeProgress');
+      const progressText = document.getElementById('progressText');
 
       let selected = [];
       let promptIndex = 0;
       let completed = false;
       let wakeTimer;
+      let progressTimer;
+      let progress = 8;
       const startedAt = Date.now();
       const minimumVisibleTime = 1800;
+
+      const setProgress = value => {
+        progress = Math.max(progress, Math.min(100, Math.round(value)));
+        root.style.setProperty('--wake-progress', `${progress}%`);
+        wakeProgress.setAttribute('aria-valuenow', String(progress));
+        progressText.textContent = `${progress}%`;
+      };
+
+      const startProgress = () => {
+        setProgress(12);
+        progressTimer = window.setInterval(() => {
+          if (completed || progress >= 92) return;
+          setProgress(progress + Math.max(1, Math.ceil((92 - progress) * .08)));
+        }, 650);
+      };
 
       const warmDestination = async () => {
         if (!safePath.startsWith('/main/common.html')) return;
@@ -770,6 +799,8 @@
         if (completed) return;
         completed = true;
         window.clearTimeout(wakeTimer);
+        window.clearInterval(progressTimer);
+        setProgress(100);
         statusText.textContent = 'ColorLab 空間準備好了';
         serviceState.classList.add('ready');
 
@@ -795,7 +826,9 @@
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const body = await response.text();
           if (!body.trim().toUpperCase().includes('OK')) throw new Error('Health check failed');
+          setProgress(78);
           await warmDestination();
+          setProgress(94);
           markReady();
         } catch (_error) {
           if (!completed) wakeTimer = window.setTimeout(wakeServer, 2600);
@@ -806,7 +839,9 @@
 
       if (previewMode) {
         statusText.textContent = 'ColorLab 色彩空間預覽中';
+        setProgress(68);
       } else {
+        startProgress();
         wakeServer();
       }
     })();

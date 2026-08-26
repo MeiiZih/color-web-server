@@ -5,6 +5,85 @@
   const originalAlert = typeof window.alert === 'function' ? window.alert.bind(window) : null;
   let installPrompt = null;
   let toastRegion = null;
+  let waitOverlay = null;
+  let waitProgress = 8;
+  let waitProgressTimer = null;
+  let waitHideTimer = null;
+
+  function ensureWaitOverlay() {
+    if (waitOverlay?.isConnected) return waitOverlay;
+    if (!document.body) return null;
+    waitOverlay = document.createElement('div');
+    waitOverlay.className = 'ux-wait-screen';
+    waitOverlay.setAttribute('aria-hidden', 'true');
+    waitOverlay.innerHTML = `
+      <section class="ux-wait-card" aria-labelledby="uxWaitTitle">
+        <div class="ux-wait-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <p class="ux-wait-kicker">A SMALL PAUSE FOR YOU</p>
+        <h2 id="uxWaitTitle">等候的時候，先替今天調一個顏色</h2>
+        <p class="ux-wait-message">ColorLab 正在準備你的探索空間。</p>
+        <div class="ux-wait-progress" role="progressbar" aria-label="頁面準備進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8">
+          <div class="ux-wait-progress-copy"><span>準備進度</span><span class="ux-wait-percent">8%</span></div>
+          <div class="ux-wait-progress-track"><div class="ux-wait-progress-fill"></div></div>
+        </div>
+      </section>`;
+    document.body.appendChild(waitOverlay);
+    return waitOverlay;
+  }
+
+  function setWaitProgress(value) {
+    const overlay = ensureWaitOverlay();
+    if (!overlay) return;
+    waitProgress = Math.max(waitProgress, Math.min(100, Math.round(value)));
+    overlay.style.setProperty('--wait-progress', `${waitProgress}%`);
+    overlay.querySelector('[role="progressbar"]').setAttribute('aria-valuenow', String(waitProgress));
+    overlay.querySelector('.ux-wait-percent').textContent = `${waitProgress}%`;
+  }
+
+  function showWaitOverlay(message = 'ColorLab 正在準備你的探索空間。') {
+    const overlay = ensureWaitOverlay();
+    if (!overlay) return;
+    window.clearTimeout(waitHideTimer);
+    waitProgress = 8;
+    overlay.querySelector('.ux-wait-message').textContent = message;
+    overlay.classList.add('is-visible');
+    overlay.setAttribute('aria-hidden', 'false');
+    setWaitProgress(12);
+    window.clearInterval(waitProgressTimer);
+    waitProgressTimer = window.setInterval(() => {
+      if (waitProgress < 92) setWaitProgress(waitProgress + Math.max(1, Math.ceil((92 - waitProgress) * .1)));
+    }, 550);
+  }
+
+  function hideWaitOverlay() {
+    if (!waitOverlay) return;
+    window.clearInterval(waitProgressTimer);
+    window.clearTimeout(waitHideTimer);
+    setWaitProgress(100);
+    waitHideTimer = window.setTimeout(() => {
+      waitOverlay?.classList.remove('is-visible');
+      waitOverlay?.setAttribute('aria-hidden', 'true');
+    }, 260);
+  }
+
+  function setupUnifiedWait() {
+    ensureWaitOverlay();
+    const delayedShow = window.setTimeout(() => showWaitOverlay(), 220);
+    const finishInitialLoad = () => { window.clearTimeout(delayedShow); hideWaitOverlay(); };
+    if (document.readyState === 'complete') finishInitialLoad();
+    else window.addEventListener('load', finishInitialLoad, { once: true });
+
+    document.addEventListener('click', event => {
+      const link = event.target.closest?.('a[href]');
+      if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+      const target = new URL(link.href, window.location.href);
+      const samePage = target.pathname === location.pathname && target.search === location.search;
+      if (target.origin !== location.origin || (samePage && target.hash)) return;
+      showWaitOverlay('正在調好下一個 ColorLab 空間。');
+    }, true);
+    window.addEventListener('pageshow', event => { if (event.persisted) hideWaitOverlay(); });
+  }
 
   function storageGet(key) {
     try { return localStorage.getItem(key); } catch (_error) { return null; }
@@ -36,6 +115,7 @@
   }
 
   function showToast(message, type = inferToastType(message), duration = 4200) {
+    hideWaitOverlay();
     document.querySelectorAll?.('.ux-submit-loading').forEach(submit => {
       submit.classList.remove('ux-submit-loading');
       submit.removeAttribute('aria-busy');
@@ -72,7 +152,7 @@
   }
 
   window.alert = message => showToast(message);
-  window.ColorLabUX = Object.freeze({ toast: showToast });
+  window.ColorLabUX = Object.freeze({ toast: showToast, wait: showWaitOverlay, ready: hideWaitOverlay });
 
   function markPageType() {
     const path = window.location.pathname.toLowerCase();
@@ -196,12 +276,14 @@
         if (!form.checkValidity()) return;
         const submit = form.querySelector('button[type="submit"], input[type="submit"]');
         if (!submit || submit.classList.contains('ux-submit-loading')) return;
+        showWaitOverlay('正在安全處理你的資料，請稍候。');
         submit.dataset.uxOriginalLabel = submit.textContent || submit.value || '';
         submit.classList.add('ux-submit-loading');
         submit.setAttribute('aria-busy', 'true');
         window.setTimeout(() => {
           submit.classList.remove('ux-submit-loading');
           submit.removeAttribute('aria-busy');
+          hideWaitOverlay();
         }, 9000);
       });
 
@@ -214,6 +296,7 @@
             submit.classList.remove('ux-submit-loading');
             submit.removeAttribute('aria-busy');
           });
+          hideWaitOverlay();
         };
         const observer = new MutationObserver(releaseSubmit);
         messageNodes.forEach(node => observer.observe(node, { childList: true, subtree: true, attributes: true }));
@@ -442,6 +525,7 @@
   }
 
   function initialize() {
+    setupUnifiedWait();
     markPageType();
     normalizeBrandAndLanguage();
     enhanceLandmarksAndHeadings();
