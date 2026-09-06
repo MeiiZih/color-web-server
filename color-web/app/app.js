@@ -3,6 +3,8 @@ import { request, readLocal, saveRecord, safeUrl, isCurrentContent } from './cli
 import { restoreSession, clearSession } from './auth.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 import { mediaFor, contentMedia } from './content-media.mjs';
+import { character, characterCast, motionToggle, bindCharacterMotion } from './character-art.mjs';
+import { sourceHelp } from './source-help.mjs';
 restoreSession();
 
 const main = document.querySelector('main');
@@ -63,7 +65,6 @@ function shape(key, extra = '') {
 
 let articles = [];
 let resources = [];
-const character = key => `<span class="report-character"><img src="/assets/characters/${key}.webp" width="160" height="225" alt="${colors.find(c => c.key === key)?.name || ''}色報告角色" decoding="async"></span>`;
 
 function home() {
   const featured = catalog.find(s => s.id === FEATURED_SURVEY) || catalog[0];
@@ -81,7 +82,7 @@ function home() {
       </div>
       <div class="color-studio"><div class="studio-top"><span>THE COLORS OF YOU</span><span>01 — 04</span></div>
         <div class="color-deck" aria-label="探索四種性格色彩">${colors.map((c, i) => `<button class="swatch ${i === hue ? 'selected' : ''}" data-hue="${i}" aria-pressed="${i === hue}" aria-label="${c.name}色：${c.title}" style="--swatch:${c.light};--color:${c.ink};--rotate:${[-12, -4, 5, 13][i]}deg;--order:${i}"><span class="swatch-number">0${i + 1}</span>${character(c.key)}<span class="swatch-word">${c.word}</span><span class="swatch-english">${c.en.toUpperCase()}</span></button>`).join('')}</div>
-        <p class="color-caption" aria-live="polite"><strong>${colors[hue].name}色 · ${colors[hue].title}</strong><span>輕點色卡，先認識不同的自己</span></p>
+        <p class="color-caption" aria-live="polite"><strong>${colors[hue].name}色 · ${colors[hue].title}</strong><span>輕點色卡，先認識不同的自己</span></p>${motionToggle()}
       </div>
     </section>
     <section class="gentle-note"><span class="note-symbol">↳</span><p>不急著定義自己，<strong>先好好認識自己。</strong></p><span class="note-end">YOUR OWN PACE</span></section>
@@ -98,7 +99,7 @@ function home() {
 
 function quizCompanion(index, total, variant) {
   const active = Math.min(3, Math.floor(index * 4 / total));
-  return `<div class="quiz-companion companion-${variant}" aria-label="四色角色陪你作答"><div class="companion-cast" aria-hidden="true">${colors.map((c, i) => `<span class="companion-member ${i === active ? 'is-active' : ''}">${character(c.key)}</span>`).join('')}</div><div class="companion-copy"><strong>我們陪你，慢慢來。</strong><p data-companion-message>${index === total - 1 ? '最後一題了，依照自己的感受完成就好。' : '沒有標準答案，選最貼近自己的就好。'}</p><small>角色隨進度輪流陪伴，與答案無關。</small></div></div>`;
+  return `<div class="quiz-companion companion-${variant}" aria-label="四色角色陪你作答"><div class="companion-cast" aria-hidden="true">${colors.map((c, i) => `<span class="companion-member ${i === active ? 'is-active' : ''}">${character(c.key)}</span>`).join('')}</div><div class="companion-copy"><strong>我們陪你，慢慢來。</strong><p data-companion-message>${index === total - 1 ? '最後一題了，依照自己的感受完成就好。' : '沒有標準答案，選最貼近自己的就好。'}</p><small>照自己的步調就好，角色不評判答案。</small></div>${motionToggle()}</div>`;
 }
 
 function test() {
@@ -147,7 +148,7 @@ function surveyList() {
   return `<div class="narrow-width survey-list-page"><span class="eyebrow">FIND YOUR NEXT DISCOVERY</span><h1>這次，想探索哪一面？</h1><p class="muted">每一份問卷，都是一次認識自己的機會。</p><div class="survey-catalog">${catalog.map(survey => {
     const count = answered(survey.id);
     const color = colors.find(c => c.key === survey.color) || colors[0];
-    return `<article class="survey-card"><div class="survey-art" style="color:${color.ink};background:${color.light}">${shape(color.key)}</div><div class="survey-card-copy"><span class="survey-badge">${survey.id === FEATURED_SURVEY ? '主打測驗' : escape(survey.category)}</span><h2>${escape(survey.title)}</h2><p>${escape(survey.description)}</p><div class="test-facts"><span>${icon('test')}${survey.questions.length} 題</span><span>${icon('clock')}約 ${survey.minutes} 分鐘</span></div>${count ? `<p class="draft-note">已完成 ${count} / ${survey.questions.length} 題 · 進度已保留</p>` : ''}<a class="button ${survey.id === FEATURED_SURVEY ? 'primary' : 'secondary'}" href="#test/${survey.id}">${count ? '繼續作答' : '開始測驗'}${icon('arrow')}</a></div></article>`;
+    return `<article class="survey-card ${survey.resultType === 'color-mbti' ? 'has-character-cover' : ''}">${survey.resultType === 'color-mbti' ? `<div class="survey-cover"><span class="eyebrow">四種色彩，一起出發</span>${characterCast()}${motionToggle()}</div>` : `<div class="survey-art" style="color:${color.ink};background:${color.light}">${shape(color.key)}</div>`}<div class="survey-card-copy"><span class="survey-badge">${survey.id === FEATURED_SURVEY ? '主打測驗' : escape(survey.category)}</span><h2>${escape(survey.title)}</h2><p>${escape(survey.description)}</p><div class="test-facts"><span>${icon('test')}${survey.questions.length} 題</span><span>${icon('clock')}約 ${survey.minutes} 分鐘</span></div>${count ? `<p class="draft-note">已完成 ${count} / ${survey.questions.length} 題 · 進度已保留</p>` : ''}<a class="button ${survey.id === FEATURED_SURVEY ? 'primary' : 'secondary'}" href="#test/${survey.id}">${count ? '繼續作答' : '開始測驗'}${icon('arrow')}</a></div></article>`;
   }).join('')}</div></div>`;
 }
 
@@ -197,6 +198,7 @@ function render(direction = 'page') {
 }
 
 function bindPage() {
+  bindCharacterMotion(main);
   const profile = document.querySelector('.profile-page');
   if (profile && !member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<p class="muted">${sessionStorage.getItem('adminToken') ? '目前使用管理員身分；會員 Email 驗證不適用於管理員帳號。' : '登入會員後，可在這裡查看 Email 驗證狀態。'}</p>`);
   if (profile && member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<section class="verification-panel"><div data-verification-status>${verificationStatus(member)}</div><a class="text-button" href="/app/account.html#profile">管理 Email 驗證${icon('arrow')}</a></section>`);
@@ -223,7 +225,7 @@ function bindPage() {
   document.querySelectorAll('[data-article], [data-resource]').forEach(button => button.addEventListener('click', () => {
     const isResource = button.hasAttribute('data-resource');
     const a = isResource ? resources[Number(button.dataset.resource)] : articles[Number(button.dataset.article)];
-    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p>${contentMedia(a, 'poster')}${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}`);
+    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p>${contentMedia(a, 'poster')}${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}${sourceHelp(a.url)}`);
   }));
   document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); } });
   document.querySelector('#question-form')?.addEventListener('change', event => {
@@ -235,10 +237,6 @@ function bindPage() {
     document.querySelector('progress').value = answered();
     document.querySelector('#selection-status').textContent = '已選好，你也可以隨時更改。';
     document.querySelectorAll('[data-companion-message]').forEach(el => { el.textContent = '選好囉，也可以再想一想。準備好再按下一題。'; });
-    document.querySelectorAll('.quiz-companion .is-active').forEach(el => {
-      el.classList.remove('has-answered');
-      requestAnimationFrame(() => { if (el.isConnected) el.classList.add('has-answered'); });
-    });
   });
   document.querySelector('#question-form')?.addEventListener('submit', async event => {
     event.preventDefault();

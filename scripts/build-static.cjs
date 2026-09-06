@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'static-dist');
 const backend = process.env.COLORLAB_API_ORIGIN || 'https://color-web-server-jprj.onrender.com';
 if (!/^https:\/\/[a-z\d.-]+(?::\d+)?$/i.test(backend)) throw new Error('COLORLAB_API_ORIGIN must be an HTTPS origin');
-const inject = `<script>window.COLORLAB_STATIC=true;window.COLORLAB_API_ORIGIN=${JSON.stringify(backend)};</script><script src="/js/static-connection.js"></script>`;
+const inject = `<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ColorLab"><meta name="apple-mobile-web-app-status-bar-style" content="default"><script>window.COLORLAB_STATIC=true;window.COLORLAB_API_ORIGIN=${JSON.stringify(backend)};</script><script src="/js/static-connection.js"></script>`;
 
 async function main() {
   await fs.mkdir(output, { recursive: true });

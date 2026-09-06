@@ -40,3 +40,34 @@ html[data-character-motion="off"] .report-character img, html[data-character-mot
 @keyframes companion-nod { 0%,100%{transform:none} 40%{transform:translateY(3px) rotate(3deg)} 75%{transform:translateY(-2px) rotate(-2deg)} }
 @media(max-width:767px) { .quiz-companion{padding:8px 0 10px}.companion-cast{height:52px;margin-bottom:8px}.companion-member{height:40px;width:30px}.companion-member.is-active{height:52px;width:36px}.companion-copy p{min-height:0;margin:3px 0;line-height:1.5} }
 @media(min-width:768px) { .companion-mobile{display:none} .companion-desktop{display:block;border:0;margin:30px 0 0;padding:20px 0}.companion-cast{height:115px;gap:18px}.companion-member{width:48px;height:88px}.companion-member.is-active{width:60px;height:115px}.companion-copy strong{font-size:16px}.companion-copy p{font-size:14px;min-height:48px}.companion-copy small{font-size:11px} }
+
+/* Original artwork, articulated rather than moving a flat sticker. */
+.articulated .character-art { display:block; width:auto; height:100%; max-width:100%; overflow:visible; aspect-ratio:var(--character-ratio); }
+.character-head,.character-arm { animation-duration:12s; animation-delay:var(--character-delay); animation-timing-function:ease-in-out; animation-iteration-count:infinite; }
+.character-red .character-head { animation-name:flame-stretch; }
+.character-yellow .character-arm { animation-name:flower-wave; }
+.character-green .character-head { animation-name:leaf-nod; }
+.character-blue .character-head { animation-name:blue-think; }
+.character-blink { opacity:0; animation:character-blink 12s var(--character-delay) infinite; }
+.articulated::after { animation:cast-shadow 12s var(--character-delay) ease-in-out infinite; }
+@keyframes flame-stretch { 0%,22%,100%{transform:none} 6%{transform:scale(.98,1.025)} 12%{transform:scale(1.025,.975)} 18%{transform:scale(.99,1.01)} }
+@keyframes flower-wave { 0%,24%,100%{transform:none} 5%,15%{transform:rotate(-22deg)} 10%,20%{transform:rotate(-6deg)} }
+@keyframes leaf-nod { 0%,24%,100%{transform:none} 7%{transform:rotate(-3deg) translateY(7px)} 15%{transform:rotate(2deg) translateY(2px)} }
+@keyframes blue-think { 0%,24%,100%{transform:none} 8%,16%{transform:rotate(3deg)} }
+@keyframes character-blink { 0%,8%,11%,65%,68%,100%{opacity:0} 9%,10%,66%,67%{opacity:1} }
+@keyframes cast-shadow { 0%,24%,100%{transform:scaleX(1);opacity:.6} 12%{transform:scaleX(.92);opacity:.4} }
+.companion-cast { height:72px; gap:10px; margin-bottom:10px; }
+.companion-member,.companion-member.is-active { width:calc((100% - 30px)/4); height:100%; opacity:1; }
+.companion-copy small { display:none; }
+.quiz-companion .character-motion-toggle { min-height:32px; margin-top:4px; font-size:11px; }
+.survey-card.has-character-cover { display:flex; flex-direction:column; gap:22px; overflow:hidden; }
+.survey-cover { padding:18px 8px 8px; border-radius:12px; background:#f5ece7; text-align:center; }
+.survey-cover .eyebrow { font-size:11px; letter-spacing:.12em; }
+.survey-characters { display:flex; align-items:end; justify-content:center; gap:12px; height:110px; margin:20px auto 12px; max-width:410px; }
+.survey-characters .report-character { width:calc((100% - 36px)/4); height:100%; }
+.survey-cover .character-motion-toggle { margin-top:6px; }
+html[data-character-motion="off"] .articulated *,html[data-character-motion="off"] .articulated::after { animation-play-state:paused!important; }
+@media(min-width:768px) { .companion-cast{height:60px;gap:8px} .companion-member,.companion-member.is-active{width:calc((100% - 24px)/4)} .survey-characters{height:170px} }
+@media(min-width:1100px) { .companion-cast{height:95px} }
+@media(max-width:359px) { .survey-characters{height:90px;gap:8px} }
+@media(prefers-reduced-motion:reduce) { .articulated *,.articulated::after{animation:none!important} .character-blink{opacity:0} }

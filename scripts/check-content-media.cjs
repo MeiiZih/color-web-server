@@ -27,7 +27,7 @@ const base=process.env.COLORLAB_QA_URL||'http://127.0.0.1:4180';
    await page.locator('.article-card').first().scrollIntoViewIfNeeded();
    await page.locator('.editorial-section').first().screenshot({path:`tmp/content-media-${width}.png`});
    await page.getByRole('button',{name:/健康關係不靠打分數/}).click();
-   await page.locator('.media-poster img').evaluate(i=>i.decode().catch(()=>{}));
+   await page.locator('.media-poster .source-thumbnail').evaluate(i=>i.decode().catch(()=>{}));
    await page.screenshot({path:`tmp/content-poster-${width}.png`,fullPage:true});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
    await page.keyboard.press('Escape');
@@ -38,6 +38,8 @@ const base=process.env.COLORLAB_QA_URL||'http://127.0.0.1:4180';
    await page.locator('.media-poster .media-credit').filter({hasText:'原圖暫時無法載入'}).waitFor();
    assert.equal(await page.locator('.media-poster .media-cover').isVisible(),true);
    assert.equal(await page.locator('.media-poster .source-thumbnail').count(),0);
+   await page.locator('.media-poster .topic-illustration').evaluate(i=>i.decode());
+   assert.match(await page.locator('.media-poster .topic-illustration').getAttribute('src'),/content-reading.webp/);
    await page.close();
    console.log(`PASS ${base} ${width}: official images, editorial covers, complete poster, failed-image fallback`);
   }

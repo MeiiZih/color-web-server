@@ -12,12 +12,14 @@ export function mediaFor(item) {
   const generic = !item.imageUrl || /\/colorlab-(support|discovery)\.svg$/.test(item.imageUrl);
   const source = generic && official[key(item.link)];
   const theme = item.contentKind === 'paper' ? ['研究筆記','blue'] : item.contentKind === 'workshop' ? ['自我照顧','yellow'] : /公會|學會/.test(item.sourceName || '') ? ['心理知識','green'] : ['傾聽與支持','red'];
-  return { imageUrl: source ? source[0] : generic ? '' : item.imageUrl, credit: source ? `圖片來源：${source[1]}` : generic ? '' : item.sourceName ? `圖片來源：${item.sourceName}` : '', theme };
+  const topic = `${item.title || ''} ${item.sourceName || ''}`;
+  const illustration = item.contentKind === 'paper' ? 'research' : /工作坊|講座|課程/.test(topic) || ['workshop','lecture'].includes(item.contentKind) ? 'workshop' : /閱讀|文章|專欄|界線|壓力|情緒管理/.test(topic) || item.contentKind === 'article' ? 'reading' : 'support';
+  return { imageUrl: source ? source[0] : generic ? '' : item.imageUrl, credit: source ? `圖片來源：${source[1]}` : generic ? '' : item.sourceName ? `圖片來源：${item.sourceName}` : '', theme, illustration:`/assets/images/content-${illustration}.webp` };
 }
 export function contentMedia(item, mode = 'card') {
-  const { imageUrl, credit, theme } = item.media;
-  const caption = credit || (imageUrl ? '資訊圖片' : 'ColorLab 主題示意・非官方海報');
-  return `<span data-credit="${escape(caption)}" class="content-media media-${mode} tone-${theme[1]}${imageUrl ? ' has-source' : ''}"><span class="media-cover"><span class="cover-brand">ColorLab.</span><strong>${escape(theme[0])}</strong><span class="cover-source">${escape(item.sourceName || item.tag)}</span><span class="cover-mark" aria-hidden="true">✳</span><small>主題示意</small></span>${imageUrl ? `<img class="source-thumbnail" src="${escape(imageUrl)}" alt="${escape(caption)}" loading="${mode === 'poster' ? 'eager' : 'lazy'}" decoding="async" referrerpolicy="no-referrer">` : ''}<span class="media-credit">${escape(imageUrl ? 'ColorLab 主題示意・原圖載入中' : caption)}</span></span>`;
+  const { imageUrl, credit, theme, illustration } = item.media;
+  const caption = credit || (imageUrl ? '資訊圖片' : 'ColorLab AI 主題示意・非官方海報');
+  return `<span data-credit="${escape(caption)}" class="content-media media-${mode} tone-${theme[1]}${imageUrl ? ' has-source' : ''}"><span class="media-cover"><img class="topic-illustration" src="${illustration}" alt="" loading="${mode === 'poster' ? 'eager' : 'lazy'}" decoding="async" width="900" height="600"><small class="illustration-label">AI 主題示意</small></span>${imageUrl ? `<img class="source-thumbnail" src="${escape(imageUrl)}" alt="${escape(caption)}" loading="${mode === 'poster' ? 'eager' : 'lazy'}" decoding="async" referrerpolicy="no-referrer">` : ''}<span class="media-credit">${escape(imageUrl ? 'ColorLab AI 主題示意・原圖載入中' : caption)}</span></span>`;
 }
 // Load/error do not bubble. Capture handles cards AND subsequently opened dialogs.
 document.addEventListener('load', event => {
@@ -30,6 +32,6 @@ document.addEventListener('error', event => {
   if (!event.target.matches?.('.source-thumbnail')) return;
   const wrapper = event.target.closest('.content-media');
   wrapper.classList.remove('has-source','image-ready');
-  wrapper.querySelector('.media-credit').textContent = 'ColorLab 主題示意・原圖暫時無法載入';
+  wrapper.querySelector('.media-credit').textContent = 'ColorLab AI 主題示意・官方原圖暫時無法載入';
   event.target.remove();
 }, true);

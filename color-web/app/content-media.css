@@ -29,3 +29,11 @@
 .media-poster.image-ready .source-thumbnail { display:block; }
 .media-poster .media-credit { display:block; padding:10px 16px; background:#fffefa; color:var(--muted); font-size:12px; }
 .article-image .tag { z-index:2; top:10px; left:10px; bottom:auto; }
+.content-media .media-cover { padding:0; min-height:0; }
+.content-media .topic-illustration { display:block; width:100%; height:100%; object-fit:cover; }
+.content-media .illustration-label { position:absolute; right:8px; bottom:8px; padding:3px 7px; border-radius:6px; background:#fffefaeb; color:#665953; font:10px/1.5 var(--body-font); }
+.media-compact .illustration-label { font-size:8px; padding:2px 3px; bottom:3px; right:3px; }
+.media-poster .media-cover { aspect-ratio:3/2; min-height:0; }
+.resource-card .media-compact .topic-illustration { width:100%; height:100%; object-fit:cover; }
+.source-help { margin-top:24px; padding:18px; background:#f1e9e5; border-radius:12px; }
+.source-help .button { white-space:normal; text-align:center; }
