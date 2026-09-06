@@ -4,6 +4,7 @@ import { restoreSession, clearSession } from './auth.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 import { mediaFor, contentMedia } from './content-media.mjs';
 import { character, characterCast, motionToggle, bindCharacterMotion } from './character-art.mjs';
+import { bindCompanionInteractions } from './companion-interaction.mjs';
 import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
 restoreSession();
@@ -73,7 +74,7 @@ function home() {
   const count = answered(featured.id);
   return `<div class="home-page page-width">
     <section class="hero" aria-labelledby="home-heading">
-      <div class="hero-copy"><div class="eyebrow"><span class="tiny-flower">✳</span> A LITTLE CLOSER TO YOU</div>
+      <div class="hero-copy"><div class="eyebrow"><svg class="tiny-flower quiet-glint" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 3C12 9 9 12 3 12C9 12 12 15 12 21C12 15 15 12 21 12C15 12 12 9 12 3Z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/></svg> A LITTLE CLOSER TO YOU</div>
         <h1 id="home-heading">你的每一面，<br>都有自己的<span class="rose-word">顏色。</span></h1>
         <p class="hero-description">留一點時間給自己。<br>從 ${featured.questions.length} 個日常選擇，遇見更真實的你。</p>
         <div class="test-facts"><span>${icon('test')}${featured.questions.length} 道題目</span><span>${icon('clock')}約 ${featured.minutes} 分鐘</span></div>
@@ -94,7 +95,7 @@ function home() {
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><a class="text-button collection-entry" href="#resources">探索全部內容${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
-    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
+    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a class="text-button" href="/app/account.html#install">把 ColorLab 加入主畫面 · 安裝說明</a></p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
   </div>`;
 }
 
@@ -105,7 +106,7 @@ function collectionPage(kind) {
 
 function quizCompanion(index, total, variant) {
   const active = Math.min(3, Math.floor(index * 4 / total));
-  return `<div class="quiz-companion companion-${variant}" aria-label="四色角色陪你作答"><div class="companion-cast" aria-hidden="true">${colors.map((c, i) => `<span class="companion-member ${i === active ? 'is-active' : ''}">${character(c.key)}</span>`).join('')}</div><div class="companion-copy"><strong>我們陪你，慢慢來。</strong><p data-companion-message>${index === total - 1 ? '最後一題了，依照自己的感受完成就好。' : '沒有標準答案，選最貼近自己的就好。'}</p><small>照自己的步調就好，角色不評判答案。</small></div>${motionToggle()}</div>`;
+  return `<div class="quiz-companion companion-${variant}" aria-label="四色角色陪你作答"><div class="companion-cast">${colors.map((c, i) => `<button type="button" data-companion="${c.key}" class="companion-member ${i === active ? 'is-active' : ''}" aria-label="跟${c.name}色角色打招呼">${character(c.key)}</button>`).join('')}<span class="companion-reply" role="status" aria-live="polite"></span></div><div class="companion-copy"><strong>我們陪你，慢慢來。</strong><p data-companion-message>${index === total - 1 ? '最後一題了，依照自己的感受完成就好。' : '沒有標準答案，選最貼近自己的就好。'}</p><small>照自己的步調就好，角色不評判答案。</small></div>${motionToggle()}</div>`;
 }
 
 function test() {
@@ -138,7 +139,7 @@ function result(record) {
     <section class="result-section"><div class="section-heading"><h2>你的四色比例</h2><span class="muted">每個選擇，都是你的一部分</span></div><div class="color-bars">${colors.map((color, i) => `<div class="color-bar"><span class="bar-label"><i style="background:${color.fill}"></i>${color.name}色</span><span class="bar-track"><span style="width:${r.counts[i] * 5}%;background:${color.fill}"></span></span><strong>${r.counts[i] * 5}%</strong></div>`).join('')}</div>${matched.length > 1 ? `<p class="muted">${matched.map(c => c.name + '色').join('、')}同為最高分；摘要排序沿用原站規則。</p>` : ''}</section>
     <section class="result-section"><h2>多認識自己一點</h2>${colors.filter((_, i) => r.counts[i] > 0).sort((a, b) => r.counts[colors.indexOf(b)] - r.counts[colors.indexOf(a)]).map(color => `<details class="insight"><summary><span><i style="background:${color.fill}"></i>${color.name}色 · ${color.title}</span><span class="expand-symbol">＋</span></summary><p>${color.description}</p></details>`).join('')}</section>
     <section class="report-panel"><div class="report-heading">${icon('test')}<div><h2>把這份認識，留給自己</h2><p>完整報告書 · ${r.mbti} / ${matched.map(c => c.name).join('、')}色</p></div></div><div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download="ColorLab-${r.mbti}.pdf">${icon('download')}下載 PDF</a></div></section>
-    <p class="preview-note">${record.cloud ? '已儲存至你的會員帳號。' : '訪客紀錄保存在此瀏覽器，清除網站資料後將無法恢復。'}<br>本測驗用於自我探索，不是心理或醫療診斷。</p><a class="text-button centered" href="#home">回到首頁${icon('arrow')}</a>
+    <p class="preview-note">${record.cloud ? '已儲存至你的帳號。' : '訪客紀錄保存在此瀏覽器，清除網站資料後將無法恢復。'}<br>本測驗用於自我探索，不是心理或醫療診斷。</p><a class="text-button centered" href="#home">回到首頁${icon('arrow')}</a>
   </div>`;
 }
 
@@ -154,16 +155,16 @@ function surveyList() {
   return `<div class="narrow-width survey-list-page"><span class="eyebrow">FIND YOUR NEXT DISCOVERY</span><h1>這次，想探索哪一面？</h1><p class="muted">每一份問卷，都是一次認識自己的機會。</p><div class="survey-catalog">${catalog.map(survey => {
     const count = answered(survey.id);
     const color = colors.find(c => c.key === survey.color) || colors[0];
-    return `<article class="survey-card ${survey.resultType === 'color-mbti' ? 'has-character-cover' : ''}">${survey.resultType === 'color-mbti' ? `<div class="survey-cover"><span class="eyebrow">四種色彩，一起出發</span>${characterCast()}${motionToggle()}</div>` : `<div class="survey-art" style="color:${color.ink};background:${color.light}">${shape(color.key)}</div>`}<div class="survey-card-copy"><span class="survey-badge">${survey.id === FEATURED_SURVEY ? '主打測驗' : escape(survey.category)}</span><h2>${escape(survey.title)}</h2><p>${escape(survey.description)}</p><div class="test-facts"><span>${icon('test')}${survey.questions.length} 題</span><span>${icon('clock')}約 ${survey.minutes} 分鐘</span></div>${count ? `<p class="draft-note">已完成 ${count} / ${survey.questions.length} 題 · 進度已保留</p>` : ''}<a class="button ${survey.id === FEATURED_SURVEY ? 'primary' : 'secondary'}" href="#test/${survey.id}">${count ? '繼續作答' : '開始測驗'}${icon('arrow')}</a></div></article>`;
+return `<article class="survey-card ${survey.resultType === 'color-mbti' ? 'has-character-cover' : ''}">${survey.resultType === 'color-mbti' ? `<div class="survey-cover survey-cover-illustrated"><img src="/assets/images/survey-color-cover-20260906.webp" alt="紅、黃、綠、藍四位色彩夥伴，陪你開啟探索" width="1200" height="800" decoding="async"></div>` : `<div class="survey-art" style="color:${color.ink};background:${color.light}">${shape(color.key)}</div>`}<div class="survey-card-copy"><span class="survey-badge">${survey.id === FEATURED_SURVEY ? '主打測驗' : escape(survey.category)}</span><h2>${escape(survey.title)}</h2><p>${escape(survey.description)}</p><div class="test-facts"><span>${icon('test')}${survey.questions.length} 題</span><span>${icon('clock')}約 ${survey.minutes} 分鐘</span></div>${count ? `<p class="draft-note">已完成 ${count} / ${survey.questions.length} 題 · 進度已保留</p>` : ''}<a class="button ${survey.id === FEATURED_SURVEY ? 'primary' : 'secondary'}" href="#test/${survey.id}">${count ? '繼續作答' : '開始測驗'}${icon('arrow')}</a></div></article>`;
   }).join('')}</div></div>`;
 }
 
 function receipt(record, survey) {
-  return `<div class="narrow-width"><a class="text-button" href="#history">${icon('back')}測驗紀錄</a><section class="empty-state"><span class="eyebrow">ALL DONE</span><h1>問卷已完成</h1><p>${escape(survey.title)} · ${record.answers.length} 題<br>${dateLabel(record.date)}</p><p>這份問卷不計性格分數，以下是你的作答。</p></section><section class="receipt-answers"><h2>我的作答</h2>${survey.questions.map((q, i) => `<div class="receipt-answer"><h3>${i + 1}. ${escape(q.question)}</h3><p>${escape(q.options[record.answers[i]])}</p></div>`).join('')}</section><a class="button primary" href="#surveys">探索其他測驗${icon('arrow')}</a><p class="preview-note">${record.cloud ? '已儲存至你的會員帳號。' : '訪客紀錄僅保存在此瀏覽器。'}</p></div>`;
+  return `<div class="narrow-width"><a class="text-button" href="#history">${icon('back')}測驗紀錄</a><section class="empty-state"><span class="eyebrow">ALL DONE</span><h1>問卷已完成</h1><p>${escape(survey.title)} · ${record.answers.length} 題<br>${dateLabel(record.date)}</p><p>這份問卷不計性格分數，以下是你的作答。</p></section><section class="receipt-answers"><h2>我的作答</h2>${survey.questions.map((q, i) => `<div class="receipt-answer"><h3>${i + 1}. ${escape(q.question)}</h3><p>${escape(q.options[record.answers[i]])}</p></div>`).join('')}</section><a class="button primary" href="#surveys">探索其他測驗${icon('arrow')}</a><p class="preview-note">${record.cloud ? '已儲存至你的帳號。' : '訪客紀錄僅保存在此瀏覽器。'}</p></div>`;
 }
 
 function historyPage() {
-  return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">收藏不同問卷的作答與結果。</p><div class="history-heading"><h2>我的測驗紀錄</h2><span>${state.records.length} 份紀錄</span></div>${state.records.length ? state.records.map(r=>`<div class="history-entry">${historyCard(r)}<button class="delete-record" data-delete-record="${escape(r.id)}" aria-label="刪除 ${escape(r.title || r.survey?.title || '測驗')} 紀錄">刪除紀錄</button></div>`).join('') : `<div class="empty-state">${shape('green')}<h2>第一頁，等你來寫。</h2><p>完成測驗後，你的紀錄就會出現在這裡。</p><a href="#surveys" class="button primary">選擇測驗${icon('arrow')}</a></div>`}<p class="preview-note">${escape(historyError || (member ? '顯示最近 200 份會員紀錄。' : '訪客紀錄僅在此瀏覽器可用。'))}</p></div>`;
+  return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">收藏不同問卷的作答與結果。</p><div class="history-heading"><h2>我的測驗紀錄</h2><span>${state.records.length} 份紀錄</span></div>${state.records.length ? state.records.map(r=>`<div class="history-entry">${historyCard(r)}<button class="delete-record" data-delete-record="${escape(r.id)}" aria-label="刪除 ${escape(r.title || r.survey?.title || '測驗')} 紀錄">刪除紀錄</button></div>`).join('') : `<div class="empty-state">${shape('green')}<h2>第一頁，等你來寫。</h2><p>完成測驗後，你的紀錄就會出現在這裡。</p><a href="#surveys" class="button primary">選擇測驗${icon('arrow')}</a></div>`}<p class="preview-note">${escape(historyError || (member ? '顯示此帳號最近 200 份紀錄。' : '訪客紀錄僅在此瀏覽器可用。'))}</p></div>`;
 }
 function legacyResult(record) {
   const primary = Array.isArray(record.colorResult?.primary) ? record.colorResult.primary : [record.colorResult?.primary];
@@ -173,8 +174,8 @@ function legacyResult(record) {
 }
 
 function me() {
-  const admin = sessionStorage.getItem('adminToken');
-  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div><a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? '<a class="button primary" href="/app/account.html#admin">進入管理後台</a>' : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : '<a class="button primary" href="/app/account.html#login">登入／註冊會員</a><p class="preview-note">登入後，完成的測驗會儲存到帳號；訪客紀錄不會自動合併。</p>'}<a class="profile-row" href="/app/account.html#install">安裝 ColorLab／檢查 App 模式${icon('arrow')}</a></div>`;
+  const admin = member?.role === 'admin' || (!member && sessionStorage.getItem('adminToken'));
+  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div><a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? `<a class="profile-row" href="/app/account.html#admin">${icon('me')}管理後台${icon('arrow')}</a>` : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : '<a class="button primary" href="/app/account.html#login">登入／註冊會員</a><p class="preview-note">登入後，完成的測驗會儲存到帳號；訪客紀錄不會自動合併。</p>'}</div>`;
 }
 
 function openDialog(content) {
@@ -221,6 +222,7 @@ function render(direction = 'page') {
 
 function bindPage() {
   bindCharacterMotion(main);
+  bindCompanionInteractions(main);
   document.querySelectorAll('[data-delete-record]').forEach(button=>button.addEventListener('click',()=>{
     const record=state.records.find(r=>r.id===button.dataset.deleteRecord);if(!record)return;
     openDialog(`<h2 id="dialog-title">刪除這份測驗紀錄？</h2><p>${escape(record.title || record.survey?.title || '測驗紀錄')} · ${dateLabel(record.date)}</p><p>刪除後無法復原，不會影響其他紀錄或未完成的問卷。${record.cloud?'此操作會刪除帳號中的這份紀錄。':'此操作只刪除此瀏覽器的這份紀錄。'}</p><p role="alert" id="delete-error"></p><div class="delete-actions"><button class="button secondary" data-cancel-delete>取消</button><button class="button primary" data-confirm-delete>確認刪除</button></div>`);
@@ -241,8 +243,8 @@ function bindPage() {
     };
   }));
   const profile = document.querySelector('.profile-page');
-  if (profile && !member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<p class="muted">${sessionStorage.getItem('adminToken') ? '目前使用管理員身分；會員 Email 驗證不適用於管理員帳號。' : '登入會員後，可在這裡查看 Email 驗證狀態。'}</p>`);
-  if (profile && member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<section class="verification-panel"><div data-verification-status>${verificationStatus(member)}</div><a class="text-button" href="/app/account.html#profile">管理 Email 驗證${icon('arrow')}</a></section>`);
+  if (profile && (!member || member.role === 'admin')) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<p class="muted">${sessionStorage.getItem('adminToken') ? '目前使用管理員身分；測驗會儲存至管理員自己的紀錄，與會員紀錄分開。會員 Email 驗證不適用於管理員帳號。' : '登入會員後，可在這裡查看 Email 驗證狀態。'}</p>`);
+  if (profile && member && member.role !== 'admin') profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<section class="verification-panel"><div data-verification-status>${verificationStatus(member)}</div><a class="text-button" href="/app/account.html#profile">管理 Email 驗證${icon('arrow')}</a></section>`);
   bindVerificationStatus(document.querySelector('[data-verification-status]'), () => request('/api/user/profile'), user => { member = { ...member, emailVerifiedAt: user.emailVerifiedAt || null, emailVerificationRequired: user.emailVerificationRequired === true }; });
   if (document.body.dataset.page === 'test' && draft()?.pending) {
     document.querySelector('#selection-status').textContent = '上次儲存尚未確認，請重新儲存相同答案，避免產生重複紀錄。';
@@ -267,11 +269,13 @@ function bindPage() {
     document.querySelectorAll('[data-hue]').forEach(el => { const selected = Number(el.dataset.hue) === hue; el.classList.toggle('selected', selected); el.setAttribute('aria-pressed', selected); });
     document.querySelector('.color-caption strong').textContent = `${colors[hue].name}色 · ${colors[hue].title}`;
     const c=colors[hue], d=colorDetails[c.key];
-    if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
-      turn=button.animate([{transform:getComputedStyle(button).transform,opacity:1},{transform:'perspective(900px) rotateY(80deg) scale(1.02)',opacity:.25}],{duration:280,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+    if(!matchMedia('(prefers-reduced-motion: reduce), (max-width:767px)').matches){
+      turn=button.animate([{transform:getComputedStyle(button).transform},{transform:'perspective(900px) rotateY(90deg)'}],{duration:240,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
       await turn.finished;
     }
     if(!button.isConnected || dialog.open)return;
+    button.style.visibility='hidden';
+    dialog.addEventListener('close',()=>{button.style.visibility='';button.focus({preventScroll:true});},{once:true});
     dialog.classList.add('color-detail-dialog');
     openDialog(`<article class="color-detail" style="--detail-tint:${c.light};--detail-ink:${c.ink}"><div class="color-detail-hero">${character(c.key)}<div><span class="eyebrow">COLORLAB / ${c.en.toUpperCase()}</span><h2 id="dialog-title">${c.name}色 · ${c.title}</h2><p>${c.description}</p></div></div><div class="color-detail-copy">${[['你的色彩力量',d.strengths],['相處時的你',d.relationships],['給自己的照顧',d.care],['留給你的小提問',d.question]].map(([h,p])=>`<section><h3>${h}</h3><p>${p}</p></section>`).join('')}<p class="preview-note">這是 ColorLab 的色彩探索描述，不是固定的人格標籤或心理診斷；每個人都可能有不同色彩的一面。</p></div></article>`);
     } finally {turn?.cancel();delete main.dataset.flipping;}
@@ -333,8 +337,8 @@ try {
   if (!Array.isArray(catalog)) throw new Error('題庫暫時無法讀取，請稍後重試。');
   FEATURED_SURVEY = (catalog.find(s => s.featured) || catalog[0])?.id;
   questions = catalog[0]?.questions || [];
-  if (sessionStorage.getItem('userToken')) member = await request('/api/explore/me');
-  storageKey = `colorlab-app-v1:${member?.id || 'guest'}`;
+  if (sessionStorage.getItem('userToken') || sessionStorage.getItem('adminToken')) member = await request('/api/explore/me');
+  storageKey = `colorlab-app-v1:${member?.role === 'admin' ? 'admin:' : ''}${member?.id || 'guest'}`;
   state = readLocal(previewStorage, storageKey, catalog);
   if (member) {
     try { state.records = await request('/api/explore/records'); }

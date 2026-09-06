@@ -67,6 +67,8 @@ html[data-character-motion="off"] .report-character img, html[data-character-mot
 .quiz-companion .character-motion-toggle { min-height:32px; margin-top:4px; font-size:11px; }
 .survey-card.has-character-cover { display:flex; flex-direction:column; gap:22px; overflow:hidden; }
 .survey-cover { padding:18px 8px 8px; border-radius:12px; background:#f5ece7; text-align:center; }
+.survey-cover.survey-cover-illustrated { padding:0; overflow:hidden; }
+.survey-cover-illustrated img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:contain; }
 .survey-cover .eyebrow { font-size:11px; letter-spacing:.12em; }
 .survey-characters { display:flex; align-items:end; justify-content:center; gap:12px; height:110px; margin:20px auto 12px; max-width:410px; }
 .survey-characters .report-character { width:calc((100% - 36px)/4); height:100%; }
@@ -76,3 +78,21 @@ html[data-character-motion="off"] .articulated *,html[data-character-motion="off
 @media(min-width:1100px) { .companion-cast{height:95px} }
 @media(max-width:359px) { .survey-characters{height:90px;gap:8px} }
 @media(prefers-reduced-motion:reduce) { .articulated *,.articulated::after{animation:none!important} .character-blink{opacity:0} }
+
+/* Quiz greetings are direct feedback, on top of a quieter continuous idle. */
+.quiz-companion button.companion-member { pointer-events:auto; padding:0; min-width:44px; min-height:44px; border:0; background:none; border-radius:18px; color:inherit; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; animation:none; }
+.quiz-companion button.companion-member:focus-visible { outline:2px solid var(--berry,#a24966); outline-offset:4px; }
+.quiz-companion button.companion-member .report-character { transform-origin:50% 85%; pointer-events:none; }
+.quiz-companion .character-art { animation-name:companion-idle; animation-duration:7s; }
+.quiz-companion .character-head,.quiz-companion .character-arm { animation:none; }
+.quiz-companion .is-greeting .character-blink { animation:none; }
+.quiz-companion .is-greeting { z-index:3; }
+.quiz-companion .has-greeting .companion-member { animation-play-state:paused; }
+.quiz-companion .companion-reply { position:absolute; left:50%; bottom:0; transform:translateX(-50%); padding:4px 10px; border-radius:12px; background:#fffaf5; color:#72555e; box-shadow:0 2px 8px #54403412; font:500 11px/1.4 system-ui,sans-serif; white-space:nowrap; opacity:0; pointer-events:none; z-index:4; }
+.quiz-companion .companion-reply.is-visible { opacity:1; }
+@keyframes companion-idle { 0%,100%{transform:none} 50%{transform:translateY(-2px) scale(1.005,1.015)} }
+@media(prefers-reduced-motion:reduce) { .quiz-companion .character-art { animation:none; } }
+.quiz-companion .companion-flame-tip,.quiz-companion .companion-flame-burst { transform-origin:330px 254px; }
+.quiz-companion .companion-flame-tip { animation:companion-flame-breathe 4.6s ease-in-out infinite; }
+@keyframes companion-flame-breathe { 0%,100%{transform:skewX(-1.4deg) scale(1,.99)} 36%{transform:skewX(2deg) scale(.99,1.045)} 72%{transform:skewX(-1deg) scale(1.01,1.015)} }
+@media(prefers-reduced-motion:reduce) { .quiz-companion .companion-flame-tip { animation:none; } }

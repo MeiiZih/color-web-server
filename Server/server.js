@@ -71,10 +71,9 @@ const staticOptions = {
     }
   }
 };
-const { frontendTarget } = require('./services/frontendRoutes');
+const { backendPageTarget } = require('./services/backendFrontendRoutes');
 app.use((req, res, next) => {
-  if (!['GET', 'HEAD'].includes(req.method)) return next();
-  const target = frontendTarget(req.path, req.url.split('?')[1] || '') || (req.path.startsWith('/app/') ? req.originalUrl : null);
+  const target = backendPageTarget(req.method, req.path, req.url.split('?')[1] || '');
   if (target) return res.redirect(302, 'https://colorlab-start.onrender.com' + target);
   next();
 });

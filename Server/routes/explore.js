@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Admin = require('../models/Admin');
 const TestQuestion = require('../models/TestQuestion');
 const TestRecord = require('../models/TestRecord');
 const { catalogEntry, recordView, submissionId } = require('../services/explore');
@@ -8,6 +9,7 @@ const router = express.Router();
 const model = import('../../color-web/app/model.mjs');
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 const handle = fn => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
+const ownerQuery = req => req.memberRole === 'admin' ? { adminId: req.member._id } : { adminId: null, $or: [{ userId: req.member._id }, { userId: null, email: req.member.email }] };
 
 router.get('/catalog', handle(async (_req, res) => {
   const docs = await TestQuestion.find().sort({ createdAt: 1 }).lean();
@@ -18,7 +20,13 @@ router.use(async (req, res, next) => {
   try {
     const token = req.headers.authorization?.match(/^Bearer (\S+)$/)?.[1];
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    if (payload.role !== 'user') return res.status(403).json({ message: '請使用會員帳號作答；管理員可從「我的」進入後台。' });
+    if (!['user', 'admin'].includes(payload.role)) return res.status(403).json({ message: '請使用會員或管理員帳號作答。' });
+    req.memberRole = payload.role;
+    if (payload.role === 'admin') {
+      req.member = await Admin.findById(payload.id).select('_id email name role').lean();
+      if (!req.member || req.member.role !== 'admin') return res.status(403).json({ message: '管理員身分不存在，請重新登入。' });
+      return next();
+    }
     req.member = await User.findById(payload.id).select('_id email name emailVerificationRequired emailVerifiedAt').lean();
     if (!req.member) return res.status(401).json({ message: '請重新登入會員。' });
     if (require('../services/emailVerification').needsVerification(req.member)) return res.status(403).json({ message: '請先驗證 Email，再使用會員功能。' });
@@ -26,15 +34,15 @@ router.use(async (req, res, next) => {
   } catch { res.status(401).json({ message: '登入已過期，請重新登入；作答進度仍會保留。' }); }
 });
 
-router.get('/me', (req, res) => res.json({ id: String(req.member._id), email: req.member.email, name: req.member.name, emailVerifiedAt: req.member.emailVerifiedAt || null, emailVerificationRequired: req.member.emailVerificationRequired === true }));
+router.get('/me', (req, res) => res.json({ id: String(req.member._id), role: req.memberRole, email: req.member.email, name: req.member.name, ...(req.memberRole === 'user' ? { emailVerifiedAt: req.member.emailVerifiedAt || null, emailVerificationRequired: req.member.emailVerificationRequired === true } : {}) }));
 router.get('/records', handle(async (req, res) => {
-  const records = await TestRecord.find({ $or: [{ userId: req.member._id }, { userId: null, email: req.member.email }] }).sort({ timestamp: -1 }).limit(200).lean();
+  const records = await TestRecord.find(ownerQuery(req)).sort({ timestamp: -1 }).limit(200).lean();
   res.json(records.map(recordView));
 }));
 
 router.delete('/records/:id', handle(async (req, res) => {
   if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ message: '紀錄識別碼不正確。' });
-  const result = await TestRecord.deleteOne({ _id: req.params.id, $or: [{ userId: req.member._id }, { userId: null, email: req.member.email }] });
+  const result = await TestRecord.deleteOne({ _id: req.params.id, ...ownerQuery(req) });
   if (!result.deletedCount) return res.status(404).json({ message: '找不到你的這筆紀錄，請重新載入確認。' });
   res.json({ deleted: true });
 }));
@@ -43,8 +51,8 @@ router.post('/records', handle(async (req, res) => {
   const { surveyId, version, answers, key } = req.body;
   if (!/^[a-f\d]{24}$/i.test(surveyId || '')) return res.status(400).json({ message: '問卷識別碼不正確。' });
   let id;
-  try { id = submissionId(req.member._id, key); } catch (error) { return res.status(400).json({ message: error.message }); }
-  const existing = await TestRecord.findOne({ _id: id, userId: req.member._id }).lean();
+  try { id = submissionId(req.memberRole === 'admin' ? `admin:${req.member._id}` : req.member._id, key); } catch (error) { return res.status(400).json({ message: error.message }); }
+  const existing = await TestRecord.findOne({ _id: id, ...ownerQuery(req) }).lean();
   if (existing) {
     if (existing.exploration.surveyId !== surveyId || JSON.stringify(existing.exploration.answers) !== JSON.stringify(answers)) return res.status(409).json({ message: '這次作答已儲存，請重新載入測驗紀錄查看。' });
     return res.json(recordView(existing));
@@ -57,7 +65,7 @@ router.post('/records', handle(async (req, res) => {
   let scored;
   try { scored = finishSurvey(survey, answers); } catch (error) { return res.status(400).json({ message: error.message }); }
   const values = {
-    _id: id, userId: req.member._id, email: req.member.email, userName: req.member.name, testType: survey.title,
+    _id: id, ...(req.memberRole === 'admin' ? { adminId: req.member._id } : { userId: req.member._id, email: req.member.email }), userName: req.member.name, testType: survey.title,
     result: scored.mbti || '問卷已完成', mbtiResult: scored.mbti,
     answers: answers.map((a, i) => ({ questionId: i + 1, question: survey.questions[i].question, answer: survey.questions[i].options[a] })),
     exploration: { surveyId, version, answers, survey },
@@ -74,7 +82,7 @@ router.post('/records', handle(async (req, res) => {
   try { const saved = await TestRecord.create(values); res.status(201).json(recordView(saved.toObject())); }
   catch (error) {
     if (error.code !== 11000) throw error;
-    const saved = await TestRecord.findOne({ _id: id, userId: req.member._id }).lean();
+    const saved = await TestRecord.findOne({ _id: id, ...ownerQuery(req) }).lean();
     if (!saved) throw error;
     res.json(recordView(saved));
   }

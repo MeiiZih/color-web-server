@@ -416,7 +416,6 @@
       visibility: hidden;
       opacity: 0;
       background: rgba(255, 248, 246, .86);
-      backdrop-filter: blur(16px);
       transition: opacity .48s ease, visibility .48s ease;
     }
 
@@ -559,7 +558,6 @@
           <button class="swatch" type="button" data-color="leaf" aria-pressed="false" style="--swatch:#a8d584"><span class="swatch-dot"></span><span>嫩葉綠</span></button>
         </div>
         <button class="reset-mix" id="resetMix" type="button" hidden>重新調一杯</button>
-        <button class="character-motion-toggle" id="characterMotion" type="button" aria-pressed="false">暫停角色動畫</button>
       </section>
     </div>
   </main>
@@ -629,12 +627,6 @@
       ];
 
       const root = document.documentElement;
-      document.getElementById('characterMotion').addEventListener('click', event => {
-        const paused = root.dataset.characterMotion !== 'off';
-        root.dataset.characterMotion = paused ? 'off' : 'on';
-        event.currentTarget.setAttribute('aria-pressed', String(paused));
-        event.currentTarget.textContent = paused ? '播放角色動畫' : '暫停角色動畫';
-      });
       const mixStage = document.getElementById('mixStage');
       const mixOrb = document.getElementById('mixOrb');
       const mixName = document.getElementById('mixName');
@@ -830,13 +822,18 @@
         statusText.textContent = 'ColorLab 空間準備好了';
         serviceState.classList.add('ready');
 
+        if (embedded) {
+          // Parent starts loading data behind this screen, then performs a single smooth reveal.
+          window.parent.postMessage({ type: 'colorlab:ready' }, location.origin);
+          return;
+        }
+
         const wait = Math.max(500, minimumVisibleTime - (Date.now() - startedAt));
         window.setTimeout(() => {
           readyCurtain.classList.add('show');
           readyCurtain.setAttribute('aria-hidden', 'false');
           window.setTimeout(() => {
-            if (embedded) window.parent.postMessage({ type: 'colorlab:ready' }, location.origin);
-            else window.location.replace(destination);
+            window.location.replace(destination);
           }, 1150);
         }, wait);
       };

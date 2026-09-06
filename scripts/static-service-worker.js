@@ -1,12 +1,14 @@
 // Independent frontend: cache public shell only, never tokens, records, APIs or Render wake HTML.
-const CACHE = 'colorlab-static-shell-v12';
+const CACHE = 'colorlab-static-shell-v13';
 const SHELL = ['/app/', '/app/app.js', '/app/model.mjs', '/app/client.mjs', '/app/auth.mjs', '/app/ui.mjs', '/app/account.html', '/app/account.mjs', '/app/account.css', '/app/style.css', '/app/motion.css', '/js/static-connection.js', '/colorlab-mark.svg', '/wake.html'];
 SHELL.push('/app/verification-status.mjs', '/app/verification-status.css');
 SHELL.push('/app/character-art.mjs');
+SHELL.push('/assets/images/survey-color-cover-20260906.webp');
+SHELL.push('/app/companion-interaction.mjs', '/app/content-illustrations.mjs');
 SHELL.push('/app/source-help.mjs');
 SHELL.push('/app/content-review.mjs','/app/content-review.css');
 SHELL.push('/app/experience.css','/app/color-details.mjs');
-SHELL.push(...['support','workshop','reading','research'].map(topic => `/assets/images/content-${topic}.webp`));
+SHELL.push(...['hotline-1925','lifeline-1995','teacher-1980','care-guide','psychology-columns','public-lectures','digital-research','inner-child','psychology-knowledge','youth-text','healthy-boundaries','relationship-pause','social-emotional-ai','counseling'].map(slug => `/assets/images/posts/${slug}-20260906.webp`));
 SHELL.push('/app/characters.css', '/app/content-media.mjs', '/app/content-media.css', ...['red','yellow','green','blue'].map(color => `/assets/characters/${color}.webp`));
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('colorlab-') && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));

@@ -29,17 +29,19 @@ test('submission IDs are stable per member, distinct between members', () => {
 });
 
 const User = require('../models/User');
+const Admin = require('../models/Admin');
 const Question = require('../models/TestQuestion');
 const Record = require('../models/TestRecord');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 let server, base;
 const saved = new Map();
-const originals = { user: User.findById, question: Question.findById, find: Question.find, one: Record.findOne, create: Record.create, records: Record.find };
+const originals = { user: User.findById, admin: Admin.findById, question: Question.findById, find: Question.find, one: Record.findOne, create: Record.create, records: Record.find };
 const member = { _id: '222222222222222222222222', email: 'member@example.invalid', name: 'Test' };
 let lastFilter;
 before(async () => {
   User.findById = () => ({ select: () => ({ lean: async () => member }) });
+  Admin.findById = () => ({ select: () => ({ lean: async () => null }) });
   Question.findById = () => ({ lean: async () => doc });
   Question.find = () => ({ sort: () => ({ lean: async () => [doc] }) });
   Record.findOne = filter => ({ lean: async () => saved.get(filter._id) || null });
@@ -51,13 +53,13 @@ before(async () => {
 });
 after(() => {
   server?.close();
-  User.findById = originals.user; Question.findById = originals.question; Question.find = originals.find;
+  User.findById = originals.user; Admin.findById = originals.admin; Question.findById = originals.question; Question.find = originals.find;
   Record.findOne = originals.one; Record.create = originals.create; Record.find = originals.records;
 });
 function headers(role = 'user') {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt.sign({ id: member._id, role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '1m' })}` };
 }
-test('catalog is public, records reject unauthenticated and admin requests', async () => {
+test('catalog is public, records reject unauthenticated and nonexistent admin requests', async () => {
   assert.equal((await fetch(base + '/catalog')).status, 200);
   assert.equal((await fetch(base + '/records')).status, 401);
   assert.equal((await fetch(base + '/records', { headers: headers('admin') })).status, 403);
@@ -66,6 +68,7 @@ test('record ownership comes from the verified member, not email query parameter
   assert.equal((await fetch(base + '/records?email=other@example.invalid', { headers: headers() })).status, 200);
   assert.equal(lastFilter.$or[0].userId, member._id);
   assert.equal(lastFilter.$or[1].email, member.email);
+  assert.equal(lastFilter.adminId, null);
 });
 test('me returns current verification facts without treating legacy members as verified', async () => {
   let data = await (await fetch(base + '/me', { headers: headers() })).json();

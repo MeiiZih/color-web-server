@@ -1,5 +1,5 @@
 export async function request(path, options = {}) {
-  const token = sessionStorage.getItem('userToken');
+  const token = sessionStorage.getItem('userToken') || (path.startsWith('/api/explore/') ? sessionStorage.getItem('adminToken') : null);
   const response = await fetch(path, { ...options, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers }, signal: options.signal || AbortSignal.timeout(20000) });
   let body;
   try { body = await response.json(); } catch { throw new Error('服務尚未準備好，請稍後重試；你的答案仍保留。'); }

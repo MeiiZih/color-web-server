@@ -24,7 +24,7 @@ test('built PWA installs inside the static app and caches all new visual depende
  assert.deepEqual(manifest.display_override,['standalone']);
  const worker=fs.readFileSync(path.join(__dirname,'static-service-worker.js'),'utf8');
  const cached=require('node:vm').runInNewContext(worker+';SHELL',{self:{addEventListener(){}}});
- for(const file of ['app/character-art.mjs','app/source-help.mjs',...['support','workshop','reading','research'].map(x=>'assets/images/content-'+x+'.webp')]) {
+ for(const file of ['app/character-art.mjs','app/source-help.mjs','app/companion-interaction.mjs','app/content-illustrations.mjs','assets/images/survey-color-cover-20260906.webp',...['hotline-1925','lifeline-1995','teacher-1980','care-guide','psychology-columns','public-lectures','digital-research','inner-child','psychology-knowledge','youth-text','healthy-boundaries','relationship-pause','social-emotional-ai','counseling'].map(x=>'assets/images/posts/'+x+'-20260906.webp')]) {
   assert(fs.existsSync(path.join(dir,file)),file);assert(cached.includes('/'+file),file);
  }
 });

@@ -30,10 +30,35 @@
       const onReady = event => {
         if (event.origin !== location.origin || event.source !== frame.contentWindow || event.data?.type !== 'colorlab:ready') return;
         window.removeEventListener('message', onReady);
-        frame.remove();
-        siblings.forEach(el => { el.inert = false; });
-        previousFocus?.focus?.();
+        // Release API requests now, but keep the painted wake screen until the app can replace it.
+        let revealing = false;
+        const main = document.querySelector('#main');
+        const observer = new MutationObserver(checkContent);
+        const fallback = window.setTimeout(reveal, 8000);
+        function reveal() {
+          if (revealing) return;
+          revealing = true;
+          observer.disconnect();
+          window.clearTimeout(fallback);
+          const finish = () => {
+            frame.remove();
+            siblings.forEach(el => { if (el.isConnected) el.inert = false; });
+            const focusTarget = previousFocus?.isConnected && previousFocus !== document.body ? previousFocus : main;
+            focusTarget?.focus?.({ preventScroll: true });
+          };
+          if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
+          // One compositor fade; no full-screen blur, second curtain, or scale jump.
+          frame.style.transition = 'opacity 280ms cubic-bezier(.2,0,0,1)';
+          requestAnimationFrame(() => requestAnimationFrame(() => { frame.style.opacity = '0'; }));
+          window.setTimeout(finish, 350);
+        }
+        function checkContent() {
+          if (main?.querySelector('h1,h2,form')) reveal();
+        }
+        if (main) observer.observe(main, { childList: true, subtree: true });
         resolve();
+        checkContent();
+        if (!main) window.setTimeout(reveal, 400); // Legacy static pages have no application root.
       };
       window.addEventListener('message', onReady);
       document.body.append(frame);
