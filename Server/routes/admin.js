@@ -15,10 +15,10 @@ router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); 
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const loginId = String(email || '').trim().toLowerCase();
-        const adminEmail = loginId === 'admin'
-            ? (process.env.ADMIN_EMAIL || 'yehpty@gmail.com').toLowerCase()
-            : loginId;
+        const adminEmail = String(email || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
+            return res.status(401).json({ message: '請使用管理員電子郵件登入' });
+        }
 
         // 查找管理員
         const admin = await Admin.findOne({ email: adminEmail });

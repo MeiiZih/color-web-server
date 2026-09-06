@@ -34,3 +34,13 @@ test('administrator can read a full record; malformed IDs are rejected',async()=
   assert.equal((await fetch(base+'/api/admin/records/'+'3'.repeat(24),{headers:headers('admin')})).status,200);
   assert.equal((await fetch(base+'/api/admin/records/invalid',{headers:headers('admin')})).status,400);
 });
+test('administrator login accepts normalized email but rejects the removed admin alias',async()=>{
+  const findOne=Admin.findOne;let lookups=0;
+  Admin.findOne=async({email})=>{lookups++;assert.equal(email,'yehpty@gmail.com');return {_id:'2'.repeat(24),email,matchPassword:async password=>password==='fixture-only'};};
+  try {
+    const login=email=>fetch(base+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:'fixture-only'})});
+    assert.equal((await login('admin')).status,401);assert.equal(lookups,0);
+    const response=await login(' YEHpTy@gmail.com ');assert.equal(response.status,200);
+    assert.equal((await response.json()).user.role,'admin');assert.equal(lookups,1);
+  } finally {Admin.findOne=findOne;}
+});
