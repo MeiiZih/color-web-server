@@ -2,6 +2,7 @@ import { api, json, restoreSession, saveSession, clearSession, updateSessionUser
 import { esc, icon, date, button, link, field, area, select, table } from './ui.mjs';
 import { safeUrl } from './client.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
+import {reviewPage,bindReview} from './content-review.mjs';
 
 const main = document.querySelector('main');
 const modal = document.querySelector('dialog');
@@ -10,6 +11,8 @@ const studio = document.querySelector('#studio-nav');
 const menu = document.querySelector('#menu-toggle');
 const adminRoutes = new Set(['admin', 'users', 'user', 'surveys', 'survey', 'content', 'content-edit', 'records', 'statistics', 'feedbacks', 'admin-profile']);
 const sections = [['admin', '管理總覽', 'home'], ['users', '帳號管理', 'me'], ['surveys', '問卷管理', 'test'], ['content', '首頁資訊', 'news'], ['records', '測驗紀錄', 'history'], ['feedbacks', '使用者回饋', 'news'], ['admin-profile', '管理員資料', 'me']];
+adminRoutes.add('content-review');
+sections.splice(4,0,['content-review','每週資訊待審','news']);
 sections.splice(5,0,['statistics','測驗統計','test']);
 let revision = 0, recordsRevision = 0, current = '', page = 1, dirty = false, pendingSave = false, timer;
 let survey, contentItems = [], currentRecords = [], userItems = [];
@@ -111,10 +114,15 @@ function surveyEditor() {
 }
 function mediaInput() { return `<label class="field"><span>或上傳圖片（JPG、PNG、WebP，最多 10MB）</span><input type="file" accept="image/jpeg,image/png,image/webp" data-upload></label><p class="hint" data-upload-status role="status">圖片使用原網站的 Cloudinary 圖片空間。</p><img class="media-preview" data-media-preview alt="封面预覽" hidden>`; }
 function contentCards(items) { return `<div class="cards">${items.map(item=>`<article class="management-card"><img src="${esc(safeUrl(item.imageUrl))}" alt="${esc(item.title)}"><span class="hint">${item.type==='news'?'最新資訊':'一般資訊'}</span><h2>${esc(item.title)}</h2><p>${esc(item.description)}</p><div class="actions">${link('#content-edit/'+item._id,'編輯','secondary','edit')}${button('刪除',`data-delete-content="${esc(item._id)}"`,'danger','trash')}</div></article>`).join('')}</div>`; }
-function contentEditor(item = {}) { return `${back('#content','首頁資訊')}${intro(item._id?'編輯資訊':'新增資訊')}<form id="content-form" class="panel form-stack">${select('type','顯示區域',[['news','最新資訊'],['common','一般資訊']],item.type||'news')}${field('title','標題',item.title,'required')}${area('description','內容說明',item.description,'required')}${field('link','外部連結（選填）',item.link)}${field('imageUrl','圖片網址',item.imageUrl,'required')}${mediaInput()}${status}<div class="actions form-actions">${submit('儲存資訊')}${link('#content','取消')}</div></form>`; }
+function contentEditor(item = {}) { return `${back('#content','首頁資訊')}${intro(item._id?'編輯資訊':'新增資訊')}<form id="content-form" class="panel form-stack">${select('type','顯示區域',[['news','最新資訊'],['common','一般資訊']],item.type||'news')}${field('title','標題',item.title,'required')}${area('description','內容說明',item.description,'required')}${field('link','外部連結（選填）',item.link)}${contentMetadata(item)}${field('imageUrl','圖片網址',item.imageUrl,'required')}${mediaInput()}${status}<div class="actions form-actions">${submit('儲存資訊')}${link('#content','取消')}</div></form>`; }
+function contentMetadata(item) { return `<div class="form-grid">${field('sourceName','來源單位',item.sourceName)}${select('contentKind','內容種類',[['resource','服務資源'],['article','文章'],['workshop','工作坊'],['lecture','講座'],['paper','研究論文']],item.contentKind||'resource')}${field('sourcePublishedAt','來源發布日期',item.sourcePublishedAt,'type="date"')}${field('sourceCheckedAt','查核日期',item.sourceCheckedAt,'type="date"')}${field('expiresAt','截止／下架日期（當日結束）',item.expiresAt?.slice(0,10),'type="date"')}${field('registrationUrl','主辦報名連結',item.registrationUrl,'type="url"')}</div>`; }
 function recordRows(records) { return table(['帳號','測驗','結果','完成時間','操作'],records.map(r=>[esc(r.email || '訪客'),esc(r.testType),esc(r.mbtiResult || '一般問卷'),date(r.timestamp),button('查看',`data-record="${esc(r.id||r._id)}"`,'secondary','eye')])); }
 function details(user) { return `<dl class="definition-list">${[['姓名',user.name],['帳號',user.email],['性別',user.gender==='unknown'?'不願透露':user.gender],['生日',user.birthDate?.slice(0,10)],['電話',user.phone],['職業',user.occupation],['註冊時間',date(user.createdAt)]].map(([a,b])=>`<dt>${esc(a)}</dt><dd>${esc(b||'未填寫')}</dd>`).join('')}</dl>`; }
 function information(route) {
+  if(route==='install') {
+    const standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+    return `<article class="prose">${back('/app/#me','我的空間')}${intro('把 ColorLab 放進你的日常','從手機主畫面開啟，少一點瀏覽器的干擾。')}<section class="panel"><h2>${standalone?'目前以獨立 App 模式開啟':'目前以瀏覽器模式開啟'}</h2><p>${standalone?'已偵測到獨立模式。手機的時間、電量與底部操作指示仍由系統顯示。':'目前仍可能顯示網址列及瀏覽器工具列。網站無法直接隱藏這些系統介面，請按下列方式重新加入主畫面。'}</p></section><section><h2>iPhone／iPad</h2><ol><li>用 Safari 開啟下方的 ColorLab 新版入口。</li><li>開啟分享選單，選「加入主畫面」。</li><li>若看到「以網頁 App 開啟／Open as Web App」，請保持開啟，再按加入。</li><li>回到主畫面，點新加入的 ColorLab 圖示開啟，回來這裡確認模式。</li></ol><p>先保留舊捷徑；確認新版正常後再自行移除舊捷徑。不要清除網站資料，以免遺失訪客紀錄與草稿。不同安裝入口可能需要重新登入。</p><a href="https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios" target="_blank" rel="noopener noreferrer">Apple 官方安裝說明 ↗</a></section><section><h2>Android／電腦</h2><p>使用 Chrome 或 Edge 開啟新版入口，從瀏覽器選單選擇安裝應用程式或加入主畫面，再由新圖示開啟。名稱依瀏覽器版本而異。</p></section><div class="actions">${link('https://colorlab-start.onrender.com/app/','開啟 ColorLab 新版入口','primary')}</div><p class="hint">原始後端服務仍處理登入與測驗資料，不需另行開啟或安裝。</p></article>`;
+  }
   if (route === 'contact') return `<div class="form-width">${back('/app/#me','我的空間')}${intro('想告訴我們什麼？','無論是操作問題、建議或資料需求，都可以在這裡留下訊息。')}<form id="contact-form" class="panel form-stack">${area('description','你的訊息','','required maxlength="5000"')}${field('name','稱呼（選填）')}${field('email','電子郵件（選填，供後續聯絡）','','type="email"')}${status}${submit('送出回饋')}</form></div>`;
   if (route === 'about') return `<article class="prose">${back('/app/#home','回到首頁')}${intro('每一面，都是你。','關於 ColorLab')}<section class="panel"><h2>用色彩，開啟自我探索</h2><p>ColorLab 面向想認識自己、照顧心理健康的每一個人。我們從日常選擇出發，探索 MBTI 與色彩之間的連結，讓認識自己成為一件容易開始的事。</p></section><section><h2>為誰而設計？</h2><p>給想更認識自己的你，並彙整心理師公會、張老師、生命線、政府及研究期刊的可查證資訊。本測驗並非經臨床驗證的診斷工具，不能取代專業評估。</p></section><section><h2>我們的團隊</h2><p>余旻諺、蔡美姿、呂依潔、陳湘儒、張嘉哲</p></section><div class="actions">${link('/app/#surveys','開始探索','primary','arrow')}${link('#contact','聯絡我們')}</div></article>`;
   return `<article class="prose">${back('/app/#me','我的空間')}${intro('隱私與資料說明','了解 ColorLab 如何處理你的資料。')}<section><h2>一般帳號</h2><p>電子郵件與密碼用於登入；姓名、生日、性別、電話與職業用於個人資料及研究統計。電話與職業為選填。密碼以雜湊方式保存。</p></section><section><h2>電子郵件驗證</h2><p>新會員須驗證 Email；既有會員可選擇補上驗證。驗證信由 Brevo 代為寄送，會處理收件 Email 與驗證連結，不包含你的測驗答案或結果。連結有效 24 小時，可在驗證頁重新寄送。</p></section><section><h2>訪客與會員紀錄</h2><p>新版訪客測驗答案與結果只保存在目前瀏覽器，清除網站資料後可能遺失，不會自動併入會員帳號。登入會員後完成的測驗會儲存至帳號，並保留完成時的題目快照。</p></section><section><h2>瀏覽器與圖片服務</h2><p>網站在裝置保存登入狀態、公開頁面快取與測驗草稿。登出清除登入狀態，但不主動刪除測驗紀錄。管理員上傳的圖片會傳送至本網站原有的 Cloudinary 圖片空間。</p></section><section><h2>測驗與回饋資料</h2><p>測驗答案、結果與完成時間用於產生報告及研究統計。回饋的姓名與電子郵件為選填，供必要的後續聯絡。測驗僅供自我探索與教學研究，不構成心理或醫療診斷。</p></section><section><h2>查詢、更正與刪除</h2><p>你可以在會員資料頁更正個人資料。如需查詢或刪除資料，請透過意見回饋說明需求並留下聯絡方式。</p>${link('#contact','提出資料需求')}</section></article>`;
@@ -137,15 +145,16 @@ async function render() {
     if (current === 'login' || current === 'admin-login') html = authPage(current === 'admin-login');
     else if (current === 'register') html = registerPage();
     else if (current === 'verification' || current === 'verify') html = verificationPage(current === 'verify');
-    else if (['about','privacy','contact'].includes(current)) html = information(current);
+    else if (['about','privacy','contact','install'].includes(current)) html = information(current);
     else if (current === 'profile' || current === 'admin-profile') { loaded = current==='profile' ? await api('/api/user/profile') : (await adminAPI('/api/admin/profile')).user; html = profilePage(loaded,isAdmin); }
-    else if (current === 'admin') html = `${intro('照顧每一次探索。','問卷、內容與帳號，都在這裡有條理地管理。')}<div class="cards">${sections.slice(1).map(([r,t,i])=>`<article class="management-card"><div class="card-symbol">${icon(i)}</div><h2>${t}</h2><p>${({users:'搜尋與查看會員資料。',surveys:'建立新問卷、維護題目與選項。',content:'整理首頁的最新資訊與一般資訊。',records:'篩選、查看與匯出測驗紀錄。',statistics:'查看問卷、MBTI 與色彩的整體分布。',feedbacks:'閱讀使用者的建議與問題。','admin-profile':'更新個人資料與登入密碼。'})[r]}</p>${link('#'+r,'開啟'+t,'secondary','arrow')}</article>`).join('')}</div>`;
+    else if (current === 'admin') html = `${intro('照顧每一次探索。','問卷、內容與帳號，都在這裡有條理地管理。')}<div class="cards">${sections.slice(1).map(([r,t,i])=>`<article class="management-card"><div class="card-symbol">${icon(i)}</div><h2>${t}</h2><p>${({users:'搜尋與查看會員資料。',surveys:'建立新問卷、維護題目與選項。','content-review':'查核每週建議、勾選核准或略過。',content:'整理首頁的最新資訊與一般資訊。',records:'篩選、查看與匯出測驗紀錄。',statistics:'查看問卷、MBTI 與色彩的整體分布。',feedbacks:'閱讀使用者的建議與問題。','admin-profile':'更新個人資料與登入密碼。'})[r]}</p>${link('#'+r,'開啟'+t,'secondary','arrow')}</article>`).join('')}</div>`;
     else if (current === 'users') { userItems = await adminAPI('/api/admin/users'); html = `${intro('帳號管理','搜尋、查看會員與測驗紀錄。')}<div class="toolbar">${field('search','搜尋帳號或姓名','','type="search" placeholder="輸入姓名、Email 或電話"')}</div><div id="users-list">${usersView()}</div>`; }
     else if (current === 'user') { const [u,r] = await Promise.all([adminAPI('/api/admin/user/'+encodeURIComponent(id)),adminAPI('/api/admin/user/'+encodeURIComponent(id)+'/records')]); loaded=u.user; html=`${back('#users','帳號管理')}${intro(loaded.name||'會員資料',loaded.email)}<section class="panel">${details(loaded)}</section><section class="panel"><h2>測驗紀錄</h2>${recordRows(r.records)}</section>`; }
     else if (current === 'surveys') { loaded = await adminAPI('/api/test/surveys'); html=`${intro('問卷管理','保留主打測驗，也為下一次探索留出空間。')}<div class="toolbar">${link('#survey/new','建立問卷','primary','plus')}</div>${surveyCards(loaded)}`; }
     else if (current === 'survey') { survey = id && id!=='new' ? await adminAPI('/api/test/surveys/'+encodeURIComponent(id)) : {testType:'',description:'',imgUrl:'',questions:[{question:'',options:['','']}]}; html=surveyEditor(); }
-    else if (current === 'content') { contentItems=await adminAPI('/api/homepage'); html=`${intro('首頁資訊','以清楚的圖片與內容，陪伴每一次探索。')}<div class="toolbar">${select('category','資訊類型',[['','全部資訊'],['news','最新資訊'],['common','一般資訊']])}${link('#content-edit/new','新增資訊','primary','plus')}</div><div id="content-list">${contentCards(contentItems)}</div>`; }
-    else if (current === 'content-edit') { loaded = id && id!=='new' ? await adminAPI('/api/homepage/'+encodeURIComponent(id)) : {}; html=contentEditor(loaded); }
+    else if (current === 'content') { contentItems=await adminAPI('/api/admin/content-review/current'); html=`${intro('首頁資訊','以清楚的圖片與內容，陪伴每一次探索。')}<div class="toolbar">${select('category','資訊類型',[['','全部資訊'],['news','最新資訊'],['common','一般資訊']])}${link('#content-edit/new','新增資訊','primary','plus')}</div><div id="content-list">${contentCards(contentItems)}</div>`; }
+    else if (current === 'content-edit') { loaded = id && id!=='new' ? await adminAPI('/api/admin/content-review/current/'+encodeURIComponent(id)) : {}; html=contentEditor(loaded); }
+    else if (current === 'content-review') html=await reviewPage();
     else if (current === 'statistics') {
       const stats=await adminAPI('/api/admin/data-stats');
       const group=(title,rows,labels={})=>`<section class="panel"><h2>${title}</h2>${table(['分類','份數'],rows.map(r=>[esc(labels[r._id]||r._id||'未分類'),esc(r.count)]))}</section>`;
@@ -159,6 +168,7 @@ async function render() {
     if (seq !== revision) return;
     main.innerHTML=html; document.title='ColorLab｜'+(main.querySelector('h1,h2')?.textContent||'我的空間');
     main.focus({preventScroll:true}); window.scrollTo(0,0); bind(loaded);
+    if (current==='content-review') await bindReview(main,{showDialog,modal,notify,setBusy:value=>{pendingSave=value;}});
     if (current==='records') await loadRecords();
   } catch(error) {
     if(seq!==revision)return;

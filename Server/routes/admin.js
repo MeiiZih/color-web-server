@@ -391,4 +391,5 @@ router.get('/records/:id', adminProtect, async (req, res) => {
         res.json(record);
     } catch { res.status(500).json({ message: '無法讀取紀錄' }); }
 });
+router.use('/content-review', adminProtect, require('./contentReview').adminRouter());
 module.exports = router;

@@ -12,6 +12,7 @@ const homepageSchema = new mongoose.Schema({
     sourcePublishedAt: String,
     sourceCheckedAt: String,
     expiresAt: Date,
+    archivedAt: Date,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

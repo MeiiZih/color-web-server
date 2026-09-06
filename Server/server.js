@@ -32,7 +32,7 @@ app.use(cors({
 }));
 
 // 解析 JSON
-app.use(express.json());
+app.use(express.json({limit:'256kb'}));
 
 // ---- 靜態檔與頁面路由 ----
 // color-web 放在 Server 的上一層目錄
@@ -264,6 +264,7 @@ app.use('/api/survey', surveyRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/content-review-ingest', require('./routes/contentReview').ingestion);
 app.use('/api/homepage', homepageRoutes);
 app.use('/api/explore', require('./routes/explore'));
 
