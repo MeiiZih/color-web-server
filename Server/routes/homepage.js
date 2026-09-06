@@ -24,6 +24,7 @@ const adminProtect = async (req, res, next) => {
             if(decoded.role!=='admin')return res.status(403).json({message:'僅管理員可使用'});
             const admin = await Admin.findById(decoded.id).select('-password');
             if (!admin) return res.status(403).json({ message: '無權限訪問' });
+            if (!require('../services/sessionVersion')(decoded, admin, 'admin')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
             req.user = admin;
             next();
         } catch (error) {

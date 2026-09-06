@@ -13,6 +13,7 @@ const protect = async (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
             req.user = await User.findById(decoded.id).select('-password');
             if (!req.user || decoded.role !== 'user') return res.status(401).json({ message: '請重新登入會員。' });
+            if (!require('../services/sessionVersion')(decoded, req.user, 'user')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
             if (require('../services/emailVerification').needsVerification(req.user)) return res.status(403).json({ message: '請先驗證 Email。' });
             next();
         } catch (error) {

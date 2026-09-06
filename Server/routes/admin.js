@@ -11,6 +11,7 @@ const Feedback = require('../models/Feedback');
 
 const router = express.Router();
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+require('../services/passwordReset').attachPasswordReset(router, 'admin');
 
 // 管理員登入路由
 router.post('/login', async (req, res) => {
@@ -72,6 +73,7 @@ const adminProtect = async (req, res, next) => {
                 return res.status(403).json({ message: '無權限訪問，僅管理員可使用' });
             }
             req.user = admin;
+            if (!require('../services/sessionVersion')(decoded, admin, 'admin')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
             next();
         } catch (error) {
             return res.status(401).json({ message: '未授權，token無效' });

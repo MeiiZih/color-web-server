@@ -55,6 +55,13 @@
 .account-app .auth-panel .button.primary { width:100%; }
 .account-app .auth-links { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px; }
 .account-app .auth-switch { display:block; margin-top:24px; font-size:13px; text-align:center; color:var(--muted); }
+.account-app .auth-help { margin:16px 0 0; text-align:center; color:var(--muted); font-size:13px; line-height:1.8; }
+.account-app .auth-help a { display:inline-flex; align-items:center; min-height:44px; color:var(--rose); text-decoration:underline; text-underline-offset:4px; }
+.account-app .recovery-page .form-stack { gap:18px; }
+.account-app .recovery-help { padding-top:20px; border-top:1px solid var(--line); }
+.account-app .recovery-help h2,.account-app .recovery-success h2 { font-size:20px; margin-bottom:10px; }
+.account-app .recovery-help p,.account-app .recovery-success p { color:var(--muted); line-height:1.8; font-size:14px; }
+.account-app .recovery-help a { display:inline-flex; align-items:center; min-height:44px; color:var(--rose); text-decoration:underline; text-underline-offset:4px; }
 .account-app .form-width { max-width:760px; margin:auto; }
 .account-app .account-footer { border-top:1px solid var(--line); padding:24px 32px 32px; display:flex; justify-content:center; gap:20px; flex-wrap:wrap; font-size:12px; color:var(--muted); }
 .account-app .account-footer nav { display:flex; gap:18px; }
@@ -66,6 +73,9 @@
 .account-app #studio-nav[hidden] { display:none; }
 .account-app #studio-nav { top:80px; }
 .account-app .menu-toggle { margin-left:auto; }
+.account-app .header-signout { margin-left:auto; white-space:nowrap; }
+@media(max-width:960px) { .account-app .header-signout { margin-left:0; padding:10px 12px; } .account-app[data-studio=true] .site-header { gap:8px; } .account-app[data-studio=true] .menu-toggle { padding:10px 12px; font-size:12px; white-space:nowrap; } }
+@media(max-width:360px) { .account-app[data-studio=true] .site-header { padding-left:16px; padding-right:16px; gap:6px; } .account-app[data-studio=true] .brand { flex-shrink:0; gap:5px; } .account-app[data-studio=true] .brand>span { font-size:21px; } .account-app[data-studio=true] .brand img { width:26px; height:26px; } .account-app[data-studio=true] .menu-toggle { padding:10px 8px; } }
 .account-app .studio-caption { color:var(--muted); font-size:10px; letter-spacing:.12em; padding:0 14px 14px; }
 .account-app #studio-nav a,.account-app #studio-nav button { display:flex; align-items:center; gap:12px; min-height:48px; padding:12px 14px; margin-bottom:5px; border:0; border-radius:12px; color:var(--muted); background:transparent; text-decoration:none; width:100%; font:14px system-ui; text-align:left; }
 .account-app #studio-nav [aria-current=page] { background:var(--rose-soft); color:var(--rose); font-weight:600; }
@@ -120,6 +130,40 @@
 .account-app .guide-devices ol { margin:0 0 12px; padding-left:26px; line-height:1.9; }
 .account-app .guide-devices li { padding:3px 0; }
 .account-app .guide-devices a { display:inline-flex; align-items:center; min-height:44px; color:var(--rose); font-size:14px; }
+.account-app .install-sketch { margin:8px 0 24px; }
+.account-app .install-sketch figcaption { color:var(--muted); font-size:12px; margin-bottom:12px; }
+.account-app .install-frames { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.account-app .install-frame { min-width:0; }
+.account-app .install-window { height:210px; border:1px solid #d6c8c6; border-radius:20px; overflow:hidden; position:relative; background:var(--subtle); font:12px/1.5 system-ui,sans-serif; color:var(--ink); }
+.account-app .install-window.is-desktop { border-radius:10px; }
+.account-app .install-address { display:flex; justify-content:space-between; padding:9px 12px; background:var(--panel); border-bottom:1px solid var(--line); font-size:11px; }
+.account-app .install-page { display:grid; justify-items:center; align-content:center; gap:12px; height:155px; }
+.account-app .install-app-tile { display:grid; justify-items:center; gap:6px; font-size:12px; }
+.account-app .install-app-tile img { width:40px; height:40px; border-radius:12px; padding:5px; background:white; }
+.account-app .install-browser-bar { position:absolute; inset:auto 0 0; display:flex; justify-content:space-around; align-items:center; padding:7px 0; background:var(--panel); border-top:1px solid var(--line); }
+.account-app .install-highlight { background:var(--rose-soft); color:var(--rose); border-radius:6px; font-weight:600; }
+.account-app .install-browser-bar .install-highlight { display:flex; align-items:center; padding:2px 8px; gap:4px; }
+.account-app .install-browser-bar svg { width:20px; height:20px; }
+.account-app .install-sheet { position:absolute; inset:auto 6px 0; display:grid; gap:7px; padding:12px 9px; background:var(--panel); border:1px solid var(--line); border-bottom:0; border-radius:12px 12px 0 0; }
+.account-app .install-sheet-handle { width:30px; height:3px; border-radius:5px; background:#d6c8c6; justify-self:center; }
+.account-app .install-menu-row { display:flex; align-items:center; justify-content:space-between; gap:5px; padding:8px 5px; border-top:1px solid var(--line); font-size:11px; }
+.account-app .install-sheet-title { display:flex; justify-content:space-between; gap:6px; }
+.account-app .install-sheet-title b { color:var(--rose); }
+.account-app .install-toggle { width:25px; height:15px; background:#809986; border-radius:12px; flex-shrink:0; position:relative; }
+.account-app .install-toggle::after { content:''; position:absolute; width:11px; height:11px; border-radius:50%; background:white; right:2px; top:2px; }
+.account-app .install-menu-cue { color:var(--muted); }
+.account-app .install-menu-cue b { color:var(--rose); background:var(--rose-soft); padding:2px 9px; border-radius:6px; font-size:18px; }
+.account-app .install-dialog-title { text-align:center; font-size:11px; }
+.account-app .install-confirm { justify-self:end; padding:5px 15px; background:var(--rose-soft); color:var(--rose); border-radius:16px; }
+.account-app .guide-step .install-caption { display:flex; align-items:start; gap:8px; margin:12px 0; font-size:12px; line-height:1.7; }
+.account-app .install-caption > b { width:22px; height:22px; background:var(--rose-soft); color:var(--rose); border-radius:50%; text-align:center; flex-shrink:0; }
+.account-app .install-caption strong { display:block; font-size:14px; margin-bottom:3px; }
+.account-app .guide-step .install-sketch > .hint { font-size:12px; margin:4px 0 0; }
+.account-app .guide-gentle-note { margin:24px 0 0; padding:28px 32px; background:#f3eee8; border-radius:20px; border-left:3px solid #c7b5ab; }
+.account-app .guide-gentle-note h2 { font-size:23px; line-height:1.5; margin:12px 0; }
+.account-app .guide-gentle-note p { max-width:60ch; font-size:15px; line-height:1.9; color:var(--muted); margin:0 0 14px; }
+.account-app .guide-gentle-note .guide-note-scope { margin:0; font-size:13px; }
+@media(max-width:600px) { .account-app .install-frames { grid-template-columns:1fr; gap:20px; } .account-app .install-frame { display:grid; grid-template-columns:minmax(0,1fr); } .account-app .install-window { width:100%; max-width:240px; justify-self:center; } .account-app .guide-gentle-note { padding:24px 20px; } .account-app .guide-gentle-note h2 { font-size:21px; } }
 @media(max-width:700px) { .account-app .first-use-guide .guide-step { grid-template-columns:28px minmax(0,1fr); gap:12px; padding:24px 0; } .account-app .guide-number { font-size:18px; } .account-app .guide-step h2 { font-size:21px; } }
 .account-app dialog { max-height:85dvh; width:min(680px,calc(100% - 32px)); }
 .account-app dialog .actions { margin-top:24px; }
@@ -164,3 +208,26 @@
   .account-app .definition-list { grid-template-columns:1fr; gap:6px; }
   .account-app .definition-list dd { margin-bottom:14px; }
 }
+/* Nested member-record cards need the full reading width on phones. */
+@media(max-width:700px) {
+  .account-app .panel .data-list td { grid-template-columns:minmax(0,1fr); gap:5px; }
+  .account-app .panel .data-list td .button { justify-self:start; }
+  .account-app #action-dialog { padding:24px 20px; }
+  .account-app #action-dialog .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .account-app #action-dialog .actions .button { width:100%; min-width:0; padding:12px 10px; }
+}
+@media(max-width:360px) { .account-app #action-dialog .actions { grid-template-columns:minmax(0,1fr); } }
+/* Record facts and file actions share one quiet summary, without reinterpreting results. */
+.account-app .record-summary { margin:20px 0 10px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:16px; }
+.account-app .record-meta { margin:0;display:grid;gap:10px; }
+.account-app .record-meta dt { font-size:12px;color:var(--muted); }
+.account-app .record-meta dd { margin:3px 0 0;font-size:14px;overflow-wrap:anywhere; }
+.account-app .record-result { display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line); }
+.account-app .record-result>span { font-size:12px;color:var(--muted); }
+.account-app .record-result strong { padding:6px 12px;border-radius:8px;background:var(--rose-soft);color:var(--rose);font-size:19px;letter-spacing:.06em; }
+.account-app .record-color-label { margin-left:4px; }
+.account-app .record-color { padding:5px 8px;border:1px solid var(--line);border-radius:6px; }
+.account-app .record-dialog .dialog-close { color:var(--rose); }
+.account-app .record-dialog[data-pointer-focus] .dialog-close:focus { outline:none;box-shadow:none; }
+.account-app .record-dialog .dialog-close:focus-visible { outline:2px solid var(--rose);outline-offset:1px; }
+@media(max-width:360px){.account-app .record-summary{padding:14px}.account-app .record-result{display:grid;grid-template-columns:max-content minmax(0,1fr)}.account-app .record-result strong,.account-app .record-color{justify-self:start}.account-app .record-color-label{margin-left:0}}

@@ -13,7 +13,8 @@
     const service = /^\/(api\/|health(?:$|\/))/.test(url.pathname);
     return service && [location.origin, backend].includes(url.origin) ? backend + url.pathname + url.search : null;
   }
-  const ready = (async () => {
+  let connectionPromise;
+  const connect = () => connectionPromise ||= (async () => {
     try {
       const response = await nativeFetch(backend + '/health', { cache: 'no-store', signal: AbortSignal.timeout(1500) });
       if (response.ok && (await response.text()).trim() === 'OK') return;
@@ -65,13 +66,13 @@
       frame.focus();
     });
   })();
-  window.ColorLabConnection = { ready };
+  window.ColorLabConnection = { get ready() { return connect(); } };
   window.fetch = async (input, init) => {
     const report = reportPath(input);
     if (report && (!init?.method || init.method === 'GET') && (!(input instanceof Request) || input.method === 'GET')) return nativeFetch(report, init);
     const target = endpoint(input);
     if (!target) return nativeFetch(input, init);
-    await ready;
+    await connect();
     if (input instanceof Request) {
       const source = new Request(input, init);
       return nativeFetch(target, { method: source.method, headers: source.headers,

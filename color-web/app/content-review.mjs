@@ -18,7 +18,8 @@ export async function bindReview(root,{showDialog,modal,notify,setBusy=()=>{}}){
  let filter='pending',generation=0,busy=false;
  const results=root.querySelector('#review-results');
  async function load(){
-  const seq=++generation;results.innerHTML='<p role="status">正在讀取待審清單…</p>';
+  const seq=++generation;results.setAttribute('aria-busy','true');results.inert=true;
+  if(!results.childElementCount)results.innerHTML='<p role="status">正在讀取待審清單…</p>';
   try{
    const data=await request('?status='+filter);if(seq!==generation||!results.isConnected)return;
    const latest=data.batches[0];
@@ -33,6 +34,7 @@ export async function bindReview(root,{showDialog,modal,notify,setBusy=()=>{}}){
    });
    results.querySelectorAll('[data-restore-review]').forEach(b=>b.onclick=()=>confirm('恢復已下架資訊？','恢復後，尚未過期的資訊將重新出現在首頁。',()=>request('/'+b.dataset.restoreReview+'/restore',json('POST',{})),'確認恢復'));
   }catch(e){if(seq===generation&&results.isConnected){results.innerHTML=`<p role="alert">${esc(e.message)}</p><button type="button" class="button secondary" data-review-retry>重新載入</button>`;results.querySelector('button').onclick=load;}}
+  finally{if(seq===generation&&results.isConnected){results.removeAttribute('aria-busy');results.inert=false;}}
  }
  function confirm(title,body,task,label){
   if(busy)return;showDialog(title,`<div>${body}</div><form data-review-confirm><p role="alert" data-review-error></p><div class="actions"><button type="button" class="button secondary" data-review-cancel>取消</button><button type="submit" class="button primary">${label}</button></div></form>`);

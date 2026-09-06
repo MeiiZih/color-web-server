@@ -40,7 +40,7 @@ export async function api(path, { role = 'user', ...options } = {}) {
   const token = sessionStorage.getItem(role === 'admin' ? 'adminToken' : 'userToken');
   const response = await fetch(path, { ...options, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers }, signal: options.signal || AbortSignal.timeout(25000) });
   const data = await response.json().catch(() => ({ message: '服務尚未準備好，請稍後重試。' }));
-  if (!response.ok) { const error = new Error(data.message || '操作未完成，請稍後重試。'); error.status = response.status; throw error; }
+  if (!response.ok) { const error = new Error(data.message || '操作未完成，請稍後重試。'); error.status = response.status; error.code = data.code; throw error; }
   return data;
 }
 export const json = (method, value, role) => ({ method, role, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });

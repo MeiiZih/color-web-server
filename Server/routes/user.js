@@ -8,6 +8,7 @@ const emailVerification = require('../services/emailVerification');
 
 const router = express.Router();
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+require('../services/passwordReset').attachPasswordReset(router, 'user');
 router.post('/email-verification/confirm', emailVerification.limitRequest, async (req, res) => {
     try { res.json(await emailVerification.confirmVerification(req.body.token, req.body.password)); }
     catch (error) { res.status(error.status || 503).json({ message: error.status ? error.message : '驗證未完成，請稍後重試。' }); }
@@ -218,6 +219,7 @@ async function protect(req, res, next) {
             if (decoded.role !== 'user') return res.status(403).json({ message: '請使用會員帳號' });
             req.user = await User.findById(decoded.id).select('-password');
             if (!req.user) return res.status(401).json({ message: '請重新登入' });
+            if (!require('../services/sessionVersion')(decoded, req.user, 'user')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
             if (emailVerification.needsVerification(req.user)) return res.status(403).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: '請先驗證 Email。' });
             next();
         } catch (error) {

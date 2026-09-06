@@ -18,6 +18,7 @@ module.exports = async function adminProtect(req, res, next) {
         }
 
         req.user = admin;
+        if (!require('../services/sessionVersion')(decoded, admin, 'admin')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
         return next();
     } catch (_error) {
         return res.status(401).json({ message: '管理員登入已失效，請重新登入' });

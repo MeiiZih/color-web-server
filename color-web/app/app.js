@@ -25,6 +25,7 @@ let FEATURED_SURVEY;
 let member = null;
 let storageKey;
 let historyError = '';
+const publicViews = new Map(); // Only public read-only views; no forms, records or account data.
 const icons = {
   home: '<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',
   test: '<rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 3h6v4H9zM9 12h6M9 16h4"/>',
@@ -74,6 +75,7 @@ function home() {
   if (!featured) return '<div class="empty-state"><h1>新的探索，正在準備中</h1><p>目前沒有開放的問卷，過去的紀錄仍可查看。</p><a class="button primary" href="#history">查看測驗紀錄</a></div>';
   const count = answered(featured.id);
   return `<div class="home-page page-width">
+    <aside class="first-visit"><a href="/app/account.html#install"><span class="first-visit-symbol" aria-hidden="true">${icon('home')}</span><span><span class="eyebrow">START HERE</span><strong>初次使用 ColorLab</strong><span>怎麼開始測驗、保存紀錄，或加入手機主畫面？</span><span class="first-visit-link">查看完整使用說明 ${icon('arrow')}</span></span></a></aside>
     <section class="hero" aria-labelledby="home-heading">
       <div class="hero-copy"><div class="eyebrow"><svg class="tiny-flower quiet-glint" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 3C12 9 9 12 3 12C9 12 12 15 12 21C12 15 15 12 21 12C15 12 12 9 12 3Z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/></svg> A LITTLE CLOSER TO YOU</div>
         <h1 id="home-heading">你的每一面，<br>都有自己的<span class="rose-word">顏色。</span></h1>
@@ -96,7 +98,6 @@ function home() {
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><a class="text-button collection-entry" href="#resources">探索全部內容${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
-    <aside class="first-visit"><a href="/app/account.html#install"><span class="first-visit-symbol" aria-hidden="true">${icon('home')}</span><span><span class="eyebrow">START HERE</span><strong>初次使用 ColorLab</strong><span>怎麼開始測驗、保存紀錄，或加入手機主畫面？</span><span class="first-visit-link">查看完整使用說明 ${icon('arrow')}</span></span></a></aside>
     <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
   </div>`;
 }
@@ -177,7 +178,8 @@ function legacyResult(record) {
 
 function me() {
   const admin = member?.role === 'admin' || (!member && sessionStorage.getItem('adminToken'));
-  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div><a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? `<a class="profile-row" href="/app/account.html#admin">${icon('me')}管理後台${icon('arrow')}</a>` : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : '<a class="button primary" href="/app/account.html#login">登入／註冊會員</a><p class="preview-note">登入後，完成的測驗會儲存到帳號；訪客紀錄不會自動合併。</p>'}</div>`;
+  const guestAccount = !member && !admin ? `<section class="guest-account" aria-labelledby="guest-account-title"><h2 id="guest-account-title">收藏接下來的每一次探索。</h2><p>登入後完成的測驗，會儲存在你的帳號中。</p><div class="guest-account-actions"><a class="button primary" href="/app/account.html#login">登入</a><a class="button secondary" href="/app/account.html#register">建立帳號</a></div><p class="guest-account-note">目前的訪客紀錄只保存在這個瀏覽器，不會自動合併到會員帳號。</p></section>` : '';
+  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div>${guestAccount}<a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? `<a class="profile-row" href="/app/account.html#admin">${icon('me')}管理後台${icon('arrow')}</a><button class="button secondary" data-logout>登出</button>` : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : ''}</div>`;
 }
 
 function openDialog(content) {
@@ -214,13 +216,18 @@ function render(direction = 'page') {
   activeSurvey = catalog.find(s => s.id === (id || FEATURED_SURVEY)) || catalog[0];
   nav.innerHTML = [['home', '首頁'], ['surveys', '測驗'], ['history', '紀錄'], ['me', '我的']].map(([key, label]) => `<a href="#${key}" ${key === active ? 'aria-current="page"' : ''}>${icon(key === 'surveys' ? 'test' : key)}<span>${label}</span></a>`).join('');
   const record = state.records.find(r => r.id === id);
-  main.innerHTML = ['news','resources'].includes(route) ? collectionPage(route) : route === 'surveys' ? (catalog.length ? surveyList() : home()) : route === 'test' ? (!activeSurvey || id && !catalog.some(s => s.id === id) ? '<div class="empty-state"><h1>找不到這份問卷</h1><a href="#surveys" class="button primary">返回全部測驗</a></div>' : test()) : route === 'history' ? historyPage() : route === 'me' ? me() : route === 'result' && record ? result(record) : home();
+  const reusable = ['home','surveys','news','resources'].includes(route);
+  const signature = reusable ? JSON.stringify([hue, state.drafts, catalog, articles, resources]) : '';
+  const cached = publicViews.get(route), reuse = reusable && cached?.signature === signature;
+  if (reuse) main.replaceChildren(cached.node);
+  else main.innerHTML = ['news','resources'].includes(route) ? collectionPage(route) : route === 'surveys' ? (catalog.length ? surveyList() : home()) : route === 'test' ? (!activeSurvey || id && !catalog.some(s => s.id === id) ? '<div class="empty-state"><h1>找不到這份問卷</h1><a href="#surveys" class="button primary">返回全部測驗</a></div>' : test()) : route === 'history' ? historyPage() : route === 'me' ? me() : route === 'result' && record ? result(record) : home();
   document.body.dataset.page = route;
   main.dataset.stepMotion = direction === 'next' || direction === 'previous' ? direction : 'page';
   document.title = `ColorLab｜${({ home: '發現你的本色', news: '最近，值得留意的事', resources: '給心一點空間', surveys: '全部測驗', test: activeSurvey?.title || '測驗', history: '測驗紀錄', result: '測驗結果', me: '我的空間' })[route] || '首頁'}`;
   window.scrollTo({ top: 0, behavior: 'instant' });
   main.focus({ preventScroll: true });
-  bindPage();
+  if (!reuse) bindPage();
+  if (reusable) publicViews.set(route, {signature, node:main.firstElementChild});
 }
 
 function bindPage() {
@@ -247,7 +254,7 @@ function bindPage() {
     };
   }));
   const profile = document.querySelector('.profile-page');
-  if (profile && (!member || member.role === 'admin')) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<p class="muted">${sessionStorage.getItem('adminToken') ? '目前使用管理員身分；測驗會儲存至管理員自己的紀錄，與會員紀錄分開。會員 Email 驗證不適用於管理員帳號。' : '登入會員後，可在這裡查看 Email 驗證狀態。'}</p>`);
+  if (profile && member?.role === 'admin') profile.querySelector('.profile-card').insertAdjacentHTML('afterend', '<p class="muted">目前使用管理員身分；測驗會儲存至管理員自己的紀錄，與會員紀錄分開。會員 Email 驗證不適用於管理員帳號。</p>');
   if (profile && member && member.role !== 'admin') profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<section class="verification-panel"><div data-verification-status>${verificationStatus(member)}</div><a class="text-button" href="/app/account.html#profile">管理 Email 驗證${icon('arrow')}</a></section>`);
   bindVerificationStatus(document.querySelector('[data-verification-status]'), () => request('/api/user/profile'), user => { member = { ...member, emailVerifiedAt: user.emailVerifiedAt || null, emailVerificationRequired: user.emailVerificationRequired === true }; });
   if (document.body.dataset.page === 'test' && draft()?.pending) {
@@ -339,19 +346,28 @@ function bindPage() {
 window.addEventListener('hashchange', render);
 try {
   await window.ColorLabConnection?.ready;
-  catalog = await request('/api/explore/catalog');
+  const signedIn = !!(sessionStorage.getItem('userToken') || sessionStorage.getItem('adminToken'));
+  // Independent reads share one wake gate, not four consecutive network round trips.
+  const [catalogRead, memberRead, recordsRead, feedRead] = await Promise.allSettled([
+    request('/api/explore/catalog'), signedIn ? request('/api/explore/me') : null,
+    signedIn ? request('/api/explore/records') : [], request('/api/homepage')
+  ]);
+  if (catalogRead.status === 'rejected') throw catalogRead.reason;
+  if (memberRead.status === 'rejected') throw memberRead.reason;
+  catalog = catalogRead.value;
   if (!Array.isArray(catalog)) throw new Error('題庫暫時無法讀取，請稍後重試。');
   FEATURED_SURVEY = (catalog.find(s => s.featured) || catalog[0])?.id;
   questions = catalog[0]?.questions || [];
-  if (sessionStorage.getItem('userToken') || sessionStorage.getItem('adminToken')) member = await request('/api/explore/me');
+  member = memberRead.value;
   storageKey = `colorlab-app-v1:${member?.role === 'admin' ? 'admin:' : ''}${member?.id || 'guest'}`;
   state = readLocal(previewStorage, storageKey, catalog);
   if (member) {
-    try { state.records = await request('/api/explore/records'); }
-    catch (error) { historyError = error.message; }
+    if (recordsRead.status === 'fulfilled') state.records = recordsRead.value;
+    else historyError = recordsRead.reason.message;
   }
   try {
-    const feed = await request('/api/homepage');
+    if (feedRead.status === 'rejected') throw feedRead.reason;
+    const feed = feedRead.value;
     const mapItem = a => ({ tag: ({ workshop:'工作坊', lecture:'講座', article:'心理健康文章', paper:'研究論文', resource:'資源指南' })[a.contentKind] || (a.type === 'news' ? '最新資訊' : '一般資訊'), title: a.title, description: a.description, sourceName: a.sourceName, media: { ...mediaFor(a), imageUrl: mediaFor(a).imageUrl ? safeUrl(mediaFor(a).imageUrl, '') : '' }, registrationUrl: a.registrationUrl ? safeUrl(a.registrationUrl, '') : '', url: safeUrl(a.link, ''), sourceNote: a.sourceName ? [a.sourceName, a.sourcePublishedAt && `發布 ${a.sourcePublishedAt}`, a.sourceCheckedAt && `查核 ${a.sourceCheckedAt}`].filter(Boolean).join(' · ') : '' });
     const currentFeed = feed.filter(a => isCurrentContent(a));
     articles = currentFeed.filter(a => a.type === 'news').map(mapItem);

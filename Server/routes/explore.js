@@ -24,12 +24,14 @@ router.use(async (req, res, next) => {
     if (!['user', 'admin'].includes(payload.role)) return res.status(403).json({ message: '請使用會員或管理員帳號作答。' });
     req.memberRole = payload.role;
     if (payload.role === 'admin') {
-      req.member = await Admin.findById(payload.id).select('_id email name role').lean();
+      req.member = await Admin.findById(payload.id).select('_id email name role sessionVersion').lean();
       if (!req.member || req.member.role !== 'admin') return res.status(403).json({ message: '管理員身分不存在，請重新登入。' });
+      if (!require('../services/sessionVersion')(payload, req.member, 'admin')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
       return next();
     }
-    req.member = await User.findById(payload.id).select('_id email name emailVerificationRequired emailVerifiedAt').lean();
+    req.member = await User.findById(payload.id).select('_id email name emailVerificationRequired emailVerifiedAt sessionVersion').lean();
     if (!req.member) return res.status(401).json({ message: '請重新登入會員。' });
+    if (!require('../services/sessionVersion')(payload, req.member, 'user')) return res.status(401).json({ message: '登入已失效，請重新登入。' });
     if (require('../services/emailVerification').needsVerification(req.member)) return res.status(403).json({ message: '請先驗證 Email，再使用會員功能。' });
     next();
   } catch { res.status(401).json({ message: '登入已過期，請重新登入；作答進度仍會保留。' }); }

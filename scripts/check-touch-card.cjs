@@ -19,6 +19,7 @@ const assert = require('node:assert/strict');
       assert.equal(await page.locator('[data-pointer-focus]').count(), 0);
       assert.equal(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), 'solid');
       const help = page.locator('.first-visit a');
+      assert.equal(await page.locator('.home-page > :first-child').getAttribute('class'), 'first-visit');
       assert.match(await help.innerText(), /初次使用 ColorLab/);
       assert.equal(await help.getAttribute('href'), '/app/account.html#install');
       await help.scrollIntoViewIfNeeded();

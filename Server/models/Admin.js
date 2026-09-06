@@ -3,6 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const adminSchema = new mongoose.Schema({
+    sessionVersion: { type: Number, default: 0 },
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
+    passwordResetEmail: { type: String, select: false },
+    passwordResetSendAfter: { type: Date, select: false },
     email: {
         type: String,
         required: true,
@@ -43,6 +48,7 @@ const adminSchema = new mongoose.Schema({
 // 儲存前進行密碼加密
 adminSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
+    if (!this.isNew) this.set({ passwordResetTokenHash: undefined, passwordResetExpiresAt: undefined, passwordResetEmail: undefined });
     this.password = await bcrypt.hash(this.password, 10);
     next();
 });
@@ -54,9 +60,10 @@ adminSchema.methods.matchPassword = async function (enteredPassword) {
 
 // 生成 JWT Token
 adminSchema.methods.generateToken = function() {
-    return jwt.sign({ id: this._id, role: 'admin' }, process.env.JWT_SECRET || 'your-secret-key', {
+    return jwt.sign({ id: this._id, role: 'admin', sessionVersion: this.sessionVersion || 0 }, process.env.JWT_SECRET || 'your-secret-key', {
         expiresIn: '30d'
     });
 };
 
+adminSchema.index({ passwordResetTokenHash: 1 }, { unique: true, sparse: true });
 module.exports = mongoose.model('Admin', adminSchema);

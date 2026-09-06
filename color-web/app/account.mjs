@@ -17,6 +17,7 @@ sections.splice(5,0,['statistics','測驗統計','test']);
 let revision = 0, recordsRevision = 0, current = '', page = 1, dirty = false, pendingSave = false, timer;
 let survey, contentItems = [], currentRecords = [], userItems = [];
 let verificationToken = '';
+let recoveryToken = null;
 function verificationPage(confirm = false) {
   return `<div class="form-width">${back('#login','回到登入')}${intro(confirm ? '確認這個 Email 屬於你' : '到信箱完成最後一步', confirm ? '請輸入你的 ColorLab 密碼，完成電子郵件驗證。' : '新會員驗證後即可登入。既有會員可自由選擇驗證，不影響原本的使用。')}<section class="panel form-stack"><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>${confirm ? `<form id="verify-form" class="form-stack">${password()}${status}${submit('確認並驗證 Email')}</form>` : `<p>驗證連結有效 24 小時。若沒有收到，請先查看垃圾郵件；重新寄送後請使用最新一封信。</p><form id="resend-form" class="form-stack">${field('email','註冊的電子郵件',sessionStorage.getItem('colorlab:pending-email')||'','type="email" autocomplete="username" required')}${password()}${status}${submit('重新寄送驗證信')}</form>`}<div class="actions">${link('#login','我已驗證，前往登入')}${confirm ? link('#verification','重新寄送驗證信') : ''}</div><p class="hint">若不是你申請的帳號，請勿驗證。</p></section></div>`;
 }
@@ -40,7 +41,10 @@ async function saveForm(form, task) {
   try { await task(); dirty = false; } catch (error) { formError(form, error); }
   finally { pendingSave = false; submitter.disabled = false; submitter.innerHTML = text; form.removeAttribute('aria-busy'); }
 }
-function showDialog(title, html) { document.querySelector('#dialog-content').innerHTML = `<h2 id="dialog-title">${esc(title)}</h2>${html}`; modal.showModal(); }
+let dialogPointer = false;
+document.addEventListener('pointerdown', () => { dialogPointer = true; modal.setAttribute('data-pointer-focus',''); }, true);
+document.addEventListener('keydown', () => { dialogPointer = false; modal.removeAttribute('data-pointer-focus'); }, true);
+function showDialog(title, html) { document.querySelector('#dialog-content').innerHTML = `<h2 id="dialog-title">${esc(title)}</h2>${html}`; modal.classList.toggle('record-dialog',Boolean(modal.querySelector('.record-summary'))); modal.toggleAttribute('data-pointer-focus',dialogPointer); modal.showModal(); }
 modal.querySelector('.dialog-close').onclick = () => { if (!pendingSave) modal.close(); };
 modal.addEventListener('cancel', event => { if (pendingSave) event.preventDefault(); });
 function confirmAction(title, description, task) {
@@ -50,6 +54,8 @@ function confirmAction(title, description, task) {
 }
 function frame(isAdmin) {
   document.body.dataset.studio = String(isAdmin);
+  document.querySelector('[data-header-signout]')?.remove();
+  if(isAdmin)menu.insertAdjacentHTML('afterend','<button type="button" class="button secondary header-signout" data-header-signout data-signout aria-label="登出管理帳號">登出</button>');
   const links = [['home', '首頁', 'home'], ['surveys', '測驗', 'test'], ['history', '紀錄', 'history'], ['me', '我的', 'me']];
   navigation.innerHTML = links.map(([route, text, symbol]) => `<a href="/app/#${route}"${route === 'me' ? ' aria-current="page"' : ''}>${icon(symbol)}<span>${text}</span></a>`).join('');
   studio.hidden = !isAdmin;
@@ -65,11 +71,19 @@ document.addEventListener('click', event => {
   if (anchor && (dirty || pendingSave) && !anchor.target) {
     if (pendingSave || !confirm('尚有未儲存的變更。確定離開這個頁面？')) event.preventDefault(); else dirty = false;
   }
-  if (event.target.closest('[data-signout]')) { clearSession(); location.assign('/app/account.html#login'); }
+  if (event.target.closest('[data-signout]')) {
+    if(pendingSave||(dirty&&!confirm('尚有未儲存的變更。確定登出？')))return;
+    dirty=false;clearSession();location.assign('/app/account.html#login');
+  }
 });
 window.addEventListener('beforeunload', event => { if (dirty || pendingSave) { event.preventDefault(); event.returnValue = ''; } });
 function authPage(admin = false) {
-  return `<div class="auth-layout"><section class="auth-story"><span class="eyebrow">A LITTLE CLOSER TO YOU</span><h1>每一面，<br>都值得被理解。</h1><p>留一點時間給自己。<br>從一場色彩探索，重新認識你的模樣。</p><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div></section><section class="panel auth-panel">${back('/app/#home', '回到首頁')}<h2>${admin ? '管理員登入' : '歡迎回來'}</h2><p class="hint">${admin ? '使用管理員電子郵件進入管理工作室。' : '登入後，讓每一次探索都有跡可循。'}</p><form id="login-form" class="form-stack">${field('email', admin ? '管理員電子郵件' : '電子郵件', '', 'type="email" autocomplete="username" required')}${password()}${status}${admin ? '' : link('#verification','重新寄送驗證信')}${submit(admin ? '登入管理工作室' : '登入')}</form>${admin ? '<a class="auth-switch" href="#login">回到會員登入</a>' : `<div class="auth-links">${link('/app/#surveys', '先以訪客探索')}${link('#register', '建立帳號')}</div><a class="auth-switch" href="#admin-login">管理員登入</a>`}</section></div>`;
+  return `<div class="auth-layout"><section class="auth-story"><span class="eyebrow">A LITTLE CLOSER TO YOU</span><h1>每一面，<br>都值得被理解。</h1><p>留一點時間給自己。<br>從一場色彩探索，重新認識你的模樣。</p><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div></section><section class="panel auth-panel">${back('/app/#home', '回到首頁')}<h2>${admin ? '管理員登入' : '會員登入'}</h2><p class="hint">${admin ? '使用管理員電子郵件進入管理工作室。' : '以會員身分登入，保存每一次探索；管理員請使用下方專用入口。'}</p><form id="login-form" class="form-stack">${field('email', admin ? '管理員電子郵件' : '會員電子郵件', '', 'type="email" autocomplete="username" required')}${password()}${status}${submit(admin ? '登入管理工作室' : '登入會員帳號')}</form><div data-login-guidance></div><p class="auth-help"><a href="#${admin?'admin-forgot-password':'forgot-password'}">忘記密碼？</a></p>${admin ? '<a class="auth-switch" href="#login">回到會員登入</a>' : `<div class="auth-links">${link('/app/#surveys', '先以訪客探索')}${link('#register', '建立帳號')}</div><a class="auth-switch" href="#admin-login">管理員登入</a>`}</section></div>`;
+}
+function recoveryPage(admin=false,reset=false){
+  const role=admin?'admin':'user',login=admin?'admin-login':'login',forgot=admin?'admin-forgot-password':'forgot-password';
+  const usable=recoveryToken?.role===role&&/^[a-f0-9]{64}$/.test(recoveryToken.token);
+  return `<div class="form-width recovery-page">${back('#'+login,admin?'回到管理員登入':'回到會員登入')}${intro(reset?'設定新密碼':admin?'找回管理員密碼':'找回會員密碼',reset?'設定完成後，請用新密碼重新登入。':'我們會透過帳號信箱協助你重新設定密碼。')}<section class="panel form-stack">${reset?(usable?`<form id="reset-password-form" data-recovery-role="${role}" class="form-stack">${password('password','新密碼','required minlength="6" maxlength="128"','new-password')}${password('confirmPassword','確認新密碼','required minlength="6" maxlength="128"','new-password')}<p class="hint">請設定至少 6 個字元的密碼。最多 72 個英數字元；中文或表情符號可用字數較少。完成後，其他裝置也需重新登入。</p>${status}${submit('更新密碼')}</form><p class="auth-help"><a href="#${forgot}">連結過期或不能使用？重新申請</a></p>`:`<p role="alert">這個重設連結無法使用。請從信件重新開啟完整連結，或重新申請。</p>${link('#'+forgot,'重新申請重設連結','primary')}`):`<form id="forgot-password-form" data-recovery-role="${role}" class="form-stack">${field('email',admin?'管理員電子郵件':'會員電子郵件','','type="email" autocomplete="email" required maxlength="254"')}${status}${submit('寄送重設連結')}</form><div class="recovery-help"><h2>收不到信，或沒有可用的信箱？</h2><p>請先查看垃圾郵件。未綁定信箱、無法開啟信箱，或會員尚未完成 Email 驗證時，請聯絡管理員協助確認身分；我們不會在此顯示帳號是否存在。</p><a href="#contact">聯絡管理員</a></div>`}</section></div>`;
 }
 function registerPage() {
   return `<div class="form-width">${back('#login','回到登入')}${intro('建立你的探索空間','登入後的測驗紀錄會保存在帳號中，訪客紀錄不會自動合併。')}<form id="register-form" class="panel form-stack"><div class="form-grid">${field('name','姓名','','autocomplete="name" required')}${select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']])}${field('birthDate','出生日期','','type="date" required max="'+new Date().toISOString().slice(0,10)+'"')}${field('phone','電話（選填）','','type="tel" autocomplete="tel"')}</div>${field('email','電子郵件','','type="email" autocomplete="email" required')}${password('password','密碼','required minlength="6"','new-password')}${password('confirmPassword','確認密碼','required minlength="6"','new-password')}<p class="hint">密碼至少 6 個字元。新會員須完成 Email 驗證後才能登入。</p><label class="check-label"><input type="checkbox" name="consent" required><span>我已閱讀並同意 <a href="#privacy" target="_blank">隱私與資料說明</a>。</span></label>${link('#verification','已註冊但沒有收到驗證信？')}${status}${submit('建立帳號並寄送驗證信')}</form></div>`;
@@ -121,17 +135,34 @@ function details(user) { return `<dl class="definition-list">${[['姓名',user.n
 function information(route) {
   if(route==='install') {
     const standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+    const sketch=(device,steps)=>`<figure class="install-sketch"><figcaption>${device} 操作示意・非實際截圖</figcaption><div class="install-frames">${steps.map(([title,screen,caption],i)=>`<div class="install-frame"><div class="install-window ${device==='電腦'?'is-desktop':''}" aria-hidden="true"><div class="install-address"><span>ColorLab</span><span>···</span></div>${screen}</div><p class="install-caption"><b>${i+1}</b><span><strong>${title}</strong>${caption}</span></p></div>`).join('')}</div><p class="hint">圖中標示僅用來辨認操作位置；請在你自己的瀏覽器操作，實際選單會依版本不同。</p></figure>`;
+    const appTile='<div class="install-app-tile"><img src="/colorlab-mark.svg" alt=""><span>ColorLab</span></div>';
+    const iosSketch=sketch('iPhone／iPad',[
+      ['找到分享選單',`<div class="install-page">${appTile}</div><div class="install-browser-bar"><span>‹</span><span class="install-highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 9H5v12h14V9h-3M12 15V2m-4 4 4-4 4 4"/></svg> 分享</span><span>↻</span></div>`,'在 Safari 開啟後，找方框向上箭頭。'],
+      ['選擇加入主畫面','<div class="install-sheet"><span class="install-sheet-handle"></span><span>分享選單</span><span class="install-menu-row">拷貝</span><span class="install-menu-row install-highlight">＋ 加入主畫面</span></div>','在分享選單往下找這個項目。'],
+      ['開啟網頁 App 並加入',`<div class="install-sheet"><span class="install-sheet-title">加入主畫面 <b>加入</b></span>${appTile}<span class="install-menu-row">以網頁 App 開啟 <i class="install-toggle"></i></span></div>`,'若有此開關請開啟；加入後點主畫面圖示。']
+    ]);
+    const androidSketch=sketch('Android',[
+      ['開啟 Chrome 選單',`<div class="install-page">${appTile}<span class="install-menu-cue">右上角 <b>⋮</b></span></div>`,'在網址列旁點「更多」。'],
+      ['找到安裝選項','<div class="install-sheet"><span class="install-menu-row">分享…</span><span class="install-menu-row install-highlight">加入主畫面</span><span class="install-menu-row">或：安裝並建立捷徑</span></div>','選單名稱可能不同，繼續選「安裝」。'],
+      ['確認安裝',`<div class="install-sheet">${appTile}<span class="install-dialog-title">要安裝 ColorLab 嗎？</span><span class="install-confirm">安裝</span></div>`,'確認後，從 ColorLab 圖示開啟。']
+    ]);
+    const desktopSketch=sketch('電腦',[
+      ['開啟更多選單',`<div class="install-page">${appTile}<span class="install-menu-cue">右上角 <b>⋮</b></span></div>`,'使用 Chrome，點右上角「更多」。'],
+      ['選擇安裝頁面','<div class="install-sheet"><span class="install-menu-row">投放、儲存及分享 ›</span><span class="install-menu-row install-highlight">將頁面安裝為應用程式</span></div>','也可使用網址列出現的安裝圖示。'],
+      ['開啟獨立視窗',`<div class="install-page install-app-open">${appTile}<span>你的 ColorLab 空間</span></div>`,'確認安裝後，從應用程式圖示開啟。']
+    ]);
     return `<article class="prose first-use-guide">${back('/app/#home','回到首頁')}${intro('初次使用 ColorLab','先了解怎麼開始、紀錄存在哪裡，再決定要不要放到主畫面。')}
       <section class="guide-step" aria-labelledby="guide-start"><span class="guide-number" aria-hidden="true">01</span><div><h2 id="guide-start">開始，或接著上次的進度</h2><p>首頁可以快速開始主打色彩測驗；想試其他問卷，就點「測驗」查看全部。每題選好答案後按「下一題」，也可以按「上一題」修改。</p><p>還沒做完時，點「暫存並離開」。之後在<strong>同一個裝置、瀏覽器與登入身分</strong>開啟，可接著作答。未完成的進度不會跨裝置同步；題目更新時也可能需要重新開始。</p><div class="actions">${link('/app/#surveys','查看全部測驗','secondary','test')}</div></div></section>
       <section class="guide-step" aria-labelledby="guide-save"><span class="guide-number" aria-hidden="true">02</span><div><h2 id="guide-save">先決定紀錄要存在哪裡</h2><p>想換手機或電腦仍看得到<strong>已完成</strong>的紀錄，請先登入，再開始作答。</p><dl class="guide-saving"><div><dt>會員登入</dt><dd>完成並儲存成功後，紀錄會存到會員帳號。新註冊會員需先完成 Email 驗證。</dd></div><div><dt>管理員登入</dt><dd>也可以親自作答，紀錄存到管理員自己的帳號。不會自動合併同 Email 的會員紀錄；如需找回舊紀錄，可在管理員個人測驗紀錄頁點「找回以前的測驗」，主動確認同步，原紀錄仍會保留。</dd></div><div><dt>訪客使用</dt><dd>不用登入也能作答，但紀錄只留在目前瀏覽器。清除網站資料、換裝置或換瀏覽器，可能就看不到了。</dd></div></dl><p class="guide-caution">訪客紀錄不會在登入後自動搬到帳號。未完成的草稿也只存在目前裝置，請不要把「進度自動儲存」當成雲端備份。</p><div class="actions">${link('#login','登入或建立帳號','secondary','me')}</div></div></section>
       <section class="guide-step" aria-labelledby="guide-history"><span class="guide-number" aria-hidden="true">03</span><div><h2 id="guide-history">查看你的測驗紀錄</h2><p>點導覽列的「紀錄」，或從「我的」進入「我的測驗紀錄」。點日期卡片即可看當次結果與作答；有完整報告的測驗，也能預覽或下載 PDF。</p><p>登入後顯示此帳號最近 200 份紀錄。想刪除某一筆，可點該筆的「刪除紀錄」並再次確認；刪除後無法從此頁復原。</p><div class="actions">${link('/app/#history','查看我的紀錄','secondary','history')}</div></div></section>
-      <section class="guide-step" aria-labelledby="guide-install"><span class="guide-number" aria-hidden="true">04</span><div><h2 id="guide-install">放到主畫面，下次更好找</h2><p>這是選用功能，不安裝也能使用 ColorLab。安裝後請從 ColorLab 圖示開啟，登入、載入題庫與儲存帳號紀錄仍需要網路。</p><div class="guide-mode" role="status"><strong>${standalone?'目前以獨立 App 模式開啟':'目前以瀏覽器模式開啟'}</strong><p>${standalone?'已偵測到獨立模式。時間、電量與底部操作指示仍由手機系統顯示，不是網站邊框。':'目前可能看得到網址列與瀏覽器工具列，網站不能自行隱藏。請依裝置安裝後，從主畫面的圖示重新開啟，再回來確認。'}</p></div>
+      <section class="guide-step" aria-labelledby="guide-install"><span class="guide-number" aria-hidden="true">04</span><div><h2 id="guide-install">推薦加入主畫面，完整體驗 ColorLab</h2><p>想讓 ColorLab 更像隨手可開的小空間，建議加入主畫面：從圖示進入獨立 App 模式，不必每次尋找網址，畫面也少了瀏覽器工具列。這是選用功能，<strong>不安裝也能使用 ColorLab</strong>。登入、載入題庫與儲存帳號紀錄仍需要網路。</p><div class="guide-mode" role="status"><strong>${standalone?'目前以獨立 App 模式開啟':'目前以瀏覽器模式開啟'}</strong><p>${standalone?'已偵測到獨立模式。時間、電量與底部操作指示仍由手機系統顯示，不是網站邊框。':'目前可能看得到網址列與瀏覽器工具列，網站不能自行隱藏。請依裝置安裝後，從主畫面的圖示重新開啟，再回來確認。'}</p></div>
         <div class="guide-devices">
-          <details><summary>iPhone／iPad：從 Safari 加入</summary><ol><li>先用 Safari 開啟 ColorLab；若現在在其他 App 裡，請先選擇在 Safari 開啟。</li><li>開啟 Safari 的分享選單，往下找「加入主畫面」。</li><li>若出現「以網頁 App 開啟／Open as Web App」，保持開啟，再按「加入」。</li><li>回到主畫面，點 ColorLab 圖示開啟，再到本頁確認是否顯示「獨立 App 模式」。</li></ol><a href="https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios" target="_blank" rel="noopener noreferrer">Apple 官方安裝說明 ↗</a></details>
-          <details><summary>Android：從 Chrome 安裝</summary><ol><li>用 Chrome 開啟 ColorLab 網站。</li><li>點網址列右側「更多」選單，找「安裝並建立捷徑」或「加入主畫面」。</li><li>依畫面選「安裝」並確認，完成後從 ColorLab 圖示開啟。</li></ol><p class="hint">選單名稱會隨 Chrome 版本不同；只建立捷徑不一定會以獨立視窗開啟。</p><a href="https://support.google.com/chrome/answer/9658361?hl=zh-Hant&amp;co=GENIE.Platform%3DAndroid" target="_blank" rel="noopener noreferrer">Google 官方 Android 安裝說明 ↗</a></details>
-          <details><summary>電腦：從 Chrome 安裝</summary><ol><li>在 Windows 或 Mac 的 Chrome 開啟 ColorLab。</li><li>打開右上角「更多」，選「投放、儲存及分享」→「將頁面安裝為應用程式」；也可以使用網址列出現的安裝圖示。</li><li>依畫面確認安裝，再從應用程式圖示開啟 ColorLab。</li></ol><a href="https://support.google.com/chrome/answer/9658361?hl=zh-Hant&amp;co=GENIE.Platform%3DDesktop" target="_blank" rel="noopener noreferrer">Google 官方電腦安裝說明 ↗</a></details>
+          <details><summary>iPhone／iPad：從 Safari 加入</summary>${iosSketch}<ol><li>先用 Safari 開啟 ColorLab；若現在在其他 App 裡，請先選擇在 Safari 開啟。</li><li>開啟 Safari 的分享選單，往下找「加入主畫面」。</li><li>若出現「以網頁 App 開啟／Open as Web App」，保持開啟，再按「加入」。</li><li>回到主畫面，點 ColorLab 圖示開啟，再到本頁確認是否顯示「獨立 App 模式」。</li></ol><a href="https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios" target="_blank" rel="noopener noreferrer">Apple 官方安裝說明 ↗</a></details>
+          <details><summary>Android：從 Chrome 安裝</summary>${androidSketch}<ol><li>用 Chrome 開啟 ColorLab 網站。</li><li>點網址列右側「更多」選單，找「安裝並建立捷徑」或「加入主畫面」。</li><li>依畫面選「安裝」並確認，完成後從 ColorLab 圖示開啟。</li></ol><p class="hint">選單名稱會隨 Chrome 版本不同；只建立捷徑不一定會以獨立視窗開啟。</p><a href="https://support.google.com/chrome/answer/9658361?hl=zh-Hant&amp;co=GENIE.Platform%3DAndroid" target="_blank" rel="noopener noreferrer">Google 官方 Android 安裝說明 ↗</a></details>
+          <details><summary>電腦：從 Chrome 安裝</summary>${desktopSketch}<ol><li>在 Windows 或 Mac 的 Chrome 開啟 ColorLab。</li><li>打開右上角「更多」，選「投放、儲存及分享」→「將頁面安裝為應用程式」；也可以使用網址列出現的安裝圖示。</li><li>依畫面確認安裝，再從應用程式圖示開啟 ColorLab。</li></ol><a href="https://support.google.com/chrome/answer/9658361?hl=zh-Hant&amp;co=GENIE.Platform%3DDesktop" target="_blank" rel="noopener noreferrer">Google 官方電腦安裝說明 ↗</a></details>
         </div><p class="guide-caution">已有舊捷徑時，先確認現在的圖示能正常開啟，再自行移除舊捷徑。不要為了重新安裝而清除網站資料，以免遺失訪客紀錄或草稿；不同入口可能需要重新登入。</p>
-      </div></section><p class="hint">ColorLab 是自我探索與心理健康資訊工具，不是心理或醫療診斷。</p></article>`;
+      </div></section><aside class="guide-gentle-note" aria-labelledby="guide-note-title"><span class="eyebrow">A SMALL REMINDER</span><h2 id="guide-note-title">探索自己，不急著替自己下定義。</h2><p>把測驗結果當成認識自己的起點，留意哪些描述貼近此刻的你，也保留改變的空間。</p><p class="guide-note-scope">ColorLab 提供自我探索與心理健康資訊，<strong>不是心理或醫療診斷</strong>，也不能取代專業評估。</p></aside></article>`;
   }
   if (route === 'contact') return `<div class="form-width">${back('/app/#me','我的空間')}${intro('想告訴我們什麼？','無論是操作問題、建議或資料需求，都可以在這裡留下訊息。')}<form id="contact-form" class="panel form-stack">${area('description','你的訊息','','required maxlength="5000"')}${field('name','稱呼（選填）')}${field('email','電子郵件（選填，供後續聯絡）','','type="email"')}${status}${submit('送出回饋')}</form></div>`;
   if (route === 'about') return `<article class="prose">${back('/app/#home','回到首頁')}${intro('每一面，都是你。','關於 ColorLab')}<section class="panel"><h2>用色彩，開啟自我探索</h2><p>ColorLab 面向想認識自己、照顧心理健康的每一個人。我們從日常選擇出發，探索 MBTI 與色彩之間的連結，讓認識自己成為一件容易開始的事。</p></section><section><h2>為誰而設計？</h2><p>給想更認識自己的你，並彙整心理師公會、張老師、生命線、政府及研究期刊的可查證資訊。本測驗並非經臨床驗證的診斷工具，不能取代專業評估。</p></section><section><h2>我們的團隊</h2><p>余旻諺、蔡美姿、呂依潔、陳湘儒、張嘉哲</p></section><div class="actions">${link('/app/#surveys','開始探索','primary','arrow')}${link('#contact','聯絡我們')}</div></article>`;
@@ -145,24 +176,32 @@ async function render() {
   if (current !== route) page = 1;
   current = route || 'login'; const id = rawId ? decodeURIComponent(rawId) : '';
   if (current === 'verify' && id) { verificationToken = id; history.replaceState(null,'',location.pathname+'#verify'); }
+  if(['reset-password','admin-reset-password'].includes(current)){
+    if(id){recoveryToken={role:current==='admin-reset-password'?'admin':'user',token:id};history.replaceState(null,'',location.pathname+'#'+current);}
+  }else recoveryToken=null;
   const role = restoreSession(), isAdmin = adminRoutes.has(current);
   if (isAdmin && role !== 'admin') { location.replace('#admin-login'); return; }
   if (current === 'profile' && role !== 'user') { location.replace('#login'); return; }
   frame(isAdmin); dirty = false;
-  main.innerHTML = '<div class="quiet-empty" role="status">正在準備內容…</div>';
+  // Leave the previous page painted, but disable its actions until the destination is ready.
+  main.setAttribute('aria-busy', 'true'); main.inert = true;
+  let loading = document.querySelector('#route-status');
+  if (!loading) { loading = document.createElement('div'); loading.id = 'route-status'; loading.setAttribute('role','status'); main.before(loading); }
+  loading.textContent = '正在準備下一頁…'; loading.hidden = false;
   let html, loaded;
   try {
     if (current === 'login' || current === 'admin-login') html = authPage(current === 'admin-login');
+    else if(['forgot-password','admin-forgot-password','reset-password','admin-reset-password'].includes(current))html=recoveryPage(current.startsWith('admin-'),current.includes('reset-password'));
     else if (current === 'register') html = registerPage();
     else if (current === 'verification' || current === 'verify') html = verificationPage(current === 'verify');
     else if (['about','privacy','contact','install'].includes(current)) html = information(current);
     else if (current === 'profile' || current === 'admin-profile') { loaded = current==='profile' ? await api('/api/user/profile') : (await adminAPI('/api/admin/profile')).user; html = profilePage(loaded,isAdmin); }
     else if (current === 'admin') html = `${intro('照顧每一次探索。','問卷、內容與帳號，都在這裡有條理地管理。')}<div class="cards">${sections.slice(1).map(([r,t,i])=>`<article class="management-card"><div class="card-symbol">${icon(i)}</div><h2>${t}</h2><p>${({users:'搜尋與查看會員資料。',surveys:'建立新問卷、維護題目與選項。','content-review':'查核每週建議、勾選核准或略過。',content:'整理首頁的最新資訊與一般資訊。',records:'篩選、查看與匯出測驗紀錄。',statistics:'查看問卷、MBTI 與色彩的整體分布。',feedbacks:'閱讀使用者的建議與問題。','admin-profile':'更新個人資料與登入密碼。'})[r]}</p>${link('#'+r,'開啟'+t,'secondary','arrow')}</article>`).join('')}</div>`;
-    else if (current === 'users') { userItems = await adminAPI('/api/admin/users'); html = `${intro('帳號管理','搜尋、查看會員與測驗紀錄。')}<div class="toolbar">${field('search','搜尋帳號或姓名','','type="search" placeholder="輸入姓名、Email 或電話"')}</div><div id="users-list">${usersView()}</div>`; }
+    else if (current === 'users') { loaded = await adminAPI('/api/admin/users'); if(seq!==revision)return; userItems=loaded; html = `${intro('帳號管理','搜尋、查看會員與測驗紀錄。')}<div class="toolbar">${field('search','搜尋帳號或姓名','','type="search" placeholder="輸入姓名、Email 或電話"')}</div><div id="users-list">${usersView()}</div>`; }
     else if (current === 'user') { const [u,r] = await Promise.all([adminAPI('/api/admin/user/'+encodeURIComponent(id)),adminAPI('/api/admin/user/'+encodeURIComponent(id)+'/records')]); loaded=u.user; html=`${back('#users','帳號管理')}${intro(loaded.name||'會員資料',loaded.email)}<section class="panel">${details(loaded)}</section><section class="panel"><h2>測驗紀錄</h2>${recordRows(r.records)}</section>`; }
     else if (current === 'surveys') { loaded = await adminAPI('/api/test/surveys'); html=`${intro('問卷管理','保留主打測驗，也為下一次探索留出空間。')}<div class="toolbar">${link('#survey/new','建立問卷','primary','plus')}</div>${surveyCards(loaded)}`; }
-    else if (current === 'survey') { survey = id && id!=='new' ? await adminAPI('/api/test/surveys/'+encodeURIComponent(id)) : {testType:'',description:'',imgUrl:'',questions:[{question:'',options:['','']}]}; html=surveyEditor(); }
-    else if (current === 'content') { contentItems=await adminAPI('/api/admin/content-review/current'); html=`${intro('首頁資訊','以清楚的圖片與內容，陪伴每一次探索。')}<div class="toolbar">${select('category','資訊類型',[['','全部資訊'],['news','最新資訊'],['common','一般資訊']])}${link('#content-edit/new','新增資訊','primary','plus')}</div><div id="content-list">${contentCards(contentItems)}</div>`; }
+    else if (current === 'survey') { loaded = id && id!=='new' ? await adminAPI('/api/test/surveys/'+encodeURIComponent(id)) : {testType:'',description:'',imgUrl:'',questions:[{question:'',options:['','']}]}; if(seq!==revision)return; survey=loaded; html=surveyEditor(); }
+    else if (current === 'content') { loaded=await adminAPI('/api/admin/content-review/current'); if(seq!==revision)return; contentItems=loaded; html=`${intro('首頁資訊','以清楚的圖片與內容，陪伴每一次探索。')}<div class="toolbar">${select('category','資訊類型',[['','全部資訊'],['news','最新資訊'],['common','一般資訊']])}${link('#content-edit/new','新增資訊','primary','plus')}</div><div id="content-list">${contentCards(contentItems)}</div>`; }
     else if (current === 'content-edit') { loaded = id && id!=='new' ? await adminAPI('/api/admin/content-review/current/'+encodeURIComponent(id)) : {}; html=contentEditor(loaded); }
     else if (current === 'content-review') html=await reviewPage();
     else if (current === 'statistics') {
@@ -171,27 +210,31 @@ async function render() {
       html=`${intro('測驗統計','全站已保存的研究紀錄，不含僅存於裝置的訪客紀錄。')}<p>歷來參與識別數：${esc(stats.totalParticipants)}（依帳號／訪客識別去重，並非即時在線人數）</p>${group('MBTI 結果',stats.mbtiStats)}${group('主要色彩',stats.colorStats,{red:'紅色',yellow:'黃色',green:'綠色',blue:'藍色'})}${group('問卷分布',stats.testTypeStats)}<div class="actions editor-tools">${link('#records','篩選與查看原始紀錄','secondary','history')}</div>`;
     }
     else if (current === 'records') {
-      const types = await adminAPI('/api/admin/test-types');
-      html=`${intro('測驗紀錄','依問卷與結果篩選，查看完整作答。')}<form id="record-filter" class="toolbar">${select('testType','問卷',[['','全部問卷'],...(types.testTypes||types).map(t=>[t,t])])}${select('mbtiResult','MBTI',[['','全部結果'],...['ENFJ','ENFP','ENTJ','ENTP','ESFJ','ESFP','ESTJ','ESTP','INFJ','INFP','INTJ','INTP','ISFJ','ISFP','ISTJ','ISTP'].map(t=>[t,t])])}${submit('套用篩選')}${button('匯出本頁 CSV','data-export','secondary','download')}</form><div id="records-list"></div>`;
+      const [types, records] = await Promise.all([adminAPI('/api/admin/test-types'),adminAPI('/api/admin/test-records?page='+page+'&limit=20')]);
+      if(seq!==revision)return; currentRecords=records.records;
+      html=`${intro('測驗紀錄','依問卷與結果篩選，查看完整作答。')}<form id="record-filter" class="toolbar">${select('testType','問卷',[['','全部問卷'],...(types.testTypes||types).map(t=>[t,t])])}${select('mbtiResult','MBTI',[['','全部結果'],...['ENFJ','ENFP','ENTJ','ENTP','ESFJ','ESFP','ESTJ','ESTP','INFJ','INFP','INTJ','INTP','ISFJ','ISFP','ISTJ','ISTP'].map(t=>[t,t])])}${submit('套用篩選')}${button('匯出本頁 CSV','data-export','secondary','download')}</form><div id="records-list"><p class="hint">共 ${records.total} 份紀錄</p>${recordRows(records.records)}${pagination(records.totalPages)}</div>`;
     } else if (current === 'feedbacks') { loaded = await adminAPI('/api/admin/feedbacks?page='+page+'&limit=10'); html=`${intro('使用者回饋','聽見問題，也找到讓 ColorLab 更好的方向。')}${table(['稱呼','Email','回饋內容','時間'],loaded.records.map(r=>[esc(r.name||'未留名'),esc(r.email||'未提供'),esc(r.description),date(r.timestamp)]))}${pagination(loaded.totalPages)}`; }
     else html=`${intro('找不到這個頁面')}${link('/app/#home','回到首頁','primary')}`;
     if (seq !== revision) return;
     main.innerHTML=html; document.title='ColorLab｜'+(main.querySelector('h1,h2')?.textContent||'我的空間');
-    main.focus({preventScroll:true}); window.scrollTo(0,0); bind(loaded);
+    main.inert = false; main.focus({preventScroll:true}); window.scrollTo(0,0); bind(loaded);
     if (current==='content-review') await bindReview(main,{showDialog,modal,notify,setBusy:value=>{pendingSave=value;}});
-    if (current==='records') await loadRecords();
   } catch(error) {
     if(seq!==revision)return;
     main.innerHTML=`${intro('暫時無法開啟',error.message)}<div class="actions">${button('重新載入','data-retry','primary')}${link(isAdmin?'#admin-login':'#login','重新登入')}</div>`;
     main.querySelector('[data-retry]').onclick=render;
+  } finally {
+    if(seq===revision) { main.inert=false; main.removeAttribute('aria-busy'); loading.hidden=true; }
   }
 }
 async function loadRecords() {
   const query = new URLSearchParams(data(document.querySelector('#record-filter'))); query.set('page',page); query.set('limit','20');
   const list = document.querySelector('#records-list'); const seq=revision, request=++recordsRevision;
-  currentRecords=[]; list.innerHTML='<p role="status">正在載入紀錄…</p>';
+  list.setAttribute('aria-busy','true'); list.inert=true;
+  const exportButton=document.querySelector('[data-export]'); if(exportButton)exportButton.disabled=true;
   try { const result=await adminAPI('/api/admin/test-records?'+query); if(seq!==revision||request!==recordsRevision)return; currentRecords=result.records; list.innerHTML=`<p class="hint">共 ${result.total} 份紀錄</p>${recordRows(result.records)}${pagination(result.totalPages)}`; }
   catch(error) { if(seq===revision&&request===recordsRevision){ currentRecords=[]; list.innerHTML=`<p role="alert">${esc(error.message)}</p>`; } }
+  finally { if(seq===revision&&request===recordsRevision){list.removeAttribute('aria-busy');list.inert=false;if(exportButton)exportButton.disabled=false;} }
 }
 function syncSurvey() {
   const form=document.querySelector('#survey-form'); const values=data(form);
@@ -209,6 +252,20 @@ async function upload(input) {
   catch(error){note.textContent=error.message;}finally{input.disabled=false;form.querySelector('[type=submit]').disabled=false;}
 }
 function bind(loaded) {
+  const forgot=main.querySelector('#forgot-password-form');
+  if(forgot)forgot.onsubmit=event=>{event.preventDefault();saveForm(forgot,async()=>{
+    await api('/api/'+forgot.dataset.recoveryRole+'/forgot-password',json('POST',{email:data(forgot).email}));
+    forgot.innerHTML='<div class="recovery-success" role="status"><h2>請查看你的信箱</h2><p>若此信箱符合帳號重設條件，我們會寄出重設連結。請查看收件匣與垃圾郵件；未綁定或尚未驗證的會員，請聯絡管理員協助。</p></div>';
+  });};
+  const reset=main.querySelector('#reset-password-form');
+  if(reset)reset.onsubmit=event=>{event.preventDefault();saveForm(reset,async()=>{
+    const values=data(reset),role=reset.dataset.recoveryRole;
+    if(values.password!==values.confirmPassword)throw new Error('兩次新密碼不同，請再確認。');
+    if(new TextEncoder().encode(values.password).length>72)throw new Error('密碼過長，請縮短後再試（最多72個英數字元；中文或表情符號可用字數較少）。');
+    if(recoveryToken?.role!==role)throw new Error('重設連結無法使用，請重新申請。');
+    await api('/api/'+role+'/reset-password',json('POST',{token:recoveryToken.token,password:values.password}));
+    recoveryToken=null;clearSession();reset.innerHTML=`<div class="recovery-success" role="status"><h2>密碼已更新</h2><p>請用新密碼重新登入；其他裝置的舊登入也已失效。</p></div>${link(role==='admin'?'#admin-login':'#login','前往登入','primary')}`;
+  });};
   bindVerificationStatus(main.querySelector('[data-verification-status]'), () => api('/api/user/profile'), user => { main.querySelector('[data-verification-request]').hidden = Boolean(user.emailVerifiedAt); });
   const verify = main.querySelector('#verify-form');
   if (verify) verify.onsubmit = event => { event.preventDefault(); saveForm(verify, async () => {
@@ -230,9 +287,10 @@ function bind(loaded) {
   main.querySelectorAll('form:not(#login-form):not(#record-filter)').forEach(form=>form.addEventListener('input',()=>dirty=true));
   const login=main.querySelector('#login-form');
   if(login)login.onsubmit=event=>{event.preventDefault();saveForm(login,async()=>{
-    const values=data(login); const isAdmin=current==='admin-login'; let result,role;
-    try { result=await api('/api/admin/login',json('POST',values));role='admin'; }
-    catch(error){if(isAdmin||error.status!==401)throw error;result=await api('/api/user/login',json('POST',values));role='user';}
+    const values=data(login),role=current==='admin-login'?'admin':'user';let result;
+    main.querySelector('[data-login-guidance]').replaceChildren();
+    try {result=await api('/api/'+role+'/login',json('POST',values));}
+    catch(error){if(role==='user'&&error.code==='EMAIL_VERIFICATION_REQUIRED'){sessionStorage.setItem('colorlab:pending-email',values.email);main.querySelector('[data-login-guidance]').innerHTML='<p class="auth-help">完成 Email 驗證後即可登入。<a href="#verification">前往驗證協助</a></p>';}throw error;}
     saveSession(result,role);location.assign(role==='admin'?'/app/account.html#admin':'/app/#me');
   });};
   const registration=main.querySelector('#register-form');
@@ -267,7 +325,7 @@ main.addEventListener('click',async event=>{
     drawQuestions();
   }
   if(el.hasAttribute('data-record')){
-    try {const r=await adminAPI('/api/admin/records/'+encodeURIComponent(el.dataset.record));const snapshot=r.exploration?.survey;const answers=snapshot?snapshot.questions.map((q,i)=>({question:q.question,answer:q.options[r.exploration.answers?.[i]??r.answers?.[i]]})):r.answers||[];const primary=Array.isArray(r.colorResult?.primary)?r.colorResult.primary:[r.colorResult?.primary];const colors=primary.filter(c=>['red','yellow','green','blue'].includes(c)).sort();const report=/^[EI][NS][FT][JP]$/.test(r.mbtiResult||'')&&colors.length?`/test/detailed-reports/${r.mbtiResult}-${colors.join('-')}.pdf`:null;showDialog(r.testType||'測驗紀錄',`<p>${esc(r.email||'訪客')} · ${date(r.timestamp)}</p><h3>${esc(r.mbtiResult||'一般問卷')}</h3>${report?`<div class="actions">${link('/app/pdf.html?from=admin&file='+encodeURIComponent(report),'預覽 PDF','secondary','eye')}${`<a class="button primary" href="${esc(report)}" download>${icon('download')}<span>下載 PDF</span></a>`}</div>`:''}${answers.map((a,i)=>`<section class="record-answer"><h3>${i+1}. ${esc(a.question||'原始題目')}</h3><p>${esc(a.answer??'未記錄')}</p></section>`).join('')}`);}catch(error){notify(error.message);}
+    try {const r=await adminAPI('/api/admin/records/'+encodeURIComponent(el.dataset.record));const snapshot=r.exploration?.survey;const answers=snapshot?snapshot.questions.map((q,i)=>({question:q.question,answer:q.options[r.exploration.answers?.[i]??r.answers?.[i]]})):r.answers||[];const primary=Array.isArray(r.colorResult?.primary)?r.colorResult.primary:[r.colorResult?.primary];const colors=primary.filter(c=>['red','yellow','green','blue'].includes(c)).sort();const report=/^[EI][NS][FT][JP]$/.test(r.mbtiResult||'')&&colors.length?`/test/detailed-reports/${r.mbtiResult}-${colors.join('-')}.pdf`:null;showDialog(r.testType||'測驗紀錄',`<section class="record-summary" aria-label="本次測驗摘要"><dl class="record-meta"><div><dt>作答身分</dt><dd>${esc(r.email||'訪客')}</dd></div><div><dt>完成時間</dt><dd>${date(r.timestamp)}</dd></div></dl><div class="record-result"><span>${r.mbtiResult?'MBTI 結果':'測驗類型'}</span><strong>${esc(r.mbtiResult||'一般問卷')}</strong>${colors.length?`<span class="record-color-label">主要色彩</span>${colors.map(c=>`<span class="record-color" data-color="${c}">${({red:'紅色',yellow:'黃色',green:'綠色',blue:'藍色'})[c]}</span>`).join('')}`:''}</div>${report?`<div class="actions">${link('/app/pdf.html?from=admin&file='+encodeURIComponent(report),'預覽 PDF','secondary','eye')}${`<a class="button primary" href="${esc(report)}" download>${icon('download')}<span>下載 PDF</span></a>`}</div>`:''}</section>${answers.map((a,i)=>`<section class="record-answer"><h3>${i+1}. ${esc(String(a.question||'原始題目').replace(/^\s*\d+[.、．]\s*/,''))}</h3><p>${esc(a.answer??'未記錄')}</p></section>`).join('')}`);}catch(error){notify(error.message);}
   }
   if(el.hasAttribute('data-export')){
     const rows=[['帳號','測驗','結果','完成時間'],...currentRecords.map(r=>[r.email,r.testType,r.mbtiResult,r.timestamp])];const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/^[=+\-@]/,"'$&").replaceAll('"','""')+'"').join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='ColorLab-測驗紀錄-本頁.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

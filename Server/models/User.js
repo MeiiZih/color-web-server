@@ -7,6 +7,11 @@ const userSchema = new mongoose.Schema({
     emailVerificationRequired: { type: Boolean, default: false },
     emailVerifiedAt: { type: Date, default: null },
     emailSendAfter: { type: Date, select: false },
+    sessionVersion: { type: Number, default: 0 },
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
+    passwordResetEmail: { type: String, select: false },
+    passwordResetSendAfter: { type: Date, select: false },
     email: { 
         type: String, 
         required: true, 
@@ -56,6 +61,7 @@ const userSchema = new mongoose.Schema({
 // 儲存前進行密碼加密
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
+    if (!this.isNew) this.set({ passwordResetTokenHash: undefined, passwordResetExpiresAt: undefined, passwordResetEmail: undefined });
     this.password = await bcrypt.hash(this.password, 10);
     next();
 });
@@ -68,9 +74,10 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 // 生成 JWT Token
 userSchema.methods.generateToken = function() {
     if (this.emailVerificationRequired === true && !this.emailVerifiedAt) throw new Error('Email verification required');
-    return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET || 'your-secret-key', {
+    return jwt.sign({ id: this._id, role: this.role, sessionVersion: this.sessionVersion || 0 }, process.env.JWT_SECRET || 'your-secret-key', {
         expiresIn: '30d'
     });
 };
 
+userSchema.index({ passwordResetTokenHash: 1 }, { unique: true, sparse: true });
 module.exports = mongoose.model('User', userSchema);

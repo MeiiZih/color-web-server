@@ -1,4 +1,6 @@
 /* ColorLab paper-touch: one-shot, interruptible motion; content never waits for it. */
+#route-status:not([hidden]) { position:fixed; top:80px; left:50%; transform:translateX(-50%); z-index:100; padding:10px 18px; border-radius:24px; background:#fcf8f4; color:#994760; border:1px solid #e7d9dd; box-shadow:0 4px 18px #39343512; font-size:14px; }
+:is(#records-list,#review-results)[aria-busy="true"]::before { content:'正在更新內容…'; display:block; padding:10px 0; color:#994760; font-size:14px; }
 :root {
   --motion-ease: cubic-bezier(.22, 1, .36, 1);
   --motion-quick: 140ms;

@@ -1,5 +1,5 @@
 // Independent frontend: cache public shell only, never tokens, records, APIs or Render wake HTML.
-const CACHE = 'colorlab-static-shell-v14';
+const CACHE = 'colorlab-static-shell-v15';
 const SHELL = ['/app/', '/app/app.js', '/app/model.mjs', '/app/client.mjs', '/app/auth.mjs', '/app/ui.mjs', '/app/account.html', '/app/account.mjs', '/app/account.css', '/app/style.css', '/app/motion.css', '/js/static-connection.js', '/colorlab-mark.svg', '/wake.html'];
 SHELL.push('/app/verification-status.mjs', '/app/verification-status.css');
 SHELL.push('/app/character-art.mjs');
@@ -15,6 +15,17 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin || !SHELL.includes(url.pathname)) return;
+  // Published artwork is refreshed with each shell version, not downloaded on every tab switch.
+  if (/\.(?:webp|png|svg)$/.test(url.pathname)) {
+    event.respondWith(caches.open(CACHE).then(async cache => {
+      const stored = await cache.match(event.request);
+      if (stored) return stored;
+      const response = await fetch(event.request);
+      if (response.ok && !response.redirected) await cache.put(event.request, response.clone());
+      return response;
+    }));
+    return;
+  }
   event.respondWith(fetch(event.request, { cache: 'no-cache' }).then(async response => {
     if (response.ok && !response.redirected) {
       const copy = response.clone();
