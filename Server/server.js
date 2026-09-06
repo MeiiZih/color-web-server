@@ -71,6 +71,13 @@ const staticOptions = {
     }
   }
 };
+const { frontendTarget } = require('./services/frontendRoutes');
+app.use((req, res, next) => {
+  if (!['GET', 'HEAD'].includes(req.method)) return next();
+  const target = frontendTarget(req.path, req.url.split('?')[1] || '') || (req.path.startsWith('/app/') ? req.originalUrl : null);
+  if (target) return res.redirect(302, 'https://colorlab-start.onrender.com' + target);
+  next();
+});
 app.use('/vendor/pdfjs', express.static(PDFJS_BUILD_DIR, staticOptions));
 app.use(express.static(STATIC_DIR, staticOptions));          // 直接提供整個 color-web
 app.get('/main/login-admin.html', (_req, res) => {

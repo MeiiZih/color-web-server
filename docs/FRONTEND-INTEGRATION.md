@@ -2,6 +2,16 @@
 
 ## Status
 
+**Full replacement phase (current work, not yet deployed):** The shared-shell approach below was rejected by the user. The new `app/account.html` application now owns login, registration, member profile, administrator overview/users/questionnaires/content/records/statistics/feedback/profile and public information pages. Every old main/test HTML is replaced in the static output by a redirect-only compatibility entrypoint. Express uses the same route map to redirect old backend UI requests to the static frontend. Original source remains in Git for recovery; it is no longer the delivered interface. Accounts, completed records and original scoring are retained. Questionnaire deletion no longer deletes completed legacy records.
+
+Current checks: 18 automated tests pass, including all legacy route mappings, no legacy CSS/JS on new pages, authenticated member-update ownership, admin-only record access, session restoration/logout, and snapshot preservation. Local browser verification covers 320/390px and desktop, new login controls, creation/save/readback of a questionnaire, member save/cancel baseline, and full-record dialogs. Fixtures and in-memory writes are localhost-only and never reach MongoDB. Production credential login and physical iPhone testing are not included.
+
+New call chain: `app/account.mjs` -> `auth.mjs` -> existing static API transport -> existing Express endpoints. Account updates use the verified user JWT; administrative records/statistics/feedback now require an admin JWT. Public asset/SW caches contain no private API responses. Static worker cache version 2 includes the new account modules; the old backend-origin worker retires legacy shell caches and forwards navigations to the static origin. A first-ever direct visit to a sleeping backend can still show Render's platform screen before any application redirect is delivered.
+
+The older notes below are deployment history, not the current replacement implementation.
+
+**Shared-shell integration deployed on 2026-09-06:** commit `c52718e8afb661edf8fa330276a6ca76b2757471`, static deploy `dep-daee7seq1p3s73904l9g` confirmed Live. Login/register/profile/admin HTML and shared CSS/JS return 200; live login renders the new shell without console errors. Backend health remains 200 / OK. Twelve automated tests pass, including preservation of all legacy form IDs and exclusion of local QA routes. Local browser checks cover 320/390px and desktop layouts, account search, navigation open/Escape, member edit/cancel, information dialog and administrator logout followed by protected-page redirect. No production record writes, actual credential sign-in, or physical iPhone verification were performed in this phase.
+
 **Deployed on 2026-09-06** at https://colorlab-start.onrender.com/ using commit `0a7485752848f9183a85ea0e9750fd829b39ff46`. Existing backend remains https://color-web-server-jprj.onrender.com/. No production questionnaire/member records or paid plans were changed by verification.
 
 - Backend deploy: `dep-daedtu6q1p3s738v1p5g`; health 200 / OK, catalog returns the original 20-question questionnaire, unauthenticated records 401, cross-origin preflight 204.

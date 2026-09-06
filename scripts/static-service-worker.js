@@ -1,6 +1,6 @@
 // Independent frontend: cache public shell only, never tokens, records, APIs or Render wake HTML.
-const CACHE = 'colorlab-static-shell-v1';
-const SHELL = ['/app/', '/app/app.js', '/app/model.mjs', '/app/client.mjs', '/app/style.css', '/js/navbar.js', '/js/static-connection.js', '/colorlab-mark.svg', '/wake.html'];
+const CACHE = 'colorlab-static-shell-v2';
+const SHELL = ['/app/', '/app/app.js', '/app/model.mjs', '/app/client.mjs', '/app/auth.mjs', '/app/ui.mjs', '/app/account.html', '/app/account.mjs', '/app/account.css', '/app/style.css', '/js/static-connection.js', '/colorlab-mark.svg', '/wake.html'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('colorlab-') && key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', event => {

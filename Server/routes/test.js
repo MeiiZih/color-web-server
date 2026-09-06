@@ -160,9 +160,7 @@ router.delete('/surveys/:id', adminProtect, async (req, res) => {
             return res.status(404).json({ message: '找不到該問卷' });
         }
         
-        // 同時刪除相關的測驗記錄
-        // New snapshot records remain readable after their questionnaire is retired.
-        await TestRecord.deleteMany({ testType: deletedSurvey.testType, exploration: { $exists: false } });
+        // Retiring a questionnaire must not erase any completed research records.
         
         res.json({ message: '問卷刪除成功' });
     } catch (error) {

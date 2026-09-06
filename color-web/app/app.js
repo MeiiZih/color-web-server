@@ -1,5 +1,7 @@
 import { colors, scoreAnswers, finishSurvey } from './model.mjs';
 import { request, readLocal, saveRecord, safeUrl } from './client.mjs';
+import { restoreSession, clearSession } from './auth.mjs';
+restoreSession();
 
 const main = document.querySelector('main');
 const dialog = document.querySelector('dialog');
@@ -87,7 +89,7 @@ function home() {
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><span class="section-meta">一般資訊<span>滑動看看</span></span></div>
       <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}"><img src="${escape(a.image)}" alt="" width="100" height="100" loading="lazy"><span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
-    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><small>國立臺中科技大學 · 資訊管理系專題</small></footer>
+    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>國立臺中科技大學 · 資訊管理系專題</small></footer>
   </div>`;
 }
 
@@ -157,7 +159,7 @@ function legacyResult(record) {
 
 function me() {
   const admin = sessionStorage.getItem('adminToken');
-  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div><a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? '<a class="button primary" href="/main/admin/admin.html">進入管理後台</a>' : member ? '<a class="profile-row" href="/main/user/profile.html">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : '<a class="button primary" href="/main/login-user.html?redirectTarget=%2Fapp%2F">登入／註冊會員</a><p class="preview-note">登入後，完成的測驗會儲存到帳號；訪客紀錄不會自動合併。</p>'}</div>`;
+  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div><a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? '<a class="button primary" href="/app/account.html#admin">進入管理後台</a>' : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : '<a class="button primary" href="/app/account.html#login">登入／註冊會員</a><p class="preview-note">登入後，完成的測驗會儲存到帳號；訪客紀錄不會自動合併。</p>'}</div>`;
 }
 
 function openDialog(content) {
@@ -190,9 +192,7 @@ function bindPage() {
     document.querySelector('#selection-status').textContent = '上次儲存尚未確認，請重新儲存相同答案，避免產生重複紀錄。';
   }
   document.querySelector('[data-logout]')?.addEventListener('click', () => {
-    window.ColorLabAuth?.clearPersistentUserSession?.();
-    localStorage.removeItem('colorlab:user-session:v1');
-    ['token', 'userToken', 'user', 'userId', 'userEmail', 'userName'].forEach(key => sessionStorage.removeItem(key));
+    clearSession();
     location.replace('/app/');
   });
   document.querySelectorAll('.horizontal-list').forEach(list => list.addEventListener('keydown', event => {
@@ -278,6 +278,6 @@ try {
   render();
   if ('serviceWorker' in navigator && window.COLORLAB_STATIC) navigator.serviceWorker.register('/service-worker.js').catch(() => {});
 } catch (error) {
-  main.innerHTML = `<div class="empty-state"><h1>還差一小步</h1><p>${escape(error.message)}</p><button class="button primary" id="retry">重新載入</button><a class="button secondary" href="/main/login-user.html?redirectTarget=%2Fapp%2F">重新登入</a></div>`;
+  main.innerHTML = `<div class="empty-state"><h1>還差一小步</h1><p>${escape(error.message)}</p><button class="button primary" id="retry">重新載入</button><a class="button secondary" href="/app/account.html#login">重新登入</a></div>`;
   document.querySelector('#retry').addEventListener('click', () => location.reload());
 }

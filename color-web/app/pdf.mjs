@@ -1,3 +1,9 @@
+import { icon } from './ui.mjs';
+document.querySelector('.text-button').innerHTML = icon('back') + ' 測驗紀錄';
+if (new URLSearchParams(location.search).get('from') === 'admin') document.querySelector('.text-button').href='/app/account.html#records';
+document.querySelector('#download').innerHTML = icon('download') + ' 下載 PDF';
+document.querySelector('#share').innerHTML = icon('arrow') + ' 分享／儲存到檔案';
+document.querySelector('#original').innerHTML = icon('eye') + ' 開啟原始 PDF';
 const status = document.querySelector('#pdf-status');
 const path = new URLSearchParams(location.search).get('file');
 const valid = /^\/test\/detailed-reports\/[EI][NS][FT][JP]-(?:blue|green|red|yellow)(?:-(?:blue|green|red|yellow))*\.pdf$/;

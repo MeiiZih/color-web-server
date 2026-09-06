@@ -9,6 +9,7 @@ const TestQuestion = require('../models/TestQuestion');
 const Feedback = require('../models/Feedback');
 
 const router = express.Router();
+router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
 // 管理員登入路由
 router.post('/login', async (req, res) => {
@@ -63,6 +64,7 @@ const adminProtect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            if (decoded.role !== 'admin') return res.status(403).json({ message: '僅管理員可使用' });
             // 查找管理員
             const admin = await Admin.findById(decoded.id).select('-password');
             if (!admin) {
@@ -189,7 +191,9 @@ router.get('/user/:id', adminProtect, async (req, res) => {
 // 查詢該 user 的所有 testrecords
 router.get('/user/:id/records', adminProtect, async (req, res) => {
     try {
-        const records = await TestRecord.find({ userId: req.params.id });
+        const user = await User.findById(req.params.id).select('email');
+        if (!user) return res.status(404).json({ message: '找不到用戶' });
+        const records = await TestRecord.find({ $or: [{ userId: req.params.id }, { userId: null, email: user.email }] });
         res.json({ records });
     } catch (err) {
         res.status(500).json({ message: '伺服器錯誤' });
@@ -197,7 +201,7 @@ router.get('/user/:id/records', adminProtect, async (req, res) => {
 });
 
 // 取得所有測驗紀錄（用於數據管理頁面） (暫時移除權限驗證)
-router.get('/test-records', async (req, res) => {
+router.get('/test-records', adminProtect, async (req, res) => {
     try {
         const { testType, mbtiResult, colorResult, page = 1, limit = 50 } = req.query;
         
@@ -253,7 +257,7 @@ router.get('/test', (req, res) => {
 });
 
 // 取得所有問卷類型 (暫時移除權限驗證以便測試)
-router.get('/test-types', async (req, res) => {
+router.get('/test-types', adminProtect, async (req, res) => {
     try {
         console.log('正在取得問卷類型...');
         console.log('MongoDB 連接狀態:', mongoose.connection.readyState);
@@ -269,7 +273,7 @@ router.get('/test-types', async (req, res) => {
 });
 
 // 取得數據統計 (暫時移除權限驗證)
-router.get('/data-stats', async (req, res) => {
+router.get('/data-stats', adminProtect, async (req, res) => {
     try {
         console.log('正在取得數據統計...');
         // 總測驗人數 - 計算不重複的使用者
@@ -359,7 +363,7 @@ router.get('/data-stats', async (req, res) => {
 });
 
 // 取得所有 user feedback（分頁）
-router.get('/feedbacks', async (req, res) => {
+router.get('/feedbacks', adminProtect, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -379,4 +383,12 @@ router.get('/feedbacks', async (req, res) => {
     }
 });
 
+router.get('/records/:id', adminProtect, async (req, res) => {
+    if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ message: '紀錄識別碼不正確' });
+    try {
+        const record = await TestRecord.findById(req.params.id).lean();
+        if (!record) return res.status(404).json({ message: '找不到紀錄' });
+        res.json(record);
+    } catch { res.status(500).json({ message: '無法讀取紀錄' }); }
+});
 module.exports = router;

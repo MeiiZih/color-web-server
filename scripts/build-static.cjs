@@ -1,11 +1,11 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { frontendTarget } = require('../Server/services/frontendRoutes');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'static-dist');
 const backend = process.env.COLORLAB_API_ORIGIN || 'https://color-web-server-jprj.onrender.com';
 if (!/^https:\/\/[a-z\d.-]+(?::\d+)?$/i.test(backend)) throw new Error('COLORLAB_API_ORIGIN must be an HTTPS origin');
 const inject = `<script>window.COLORLAB_STATIC=true;window.COLORLAB_API_ORIGIN=${JSON.stringify(backend)};</script><script src="/js/static-connection.js"></script>`;
-const redirect = target => `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta http-equiv="refresh" content="0;url=${target}"><title>ColorLab</title><style>body{background:#fff8f6;color:#413b41;font-family:system-ui;padding:2rem}</style></head><body><a href="${target}">開啟 ColorLab</a></body></html>`;
 
 async function main() {
   await fs.mkdir(output, { recursive: true });
@@ -14,9 +14,6 @@ async function main() {
   await fs.cp(path.join(root, 'Server/node_modules/pdfjs-dist/legacy/build'), path.join(output, 'vendor/pdfjs'), { recursive: true });
   const html = await fs.readFile(path.join(root, 'color-web/app/index.html'), 'utf8');
   await fs.writeFile(path.join(output, 'index.html'), html);
-  for (const [file, route] of [['main/common.html', '/app/'], ['test/test.html', '/app/#surveys'], ['test/history.html', '/app/#history']]) {
-    await fs.writeFile(path.join(output, file), redirect(route));
-  }
   async function injectHtml(dir) {
     for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
       const file = path.join(dir, entry.name);
@@ -24,11 +21,11 @@ async function main() {
       else if (entry.name.endsWith('.html') && file !== path.join(output, 'app/pdf.html')) {
         let source = await fs.readFile(file, 'utf8');
         const relative = path.relative(output, file).split(path.sep).join('/');
-        if (relative.startsWith('main/') && !source.includes('http-equiv="refresh"')) {
-          const section = relative.startsWith('main/admin/') ? ' cl-admin' : /login-user|register/.test(relative) ? ' cl-auth' : '';
-          source = source.replace(/<html\b([^>]*)>/i, `<html$1 class="cl-integrated${section}">`)
-            .replace('</head>', '<link rel="stylesheet" href="/css/integrated-shell.css"><script src="/js/integrated-shell.js" defer></script></head>')
-            .replace('content="#f8bcc8"', 'content="#fcf8f4"');
+        if (relative !== 'index.html' && frontendTarget('/' + relative)) {
+          const target = frontendTarget('/' + relative);
+          source = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>ColorLab</title><style>body{margin:0;background:#fcf8f4;color:#393435;font:16px system-ui;padding:32px}</style><script data-legacy-redirect>location.replace((${frontendTarget.toString()})(location.pathname,location.search));</script></head><body><p>正在開啟 ColorLab…</p><noscript><a href="${target}">ColorLab 新版網站</a></noscript></body></html>`;
+          await fs.writeFile(file, source);
+          continue;
         }
         await fs.writeFile(file, source.replace(/<head([^>]*)>/i, `<head$1>${inject}`));
       }

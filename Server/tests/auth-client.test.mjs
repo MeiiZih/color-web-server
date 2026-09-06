@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { restoreSession, saveSession, clearSession, validToken } from '../../color-web/app/auth.mjs';
+const storage = () => { const map = new Map(); return { getItem:k=>map.get(k)??null, setItem:(k,v)=>map.set(k,String(v)), removeItem:k=>map.delete(k) }; };
+const token = exp => 'qa.'+Buffer.from(JSON.stringify({exp})).toString('base64url')+'.invalid';
+test('session restores, switches roles and preserves records/drafts on logout', () => {
+  globalThis.sessionStorage=storage(); globalThis.localStorage=storage();
+  const fresh=token(Date.now()/1000+3600), expired=token(1);
+  assert.equal(validToken('invalid'),false); assert.equal(validToken(expired),false);
+  localStorage.setItem('colorlab:draft:test','keep');
+  saveSession({token:fresh,user:{id:'member',name:'Member',email:'qa@example.invalid'}},'user');
+  assert.equal(restoreSession(),'user');
+  assert.equal(sessionStorage.getItem('userId'),'member');
+  saveSession({token:fresh,user:{id:'admin',name:'Admin',email:'admin@example.invalid'}},'admin');
+  assert.equal(sessionStorage.getItem('userToken'),null);
+  sessionStorage.setItem('adminToken',expired);
+  assert.equal(restoreSession(),'admin');
+  assert.equal(sessionStorage.getItem('adminToken'),fresh);
+  clearSession(); assert.equal(restoreSession(),null);
+  assert.equal(localStorage.getItem('colorlab:draft:test'),'keep');
+});

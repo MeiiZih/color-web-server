@@ -125,17 +125,11 @@ router.post('/login', async (req, res) => {
 });
 
 // 更新用戶資料
-router.put('/update-profile', async (req, res) => {
+router.put('/update-profile', protect, async (req, res) => {
     try {
-        const { userId, email, name, gender, birthDate, occupation, phone } = req.body;
-        
-        // 優先使用email查找用戶，如果沒有則使用userId
-        let user;
-        if (email) {
-            user = await User.findOne({ email });
-        } else if (userId) {
-            user = await User.findById(userId);
-        }
+        const { name, gender, birthDate, occupation, phone } = req.body;
+        // Ownership is derived only from the verified member token.
+        const user = req.user;
         
         if (!user) {
             return res.status(404).json({ 
@@ -202,13 +196,15 @@ router.post('/feedback', async (req, res) => {
 });
 
 // 驗證 Token 中間件
-const protect = async (req, res, next) => {
+async function protect(req, res, next) {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            if (decoded.role !== 'user') return res.status(403).json({ message: '請使用會員帳號' });
             req.user = await User.findById(decoded.id).select('-password');
+            if (!req.user) return res.status(401).json({ message: '請重新登入' });
             next();
         } catch (error) {
             res.status(401).json({ message: '未授權，token無效' });
