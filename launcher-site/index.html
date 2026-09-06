@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://color-web-server-jprj.onrender.com">
   <link rel="dns-prefetch" href="https://color-web-server-jprj.onrender.com">
   <title>ColorLab｜調一杯今日心情色</title>
+  <link rel="stylesheet" href="/app/characters.css">
   <style>
     [hidden] { display: none !important; }
     .compact-progress { display: none; }
@@ -537,6 +538,7 @@
         </div>
 
         <div class="mix-stage" id="mixStage" role="button" tabindex="0" aria-label="互動色彩畫布，點擊可以灑下色彩">
+          <span class="report-character wake-character"><img id="wakeCharacter" src="/assets/characters/red.webp" width="160" height="225" alt="紅色報告角色"></span>
           <span class="float-chip one">感受</span>
           <span class="float-chip two">個性</span>
           <span class="float-chip three">此刻</span>
@@ -557,6 +559,7 @@
           <button class="swatch" type="button" data-color="leaf" aria-pressed="false" style="--swatch:#a8d584"><span class="swatch-dot"></span><span>嫩葉綠</span></button>
         </div>
         <button class="reset-mix" id="resetMix" type="button" hidden>重新調一杯</button>
+        <button class="character-motion-toggle" id="characterMotion" type="button" aria-pressed="false">暫停角色動畫</button>
       </section>
     </div>
   </main>
@@ -626,6 +629,12 @@
       ];
 
       const root = document.documentElement;
+      document.getElementById('characterMotion').addEventListener('click', event => {
+        const paused = root.dataset.characterMotion !== 'off';
+        root.dataset.characterMotion = paused ? 'off' : 'on';
+        event.currentTarget.setAttribute('aria-pressed', String(paused));
+        event.currentTarget.textContent = paused ? '播放角色動畫' : '暫停角色動畫';
+      });
       const mixStage = document.getElementById('mixStage');
       const mixOrb = document.getElementById('mixOrb');
       const mixName = document.getElementById('mixName');
@@ -762,6 +771,10 @@
       swatches.forEach(button => {
         button.addEventListener('click', () => {
           const color = button.dataset.color;
+          const [key, name] = {coral:['red','紅'],sun:['yellow','黃'],sky:['blue','藍'],leaf:['green','綠']}[color];
+          const companion = document.getElementById('wakeCharacter');
+          companion.src = `/assets/characters/${key}.webp`;
+          companion.alt = `${name}色報告角色`;
           if (selected.includes(color)) {
             selected = selected.filter(item => item !== color);
           } else {

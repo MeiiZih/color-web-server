@@ -1,0 +1,24 @@
+/* Original report characters: contained artwork, quiet motion and no layout animation. */
+.report-character { display:inline-flex; position:relative; justify-content:center; align-items:end; width:100%; height:100%; isolation:isolate; }
+.report-character img { width:100%; height:100%; object-fit:contain; transform-origin:50% 92%; }
+.report-character::after { content:""; position:absolute; bottom:-2px; width:48%; height:5px; background:#493b4520; border-radius:50%; z-index:-1; }
+.swatch .report-character { height:100px; flex:1; min-height:0; margin:3px 0 9px; }
+.swatch.selected .report-character img, .result-characters .report-character:first-child img, .wake-character img { animation:character-greet 900ms cubic-bezier(.22,1,.36,1); }
+.swatch.selected .report-character::after, .result-characters .report-character:first-child::after { animation:character-shadow 900ms ease-in-out; }
+.result-characters { display:flex; justify-content:center; gap:18px; height:190px; margin:24px auto; max-width:100%; }
+.result-characters .report-character { width:min(135px,23%); }
+.result-characters .report-character:only-child { width:160px; }
+.character-motion-toggle { display:block; margin:10px auto 0; padding:7px 12px; color:inherit; background:transparent; border:1px solid #d9cecb; border-radius:20px; font:inherit; font-size:12px; cursor:pointer; }
+.character-motion-toggle:focus-visible { outline:3px solid #a34764; outline-offset:3px; }
+.wake-character { position:absolute; inset:12% 25%; width:auto; height:auto; z-index:3; pointer-events:none; }
+.wake-character img { animation:character-breathe 5s ease-in-out infinite; }
+.wake-character::after { bottom:-4px; }
+.mix-stage:has(.wake-character) .mix-orb { opacity:.16; }
+.mix-stage:has(.wake-character) .mix-orb img { visibility:hidden; }
+.mix-stage:has(.wake-character) .float-chip { z-index:4; }
+@keyframes character-greet { 0%,100%{transform:none} 24%{transform:translateY(2px) scale(.98,1.02)} 52%{transform:translateY(-7px) rotate(-3deg)} 76%{transform:translateY(-2px) rotate(2deg)} }
+@keyframes character-shadow { 0%,100%{transform:scaleX(1)} 52%{transform:scaleX(.8)} }
+@keyframes character-breathe { 0%,100%{transform:none} 50%{transform:translateY(-5px) rotate(1.5deg)} }
+html[data-character-motion="off"] .report-character img, html[data-character-motion="off"] .report-character::after { animation:none; }
+@media(min-width:768px) { .swatch .report-character { height:122px; } .result-characters { height:225px; } }
+@media(prefers-reduced-motion:reduce) { .report-character img,.report-character::after { animation:none!important; } .character-motion-toggle { display:none; } }

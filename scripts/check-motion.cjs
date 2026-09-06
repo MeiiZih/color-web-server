@@ -9,6 +9,7 @@ const path = require('node:path');
     for (const width of [320, 390, 1280]) {
       const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: 'block' });
       const page = await context.newPage();
+      await page.route('**/api/homepage', route => route.fulfill({json:require('../Server/data/publicMentalHealth20260906.json')}));
       const errors = [];
       page.on('pageerror', e => errors.push(e.message));
       await page.goto('http://127.0.0.1:4180/app/#home');
@@ -36,6 +37,9 @@ const path = require('node:path');
         await page.locator('#next-question').click();
       }
       await page.locator('.result-hero').waitFor();
+      assert.equal(await page.locator('.result-characters img').count(), 4, 'tied result preserves all four characters');
+      await page.locator('.result-characters img').evaluateAll(images=>Promise.all(images.map(i=>i.decode())));
+      await page.locator('.result-hero').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})));});
       assert.equal(await page.locator('.color-bar strong').allTextContents().then(v => v.reduce((sum, n) => sum + parseInt(n), 0)), 100);
       await page.screenshot({ path: path.resolve(__dirname, `../tmp/motion-result-${width}.png`), fullPage: true });
       await page.emulateMedia({ reducedMotion: 'reduce' });

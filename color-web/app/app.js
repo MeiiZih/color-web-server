@@ -2,6 +2,7 @@ import { colors, scoreAnswers, finishSurvey } from './model.mjs';
 import { request, readLocal, saveRecord, safeUrl, isCurrentContent } from './client.mjs';
 import { restoreSession, clearSession } from './auth.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
+import { mediaFor, contentMedia } from './content-media.mjs';
 restoreSession();
 
 const main = document.querySelector('main');
@@ -62,6 +63,7 @@ function shape(key, extra = '') {
 
 let articles = [];
 let resources = [];
+const character = key => `<span class="report-character"><img src="/assets/characters/${key}.webp" width="160" height="225" alt="${colors.find(c => c.key === key)?.name || ''}色報告角色" decoding="async"></span>`;
 
 function home() {
   const featured = catalog.find(s => s.id === FEATURED_SURVEY) || catalog[0];
@@ -78,17 +80,17 @@ function home() {
         <a class="text-button all-surveys-link" href="#surveys">探索全部測驗${icon('arrow')}</a>
       </div>
       <div class="color-studio"><div class="studio-top"><span>THE COLORS OF YOU</span><span>01 — 04</span></div>
-        <div class="color-deck" aria-label="探索四種性格色彩">${colors.map((c, i) => `<button class="swatch ${i === hue ? 'selected' : ''}" data-hue="${i}" aria-pressed="${i === hue}" aria-label="${c.name}色：${c.title}" style="--swatch:${c.light};--color:${c.ink};--rotate:${[-12, -4, 5, 13][i]}deg;--order:${i}"><span class="swatch-number">0${i + 1}</span>${shape(c.key)}<span class="swatch-word">${c.word}</span><span class="swatch-english">${c.en.toUpperCase()}</span></button>`).join('')}</div>
+        <div class="color-deck" aria-label="探索四種性格色彩">${colors.map((c, i) => `<button class="swatch ${i === hue ? 'selected' : ''}" data-hue="${i}" aria-pressed="${i === hue}" aria-label="${c.name}色：${c.title}" style="--swatch:${c.light};--color:${c.ink};--rotate:${[-12, -4, 5, 13][i]}deg;--order:${i}"><span class="swatch-number">0${i + 1}</span>${character(c.key)}<span class="swatch-word">${c.word}</span><span class="swatch-english">${c.en.toUpperCase()}</span></button>`).join('')}</div>
         <p class="color-caption" aria-live="polite"><strong>${colors[hue].name}色 · ${colors[hue].title}</strong><span>輕點色卡，先認識不同的自己</span></p>
       </div>
     </section>
     <section class="gentle-note"><span class="note-symbol">↳</span><p>不急著定義自己，<strong>先好好認識自己。</strong></p><span class="note-end">YOUR OWN PACE</span></section>
     <section class="editorial-section" aria-labelledby="news-heading"><div class="section-heading"><div><span class="eyebrow">SOMETHING TO EXPLORE</span><h2 id="news-heading">最近，值得留意的事</h2></div><span class="section-meta">最新資訊<span>滑動看看</span></span></div>
-      <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image"><img src="${escape(a.image)}" alt="" width="400" height="280" loading="lazy"><span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
+      <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
       <p class="archive-note">活動日期與參加方式，請以主辦單位公告為準。</p>
     </section>
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><span class="section-meta">一般資訊<span>滑動看看</span></span></div>
-      <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}"><img src="${escape(a.image)}" alt="" width="100" height="100" loading="lazy"><span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
+      <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
     <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
   </div>`;
@@ -120,7 +122,7 @@ function result(record) {
   const c = colors[r.primary];
   const matched = colors.filter((_, i) => r.counts[i] === Math.max(...r.counts));
   const report = `/test/detailed-reports/${r.mbti}-${matched.map(c => c.key).sort().join('-')}.pdf`;
-  return `<div class="result-page narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a><section class="result-hero" style="--result-light:${c.light};--result-ink:${c.ink}"><div class="eyebrow">A LITTLE MORE YOU</div><p class="result-kicker">你的色彩探索完成了</p><div class="result-flower">${shape(c.key)}</div><h1>${c.title}</h1><p class="result-type">${c.name}色性格 <span>×</span> ${r.mbti}</p><p class="result-intro">${c.description}</p><div class="result-stamp">${icon('check')}20 題完成 · ${dateLabel(record.date)}</div></section>
+  return `<div class="result-page narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a><section class="result-hero" style="--result-light:${c.light};--result-ink:${c.ink}"><div class="eyebrow">A LITTLE MORE YOU</div><p class="result-kicker">你的色彩探索完成了</p><div class="result-characters">${matched.map(c => character(c.key)).join('')}</div><h1>${c.title}</h1><p class="result-type">${c.name}色性格 <span>×</span> ${r.mbti}</p><p class="result-intro">${c.description}</p><div class="result-stamp">${icon('check')}20 題完成 · ${dateLabel(record.date)}</div></section>
     <section class="result-section"><div class="section-heading"><h2>你的四色比例</h2><span class="muted">每個選擇，都是你的一部分</span></div><div class="color-bars">${colors.map((color, i) => `<div class="color-bar"><span class="bar-label"><i style="background:${color.fill}"></i>${color.name}色</span><span class="bar-track"><span style="width:${r.counts[i] * 5}%;background:${color.fill}"></span></span><strong>${r.counts[i] * 5}%</strong></div>`).join('')}</div>${matched.length > 1 ? `<p class="muted">${matched.map(c => c.name + '色').join('、')}同為最高分；摘要排序沿用原站規則。</p>` : ''}</section>
     <section class="result-section"><h2>多認識自己一點</h2>${colors.filter((_, i) => r.counts[i] > 0).sort((a, b) => r.counts[colors.indexOf(b)] - r.counts[colors.indexOf(a)]).map(color => `<details class="insight"><summary><span><i style="background:${color.fill}"></i>${color.name}色 · ${color.title}</span><span class="expand-symbol">＋</span></summary><p>${color.description}</p></details>`).join('')}</section>
     <section class="report-panel"><div class="report-heading">${icon('test')}<div><h2>把這份認識，留給自己</h2><p>完整報告書 · ${r.mbti} / ${matched.map(c => c.name).join('、')}色</p></div></div><div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download="ColorLab-${r.mbti}.pdf">${icon('download')}下載 PDF</a></div></section>
@@ -155,7 +157,7 @@ function legacyResult(record) {
   const primary = Array.isArray(record.colorResult?.primary) ? record.colorResult.primary : [record.colorResult?.primary];
   const reportColors = [...new Set(primary)].filter(key => colors.some(c => c.key === key)).sort();
   const report = /^[EI][NS][FT][JP]$/.test(record.mbtiResult || '') && reportColors.length ? `/test/detailed-reports/${record.mbtiResult}-${reportColors.join('-')}.pdf` : null;
-  return `<div class="narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a><section class="result-section"><h1>${escape(record.title)}</h1><p>${dateLabel(record.date)}</p><h2>${escape(record.result)}</h2><p class="muted">保留原始測驗結果與作答，不以更新後的題目重新計分。</p>${report ? `<div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download>${icon('download')}下載 PDF</a></div>` : ''}${record.answers.map((a, i) => `<div class="receipt-answer"><h3>${i + 1}. ${escape(a.question || '原始題目')}</h3><p>${escape(a.answer || '未記錄')}</p></div>`).join('')}</section></div>`;
+  return `<div class="narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a><section class="result-section"><h1>${escape(record.title)}</h1><p>${dateLabel(record.date)}</p><h2>${escape(record.result)}</h2><div class="result-characters">${reportColors.map(character).join('')}</div><p class="muted">保留原始測驗結果與作答，不以更新後的題目重新計分。</p>${report ? `<div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download>${icon('download')}下載 PDF</a></div>` : ''}${record.answers.map((a, i) => `<div class="receipt-answer"><h3>${i + 1}. ${escape(a.question || '原始題目')}</h3><p>${escape(a.answer || '未記錄')}</p></div>`).join('')}</section></div>`;
 }
 
 function me() {
@@ -216,7 +218,7 @@ function bindPage() {
   document.querySelectorAll('[data-article], [data-resource]').forEach(button => button.addEventListener('click', () => {
     const isResource = button.hasAttribute('data-resource');
     const a = isResource ? resources[Number(button.dataset.resource)] : articles[Number(button.dataset.article)];
-    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><img class="article-poster" src="${escape(a.image)}" alt="">${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}`);
+    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p>${contentMedia(a, 'poster')}${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}`);
   }));
   document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); } });
   document.querySelector('#question-form')?.addEventListener('change', event => {
@@ -278,7 +280,7 @@ try {
   }
   try {
     const feed = await request('/api/homepage');
-    const mapItem = a => ({ tag: ({ workshop:'工作坊', lecture:'講座', article:'心理健康文章', paper:'研究論文', resource:'資源指南' })[a.contentKind] || (a.type === 'news' ? '最新資訊' : '一般資訊'), title: a.title, description: a.description, image: safeUrl(a.imageUrl), registrationUrl: a.registrationUrl ? safeUrl(a.registrationUrl, '') : '', url: safeUrl(a.link, ''), sourceNote: a.sourceName ? [a.sourceName, a.sourcePublishedAt && `發布 ${a.sourcePublishedAt}`, a.sourceCheckedAt && `查核 ${a.sourceCheckedAt}`].filter(Boolean).join(' · ') : '' });
+    const mapItem = a => ({ tag: ({ workshop:'工作坊', lecture:'講座', article:'心理健康文章', paper:'研究論文', resource:'資源指南' })[a.contentKind] || (a.type === 'news' ? '最新資訊' : '一般資訊'), title: a.title, description: a.description, sourceName: a.sourceName, media: { ...mediaFor(a), imageUrl: mediaFor(a).imageUrl ? safeUrl(mediaFor(a).imageUrl, '') : '' }, registrationUrl: a.registrationUrl ? safeUrl(a.registrationUrl, '') : '', url: safeUrl(a.link, ''), sourceNote: a.sourceName ? [a.sourceName, a.sourcePublishedAt && `發布 ${a.sourcePublishedAt}`, a.sourceCheckedAt && `查核 ${a.sourceCheckedAt}`].filter(Boolean).join(' · ') : '' });
     const currentFeed = feed.filter(a => isCurrentContent(a));
     articles = currentFeed.filter(a => a.type === 'news').map(mapItem);
     resources = currentFeed.filter(a => a.type === 'common').map(mapItem);

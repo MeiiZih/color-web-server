@@ -1,0 +1,31 @@
+.content-media { --cover-paper:#f5dfe3; --cover-ink:#963e59; display:block; position:relative; width:100%; overflow:hidden; isolation:isolate; border-radius:inherit; background:var(--cover-paper); }
+.tone-blue { --cover-paper:#e0eaf4; --cover-ink:#345b7e; }
+.tone-green { --cover-paper:#e1ecdf; --cover-ink:#3c654a; }
+.tone-yellow { --cover-paper:#f8ecc7; --cover-ink:#796019; }
+.media-card { height:100%; }
+.media-card .media-cover { padding-top:48px; }
+.media-cover { display:flex; flex-direction:column; justify-content:center; gap:7px; height:100%; min-height:180px; padding:24px; color:var(--cover-ink); position:relative; }
+.cover-brand { font:bold 14px Georgia,serif; letter-spacing:-.4px; }
+.media-cover strong { font:600 clamp(20px,2vw,28px)/1.4 var(--serif); z-index:1; }
+.cover-source { font-size:11px; max-width:80%; z-index:1; }
+.media-cover small { font-size:10px; opacity:.8; }
+.cover-mark { position:absolute; right:14px; bottom:0; font-size:110px; line-height:1; opacity:.13; }
+.content-media .source-thumbnail { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; object-position:center; background:#fffefa; opacity:0; }
+.image-ready .source-thumbnail { opacity:1; }
+.image-ready .media-cover { visibility:hidden; }
+.media-credit { display:none; }
+.media-compact { width:80px; height:88px; flex-shrink:0; border-radius:12px; }
+.media-compact .media-cover { padding:8px; min-height:0; gap:3px; }
+.media-compact .cover-brand { font-size:10px; }
+.media-compact .media-cover strong { font:600 13px/1.4 var(--body-font); }
+.media-compact .cover-source { display:none; }
+.media-compact .cover-mark { font-size:48px; right:0; }
+.media-compact .media-cover small { font-size:8px; }
+.resource-card .media-compact img { width:100%; height:100%; object-fit:contain; }
+.media-poster { margin:24px 0; border-radius:16px; }
+.media-poster .media-cover { min-height:240px; }
+.media-poster.image-ready .media-cover { display:none; }
+.media-poster .source-thumbnail { position:relative; display:none; max-height:65vh; object-fit:contain; }
+.media-poster.image-ready .source-thumbnail { display:block; }
+.media-poster .media-credit { display:block; padding:10px 16px; background:#fffefa; color:var(--muted); font-size:12px; }
+.article-image .tag { z-index:2; top:10px; left:10px; bottom:auto; }
