@@ -96,6 +96,11 @@ function home() {
   </div>`;
 }
 
+function quizCompanion(index, total, variant) {
+  const active = Math.min(3, Math.floor(index * 4 / total));
+  return `<div class="quiz-companion companion-${variant}" aria-label="四色角色陪你作答"><div class="companion-cast" aria-hidden="true">${colors.map((c, i) => `<span class="companion-member ${i === active ? 'is-active' : ''}">${character(c.key)}</span>`).join('')}</div><div class="companion-copy"><strong>我們陪你，慢慢來。</strong><p data-companion-message>${index === total - 1 ? '最後一題了，依照自己的感受完成就好。' : '沒有標準答案，選最貼近自己的就好。'}</p><small>角色隨進度輪流陪伴，與答案無關。</small></div></div>`;
+}
+
 function test() {
   questions = activeSurvey.questions;
   if (!draft()) { state.drafts[activeSurvey.id] = { answers: Array(questions.length).fill(null), index: 0, version: activeSurvey.version, key: crypto.randomUUID() }; persist(); }
@@ -105,8 +110,8 @@ function test() {
   const sections = activeSurvey.sections || [activeSurvey.title];
   const sectionIndex = Math.min(sections.length - 1, Math.floor(index * sections.length / questions.length));
   return `<div class="test-page page-width"><div class="test-topline"><a href="#surveys" class="text-button">${icon('back')}暫存並離開</a><span class="saved-state">${icon('check')}進度自動儲存</span></div><p class="survey-context">${escape(activeSurvey.title)}</p>
-    <div class="test-layout"><aside class="test-sidebar"><span class="eyebrow">YOUR COLOR JOURNEY</span><h1>慢慢選，<br>選出你的樣子。</h1><p>想想平常的自己，<br>讓第一直覺帶你找到答案。</p><ol>${sections.map((s, i) => `<li class="${sectionIndex === i ? 'current' : ''}"><span>${i + 1}</span>${escape(s)}</li>`).join('')}</ol><div class="test-art" style="color:${colors[sectionIndex % colors.length].fill}">${shape(colors[sectionIndex % colors.length].key)}</div></aside>
-    <section class="question-area" aria-labelledby="question-heading"><div class="question-progress"><span>${escape(sections[sectionIndex])}</span><strong><span id="answer-count">${count}</span><small> / ${questions.length} 已完成</small></strong></div><progress value="${count}" max="${questions.length}" aria-label="已完成的題數">${count} / ${questions.length}</progress>
+    <div class="test-layout"><aside class="test-sidebar"><span class="eyebrow">YOUR COLOR JOURNEY</span><h1>慢慢選，<br>選出你的樣子。</h1><p>想想平常的自己，<br>讓第一直覺帶你找到答案。</p><ol>${sections.map((s, i) => `<li class="${sectionIndex === i ? 'current' : ''}"><span>${i + 1}</span>${escape(s)}</li>`).join('')}</ol>${quizCompanion(index, questions.length, 'desktop')}</aside>
+    <section class="question-area" aria-labelledby="question-heading">${quizCompanion(index, questions.length, 'mobile')}<div class="question-progress"><span>${escape(sections[sectionIndex])}</span><strong><span id="answer-count">${count}</span><small> / ${questions.length} 已完成</small></strong></div><progress value="${count}" max="${questions.length}" aria-label="已完成的題數">${count} / ${questions.length}</progress>
       <form id="question-form"><fieldset ${draft().pending ? 'disabled' : ''}><legend id="question-heading" tabindex="-1"><span class="question-number">QUESTION ${String(index + 1).padStart(2, '0')} <small>/ ${questions.length}</small></span><span class="question-text">${escape(q.question)}</span></legend><p class="question-helper">選擇最符合你的一項。</p>
         <div class="options">${q.options.map((o, i) => `<label class="option"><input type="radio" name="answer" value="${i}" ${answers[index] === i ? 'checked' : ''}><span class="option-letter">${i < 26 ? String.fromCharCode(65 + i) : i + 1}</span><span class="option-copy">${escape(o.replace(/^[A-Z]\.\s*/, ''))}</span><span class="option-check">${icon('check')}</span></label>`).join('')}</div>
       </fieldset><div class="question-actions"><button class="button secondary" type="button" data-previous ${index === 0 || draft().pending ? 'disabled' : ''}>${icon('back')}上一題</button><button class="button primary" id="next-question" type="submit" ${answers[index] === null ? 'disabled' : ''}>${index === questions.length - 1 ? (activeSurvey.resultType === 'receipt' ? '完成問卷' : '看我的結果') : '下一題'}${icon('arrow')}</button></div>
@@ -229,6 +234,11 @@ function bindPage() {
     document.querySelector('#answer-count').textContent = answered();
     document.querySelector('progress').value = answered();
     document.querySelector('#selection-status').textContent = '已選好，你也可以隨時更改。';
+    document.querySelectorAll('[data-companion-message]').forEach(el => { el.textContent = '選好囉，也可以再想一想。準備好再按下一題。'; });
+    document.querySelectorAll('.quiz-companion .is-active').forEach(el => {
+      el.classList.remove('has-answered');
+      requestAnimationFrame(() => { if (el.isConnected) el.classList.add('has-answered'); });
+    });
   });
   document.querySelector('#question-form')?.addEventListener('submit', async event => {
     event.preventDefault();

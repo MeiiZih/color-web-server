@@ -8,6 +8,12 @@ existing `color-web/test/detailed-reports/ISTP-{red,yellow,green,blue}.pdf` repo
 reports remain unchanged. No AI redraw, replaced face, or invented limb is used.
 Home selection and tied result characters use a short greeting; the wake page
 uses a gentle loop with pause and reduced-motion support. Scoring is unchanged.
+The quiz shows all four characters beside the desktop question area and above
+mobile progress. A highlighted companion rotates by question position (not the
+selected answer or inferred personality). Selection triggers a brief nod and
+neutral encouragement; no looping motion, countdown or automatic next question.
+`check-quiz-companion.cjs` covers mobile/desktop visibility, answer retention,
+back/reload, focus, reduced motion and non-overlapping choices.
 
 ## Source-backed thumbnails (checked 2026-09-06)
 

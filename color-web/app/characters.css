@@ -22,3 +22,21 @@
 html[data-character-motion="off"] .report-character img, html[data-character-motion="off"] .report-character::after { animation:none; }
 @media(min-width:768px) { .swatch .report-character { height:122px; } .result-characters { height:225px; } }
 @media(prefers-reduced-motion:reduce) { .report-character img,.report-character::after { animation:none!important; } .character-motion-toggle { display:none; } }
+
+/* Quiz companions follow progress, never answer values or personality scores. */
+.quiz-companion { padding:14px 0; margin-bottom:12px; border-bottom:1px solid var(--line); }
+.companion-desktop { display:none; }
+.companion-cast { display:flex; justify-content:center; align-items:end; gap:14px; height:72px; margin-bottom:12px; }
+.companion-member { display:block; width:40px; height:55px; opacity:.65; }
+.companion-member.is-active { height:72px; width:48px; opacity:1; }
+.companion-member img { object-position:center bottom; }
+.companion-copy { text-align:center; }
+.companion-copy strong { font-size:13px; color:var(--ink); }
+.companion-copy p { font-size:12px; color:var(--muted); min-height:40px; margin:4px 0; }
+.companion-copy small { font-size:10px; color:var(--muted); }
+.quiz-companion .is-active img { animation:character-greet 900ms cubic-bezier(.22,1,.36,1); }
+.quiz-companion .has-answered img { animation:companion-nod 450ms ease-in-out; }
+.quiz-companion .has-answered .report-character::after { animation:character-shadow 450ms ease-in-out; }
+@keyframes companion-nod { 0%,100%{transform:none} 40%{transform:translateY(3px) rotate(3deg)} 75%{transform:translateY(-2px) rotate(-2deg)} }
+@media(max-width:767px) { .quiz-companion{padding:8px 0 10px}.companion-cast{height:52px;margin-bottom:8px}.companion-member{height:40px;width:30px}.companion-member.is-active{height:52px;width:36px}.companion-copy p{min-height:0;margin:3px 0;line-height:1.5} }
+@media(min-width:768px) { .companion-mobile{display:none} .companion-desktop{display:block;border:0;margin:30px 0 0;padding:20px 0}.companion-cast{height:115px;gap:18px}.companion-member{width:48px;height:88px}.companion-member.is-active{width:60px;height:115px}.companion-copy strong{font-size:16px}.companion-copy p{font-size:14px;min-height:48px}.companion-copy small{font-size:11px} }
