@@ -189,6 +189,7 @@ function openDialog(content) {
 dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
 dialog.addEventListener('close', () => { document.querySelector('#dialog-content').replaceChildren(); dialog.classList.remove('color-detail-dialog'); });
+document.addEventListener('pointerdown', () => dialog.setAttribute('data-pointer-focus', ''), true);
 document.addEventListener('keydown', () => document.querySelectorAll('[data-pointer-focus]').forEach(el => el.removeAttribute('data-pointer-focus')));
 
 function render(direction = 'page') {

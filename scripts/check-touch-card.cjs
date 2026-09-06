@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
   try {
     for (const width of [390, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: true, serviceWorkers: 'block' });
+      await page.route('**/api/homepage', route => route.fulfill({json:['news','common'].map(type=>({_id:type,type,title:'貼文關閉鍵測試',description:'僅供本機測試',link:'https://example.org',imageUrl:'/colorlab-mark.svg'}))}));
       await page.goto('http://127.0.0.1:4180/app/#home');
       const card = page.locator('[data-hue]').first();
       await card.tap();
@@ -18,6 +19,21 @@ const assert = require('node:assert/strict');
       await page.keyboard.press('Tab');
       assert.equal(await page.locator('[data-pointer-focus]').count(), 0);
       assert.equal(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), 'solid');
+      for (const selector of ['[data-article]', '[data-resource]']) {
+        const post = page.locator(selector).first();
+        await post.tap();
+        const close = dialog.locator('.dialog-close');
+        await dialog.waitFor();
+        assert.equal(await close.evaluate(el => getComputedStyle(el).outlineStyle), 'none');
+        assert.equal(await close.evaluate(el => getComputedStyle(el).color), 'rgb(168, 65, 97)');
+        await close.tap();
+        await post.focus();
+        await page.keyboard.press('Enter');
+        await dialog.waitFor();
+        assert.equal(await close.evaluate(el => getComputedStyle(el).outlineWidth), '2px');
+        await page.keyboard.press('Escape');
+        assert.equal(await page.evaluate(() => document.activeElement.matches('[data-article], [data-resource]')), true);
+      }
       const help = page.locator('.first-visit a');
       assert.equal(await page.locator('.home-page > :first-child').getAttribute('class'), 'first-visit');
       assert.match(await help.innerText(), /初次使用 ColorLab/);

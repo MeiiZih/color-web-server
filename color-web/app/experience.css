@@ -8,6 +8,9 @@
 .color-detail-dialog::backdrop { backdrop-filter:none; }
 body:has(.color-detail-dialog[open]) main .articulated *,body:has(.color-detail-dialog[open]) main .articulated::after { animation-play-state:paused; }
 .color-detail-dialog .dialog-close { z-index:2; background:var(--white); }
+#detail-dialog .dialog-close { color:var(--rose); }
+#detail-dialog .dialog-close:focus-visible { outline:2px solid var(--rose); outline-offset:1px; }
+#detail-dialog[data-pointer-focus] .dialog-close:focus { outline:none; box-shadow:none; }
 .swatch[data-pointer-focus]:focus, .color-detail-dialog[data-pointer-focus]:focus, .color-detail-dialog[data-pointer-focus] .dialog-close:focus { outline:none; }
 .color-detail-hero { display:flex; align-items:center; gap:28px; padding:42px 32px 26px; background:var(--detail-tint); color:var(--detail-ink); }
 .color-detail-hero>.report-character { width:130px; height:170px; flex-shrink:0; }
