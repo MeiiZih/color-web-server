@@ -21,7 +21,7 @@ add/update 的 content 必填：
 
 來源限官方白名單，新增單位需人工核實後更新 Server/services/contentReview.js。暫時連線失敗不判永久失效；舊文章不因年份早下架。查不到的內容列 sourceFailures，其他查核項可完成本週清單。
 每週已同步清單不可修改；同內容跨週去重；沒有候選也可同步空清單。
-对照 GET /api/homepage 当前公開資訊；會員資料不在蒐集範圍。
+對照完整資訊清單（含已到期未歸檔）：先執行 node --env-file=.local/content-review.env scripts/read-review-content.cjs，再讀 tmp/content-review/current-content.json。會員資料不在蒐集範圍。沒有授權時可比對公開 API，但須註記无法涵蓋已隱藏的過期項目。
 
 ## 憑證與指令
 

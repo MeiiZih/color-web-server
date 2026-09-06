@@ -80,4 +80,7 @@ test('valid corrections publish; expired events stay hidden even after restore',
  await db.collection('homepages').updateOne({_id:target._id},{$set:{expiresAt:new Date('2020-01-01')}});
  assert.equal((await (await fetch(base+'/api/homepage')).json()).length,0);
  assert.equal((await fetch(base+'/api/homepage/'+target._id)).status,404);
+ const inventory=await fetch(base+'/api/content-review-ingest/current',{headers:{'X-Content-Review-Key':process.env.CONTENT_REVIEW_INGEST_KEY}});
+ assert.equal(inventory.status,200);assert.equal((await inventory.json()).length,1);
+ assert.equal((await fetch(base+'/api/content-review-ingest/current')).status,401);
 });

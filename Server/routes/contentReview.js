@@ -11,6 +11,8 @@ ingestion.use((req,res,next)=>{
  next();
 });
 ingestion.post('/',safe(async(req,res)=>res.json(await service.ingest(mongoose.connection,req.body))));
+// Content inventory includes expired entries so the collector can suggest archiving them.
+ingestion.get('/current',safe(async(req,res)=>res.json(await mongoose.connection.db.collection('homepages').find({archivedAt:{$exists:false}}).sort({createdAt:-1}).toArray())));
 ingestion.get('/status/:week',safe(async(req,res)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(req.params.week))return res.sendStatus(400);const batch=await mongoose.connection.db.collection('content_review_batches').findOne({_id:req.params.week});res.json(batch?{weekStart:batch._id,count:batch.count,status:'synced'}:{status:'not-synced'});}));
 function adminRouter(){
  const router=express.Router();
