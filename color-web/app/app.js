@@ -4,6 +4,7 @@ import { restoreSession, clearSession } from './auth.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 import { mediaFor, contentMedia } from './content-media.mjs';
 import { character, characterCast, motionToggle, bindCharacterMotion } from './character-art.mjs';
+import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
 restoreSession();
 
@@ -86,15 +87,20 @@ function home() {
       </div>
     </section>
     <section class="gentle-note"><span class="note-symbol">↳</span><p>不急著定義自己，<strong>先好好認識自己。</strong></p><span class="note-end">YOUR OWN PACE</span></section>
-    <section class="editorial-section" aria-labelledby="news-heading"><div class="section-heading"><div><span class="eyebrow">SOMETHING TO EXPLORE</span><h2 id="news-heading">最近，值得留意的事</h2></div><span class="section-meta">最新資訊<span>滑動看看</span></span></div>
+    <section class="editorial-section" aria-labelledby="news-heading"><div class="section-heading"><div><span class="eyebrow">SOMETHING TO EXPLORE</span><h2 id="news-heading">最近，值得留意的事</h2></div><a class="text-button collection-entry" href="#news">查看全部資訊${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
       <p class="archive-note">活動日期與參加方式，請以主辦單位公告為準。</p>
     </section>
-    <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><span class="section-meta">一般資訊<span>滑動看看</span></span></div>
+    <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><a class="text-button collection-entry" href="#resources">探索全部內容${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
     <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
   </div>`;
+}
+
+function collectionPage(kind) {
+  const list=kind==='news'?articles:resources, label=kind==='news'?'最近，值得留意的事':'給心一點空間', attr=kind==='news'?'article':'resource';
+  return `<div class="page-width collection-page"><a href="#home" class="text-button">${icon('back')}返回首頁</a><header class="collection-heading"><span class="eyebrow">${kind==='news'?'SOMETHING TO EXPLORE':'A MOMENT FOR YOURSELF'}</span><h1>${label}</h1><p>${kind==='news'?'工作坊、講座與值得留意的心理健康消息。':'閱讀、支持與休息，依照此刻的需要慢慢探索。'}</p><nav class="collection-switch" aria-label="資訊分類"><a href="#news" ${kind==='news'?'aria-current="page"':''}>最新資訊</a><a href="#resources" ${kind==='resources'?'aria-current="page"':''}>一般資訊</a></nav><span class="muted">共 ${list.length} 則內容</span></header><div class="collection-grid">${list.map((a,i)=>`<button class="article-card" data-${attr}="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">閱讀內容與來源 ${icon('arrow')}</span></div></button>`).join('')||'<p class="muted">目前沒有可顯示的內容，請稍後再來看看。</p>'}</div></div>`;
 }
 
 function quizCompanion(index, total, variant) {
@@ -157,7 +163,7 @@ function receipt(record, survey) {
 }
 
 function historyPage() {
-  return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">收藏不同問卷的作答與結果。</p><div class="history-heading"><h2>我的測驗紀錄</h2><span>${state.records.length} 份紀錄</span></div>${state.records.length ? state.records.map(historyCard).join('') : `<div class="empty-state">${shape('green')}<h2>第一頁，等你來寫。</h2><p>完成測驗後，你的紀錄就會出現在這裡。</p><a href="#surveys" class="button primary">選擇測驗${icon('arrow')}</a></div>`}<p class="preview-note">${escape(historyError || (member ? '顯示最近 200 份會員紀錄。' : '訪客紀錄僅在此瀏覽器可用。'))}</p></div>`;
+  return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">收藏不同問卷的作答與結果。</p><div class="history-heading"><h2>我的測驗紀錄</h2><span>${state.records.length} 份紀錄</span></div>${state.records.length ? state.records.map(r=>`<div class="history-entry">${historyCard(r)}<button class="delete-record" data-delete-record="${escape(r.id)}" aria-label="刪除 ${escape(r.title || r.survey?.title || '測驗')} 紀錄">刪除紀錄</button></div>`).join('') : `<div class="empty-state">${shape('green')}<h2>第一頁，等你來寫。</h2><p>完成測驗後，你的紀錄就會出現在這裡。</p><a href="#surveys" class="button primary">選擇測驗${icon('arrow')}</a></div>`}<p class="preview-note">${escape(historyError || (member ? '顯示最近 200 份會員紀錄。' : '訪客紀錄僅在此瀏覽器可用。'))}</p></div>`;
 }
 function legacyResult(record) {
   const primary = Array.isArray(record.colorResult?.primary) ? record.colorResult.primary : [record.colorResult?.primary];
@@ -177,21 +183,21 @@ function openDialog(content) {
 }
 dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
-dialog.addEventListener('close', () => { document.querySelector('#dialog-content').replaceChildren(); });
+dialog.addEventListener('close', () => { document.querySelector('#dialog-content').replaceChildren(); dialog.classList.remove('color-detail-dialog'); });
 
 function render(direction = 'page') {
   if (!state) return;
   if (dialog.open) dialog.close();
   const [rawRoute, id] = location.hash.slice(1).split('/');
   const route = rawRoute || 'home';
-  const active = route === 'result' ? 'history' : route === 'test' ? 'surveys' : route;
+  const active = ['news','resources'].includes(route) ? 'home' : route === 'result' ? 'history' : route === 'test' ? 'surveys' : route;
   activeSurvey = catalog.find(s => s.id === (id || FEATURED_SURVEY)) || catalog[0];
   nav.innerHTML = [['home', '首頁'], ['surveys', '測驗'], ['history', '紀錄'], ['me', '我的']].map(([key, label]) => `<a href="#${key}" ${key === active ? 'aria-current="page"' : ''}>${icon(key === 'surveys' ? 'test' : key)}<span>${label}</span></a>`).join('');
   const record = state.records.find(r => r.id === id);
-  main.innerHTML = route === 'surveys' ? (catalog.length ? surveyList() : home()) : route === 'test' ? (!activeSurvey || id && !catalog.some(s => s.id === id) ? '<div class="empty-state"><h1>找不到這份問卷</h1><a href="#surveys" class="button primary">返回全部測驗</a></div>' : test()) : route === 'history' ? historyPage() : route === 'me' ? me() : route === 'result' && record ? result(record) : home();
+  main.innerHTML = ['news','resources'].includes(route) ? collectionPage(route) : route === 'surveys' ? (catalog.length ? surveyList() : home()) : route === 'test' ? (!activeSurvey || id && !catalog.some(s => s.id === id) ? '<div class="empty-state"><h1>找不到這份問卷</h1><a href="#surveys" class="button primary">返回全部測驗</a></div>' : test()) : route === 'history' ? historyPage() : route === 'me' ? me() : route === 'result' && record ? result(record) : home();
   document.body.dataset.page = route;
   main.dataset.stepMotion = direction === 'next' || direction === 'previous' ? direction : 'page';
-  document.title = `ColorLab｜${({ home: '發現你的本色', surveys: '全部測驗', test: activeSurvey?.title || '測驗', history: '測驗紀錄', result: '測驗結果', me: '我的空間' })[route] || '首頁'}`;
+  document.title = `ColorLab｜${({ home: '發現你的本色', news: '最近，值得留意的事', resources: '給心一點空間', surveys: '全部測驗', test: activeSurvey?.title || '測驗', history: '測驗紀錄', result: '測驗結果', me: '我的空間' })[route] || '首頁'}`;
   window.scrollTo({ top: 0, behavior: 'instant' });
   main.focus({ preventScroll: true });
   bindPage();
@@ -199,6 +205,25 @@ function render(direction = 'page') {
 
 function bindPage() {
   bindCharacterMotion(main);
+  document.querySelectorAll('[data-delete-record]').forEach(button=>button.addEventListener('click',()=>{
+    const record=state.records.find(r=>r.id===button.dataset.deleteRecord);if(!record)return;
+    openDialog(`<h2 id="dialog-title">刪除這份測驗紀錄？</h2><p>${escape(record.title || record.survey?.title || '測驗紀錄')} · ${dateLabel(record.date)}</p><p>刪除後無法復原，不會影響其他紀錄或未完成的問卷。${record.cloud?'此操作會刪除帳號中的這份紀錄。':'此操作只刪除此瀏覽器的這份紀錄。'}</p><p role="alert" id="delete-error"></p><div class="delete-actions"><button class="button secondary" data-cancel-delete>取消</button><button class="button primary" data-confirm-delete>確認刪除</button></div>`);
+    dialog.querySelector('[data-cancel-delete]').onclick=()=>dialog.close();
+    dialog.querySelector('[data-confirm-delete]').onclick=async event=>{
+      const confirm=event.currentTarget;confirm.disabled=true;confirm.textContent='正在刪除…';
+      const errorNode=dialog.querySelector('#delete-error');
+      dialog.querySelector('[data-cancel-delete]').disabled=true;
+      try {
+        if(record.cloud)await request('/api/explore/records/'+encodeURIComponent(record.id),{method:'DELETE'});
+        const remaining=state.records.filter(r=>r.id!==record.id);
+        if(!record.cloud)previewStorage.setItem(storageKey,JSON.stringify({drafts:state.drafts,records:remaining.filter(r=>!r.cloud)}));
+        state.records=remaining;
+        if(errorNode.isConnected && dialog.open)dialog.close();
+        if(!dialog.open && location.hash==='#history')render();
+        notify('這份測驗紀錄已刪除。');
+      } catch(error){if(errorNode.isConnected && dialog.open){errorNode.textContent=error.message;confirm.disabled=false;confirm.textContent='重新刪除';dialog.querySelector('[data-cancel-delete]').disabled=false;}}
+    };
+  }));
   const profile = document.querySelector('.profile-page');
   if (profile && !member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<p class="muted">${sessionStorage.getItem('adminToken') ? '目前使用管理員身分；會員 Email 驗證不適用於管理員帳號。' : '登入會員後，可在這裡查看 Email 驗證狀態。'}</p>`);
   if (profile && member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<section class="verification-panel"><div data-verification-status>${verificationStatus(member)}</div><a class="text-button" href="/app/account.html#profile">管理 Email 驗證${icon('arrow')}</a></section>`);
@@ -221,6 +246,9 @@ function bindPage() {
     hue = Number(button.dataset.hue);
     document.querySelectorAll('[data-hue]').forEach(el => { const selected = Number(el.dataset.hue) === hue; el.classList.toggle('selected', selected); el.setAttribute('aria-pressed', selected); });
     document.querySelector('.color-caption strong').textContent = `${colors[hue].name}色 · ${colors[hue].title}`;
+    const c=colors[hue], d=colorDetails[c.key];
+    dialog.classList.add('color-detail-dialog');
+    openDialog(`<article class="color-detail" style="--detail-tint:${c.light};--detail-ink:${c.ink}"><div class="color-detail-hero">${character(c.key)}<div><span class="eyebrow">COLORLAB / ${c.en.toUpperCase()}</span><h2 id="dialog-title">${c.name}色 · ${c.title}</h2><p>${c.description}</p></div></div><div class="color-detail-copy">${[['你的色彩力量',d.strengths],['相處時的你',d.relationships],['給自己的照顧',d.care],['留給你的小提問',d.question]].map(([h,p])=>`<section><h3>${h}</h3><p>${p}</p></section>`).join('')}<p class="preview-note">這是 ColorLab 的色彩探索描述，不是固定的人格標籤或心理診斷；每個人都可能有不同色彩的一面。</p></div></article>`);
   }));
   document.querySelectorAll('[data-article], [data-resource]').forEach(button => button.addEventListener('click', () => {
     const isResource = button.hasAttribute('data-resource');

@@ -32,6 +32,13 @@ router.get('/records', handle(async (req, res) => {
   res.json(records.map(recordView));
 }));
 
+router.delete('/records/:id', handle(async (req, res) => {
+  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ message: '紀錄識別碼不正確。' });
+  const result = await TestRecord.deleteOne({ _id: req.params.id, $or: [{ userId: req.member._id }, { userId: null, email: req.member.email }] });
+  if (!result.deletedCount) return res.status(404).json({ message: '找不到你的這筆紀錄，請重新載入確認。' });
+  res.json({ deleted: true });
+}));
+
 router.post('/records', handle(async (req, res) => {
   const { surveyId, version, answers, key } = req.body;
   if (!/^[a-f\d]{24}$/i.test(surveyId || '')) return res.status(400).json({ message: '問卷識別碼不正確。' });

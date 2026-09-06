@@ -17,19 +17,9 @@ export function character(key) {
   return `<span class="report-character articulated character-${key}" role="img" aria-label="${c.name}色報告角色" style="--character-ratio:.9;--character-delay:${-['red','yellow','green','blue'].indexOf(key)*3}s"><svg class="character-art" viewBox="${(c.width-viewportWidth)/2} 0 ${viewportWidth} ${c.height}" aria-hidden="true" focusable="false"><defs><clipPath id="${id}-head"><rect width="${c.width}" height="${c.split}"/></clipPath><clipPath id="${id}-legs"><rect y="${c.split}" width="${c.width}" height="${c.height-c.split}"/></clipPath><clipPath id="${id}-arm"><path d="${arm}"/></clipPath><mask id="${id}-body"><rect width="${c.width}" height="${c.height}" fill="white"/>${key==='yellow'?`<path d="${arm}" fill="black"/>`:''}</mask></defs>${key==='yellow'?`<g mask="url(#${id}-body)">${img}</g><g class="character-arm" style="transform-origin:260px 254px"><g clip-path="url(#${id}-arm)">${img}</g></g>${lids}`:`<g clip-path="url(#${id}-legs)">${img}</g><g class="character-head" style="transform-origin:${c.width/2}px ${c.split}px"><g clip-path="url(#${id}-head)">${img}</g>${lids}</g>`}</svg></span>`;
 }
 export const characterCast = () => `<div class="survey-characters" aria-label="四色角色陪你探索">${Object.keys(cast).map(character).join('')}</div>`;
-export const motionToggle = () => '<button type="button" class="character-motion-toggle" data-character-toggle aria-pressed="false">暫停角色動畫</button>';
+// Keep the shared API for the app and wake screen, without a separate pause control.
+export const motionToggle = () => '';
 export function bindCharacterMotion(root = document) {
-  try { document.documentElement.dataset.characterMotion = localStorage.getItem('colorlab-character-motion') || 'on'; } catch { /* Storage is optional. */ }
-  const sync = () => root.querySelectorAll('[data-character-toggle]').forEach(button => {
-    const paused = document.documentElement.dataset.characterMotion === 'off';
-    button.setAttribute('aria-pressed', String(paused));
-    button.textContent = paused ? '播放角色動畫' : '暫停角色動畫';
-  });
-  root.querySelectorAll('[data-character-toggle]').forEach(button => button.addEventListener('click', () => {
-    const value = document.documentElement.dataset.characterMotion === 'off' ? 'on' : 'off';
-    document.documentElement.dataset.characterMotion = value;
-    try { localStorage.setItem('colorlab-character-motion', value); } catch { /* Still works for this visit. */ }
-    sync();
-  }));
-  sync();
+  delete document.documentElement.dataset.characterMotion;
+  root.querySelectorAll('[data-character-toggle]').forEach(button => button.remove());
 }

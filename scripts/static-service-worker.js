@@ -1,10 +1,11 @@
 // Independent frontend: cache public shell only, never tokens, records, APIs or Render wake HTML.
-const CACHE = 'colorlab-static-shell-v8';
+const CACHE = 'colorlab-static-shell-v9';
 const SHELL = ['/app/', '/app/app.js', '/app/model.mjs', '/app/client.mjs', '/app/auth.mjs', '/app/ui.mjs', '/app/account.html', '/app/account.mjs', '/app/account.css', '/app/style.css', '/app/motion.css', '/js/static-connection.js', '/colorlab-mark.svg', '/wake.html'];
 SHELL.push('/app/verification-status.mjs', '/app/verification-status.css');
 SHELL.push('/app/character-art.mjs');
 SHELL.push('/app/source-help.mjs');
 SHELL.push('/app/content-review.mjs','/app/content-review.css');
+SHELL.push('/app/experience.css','/app/color-details.mjs');
 SHELL.push(...['support','workshop','reading','research'].map(topic => `/assets/images/content-${topic}.webp`));
 SHELL.push('/app/characters.css', '/app/content-media.mjs', '/app/content-media.css', ...['red','yellow','green','blue'].map(color => `/assets/characters/${color}.webp`));
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));

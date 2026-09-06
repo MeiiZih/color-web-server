@@ -50,10 +50,15 @@ html[data-character-motion="off"] .report-character img, html[data-character-mot
 .character-blue .character-head { animation-name:blue-think; }
 .character-blink { opacity:0; animation:character-blink 12s var(--character-delay) infinite; }
 .articulated::after { animation:cast-shadow 12s var(--character-delay) ease-in-out infinite; }
-@keyframes flame-stretch { 0%,22%,100%{transform:none} 6%{transform:scale(.98,1.025)} 12%{transform:scale(1.025,.975)} 18%{transform:scale(.99,1.01)} }
-@keyframes flower-wave { 0%,24%,100%{transform:none} 5%,15%{transform:rotate(-22deg)} 10%,20%{transform:rotate(-6deg)} }
-@keyframes leaf-nod { 0%,24%,100%{transform:none} 7%{transform:rotate(-3deg) translateY(7px)} 15%{transform:rotate(2deg) translateY(2px)} }
-@keyframes blue-think { 0%,24%,100%{transform:none} 8%,16%{transform:rotate(3deg)} }
+@keyframes flame-stretch { 0%,24%,100%{transform:none} 5%{transform:scale(1.06,.94)} 11%{transform:scale(.94,1.10)} 18%{transform:scale(1.025,.98)} }
+@keyframes flower-wave { 0%,24%,100%{transform:none} 5%,15%{transform:rotate(-42deg)} 10%,20%{transform:rotate(8deg)} }
+@keyframes leaf-nod { 0%,24%,100%{transform:none} 7%{transform:rotate(-7deg) translateY(12px)} 16%{transform:rotate(5deg) translateY(4px)} }
+@keyframes blue-think { 0%,24%,100%{transform:none} 7%,14%{transform:rotate(8deg)} 19%{transform:rotate(-3deg)} }
+/* Shared twelve-second stage: each character takes a turn, with a quiet reset. */
+.character-art { transform-origin:50% 95%; animation:character-step 12s var(--character-delay) ease-in-out infinite; }
+.character-yellow .character-art { animation-name:character-hop; }
+@keyframes character-step { 0%,24%,100%{transform:none} 7%{transform:rotate(-4deg) translateY(-3px)} 16%{transform:rotate(3deg)} }
+@keyframes character-hop { 0%,24%,100%{transform:none} 4%{transform:scale(1.05,.95)} 10%{transform:translateY(-10px) rotate(-5deg)} 16%{transform:translateY(-3px) rotate(4deg)} 20%{transform:scale(1.03,.98)} }
 @keyframes character-blink { 0%,8%,11%,65%,68%,100%{opacity:0} 9%,10%,66%,67%{opacity:1} }
 @keyframes cast-shadow { 0%,24%,100%{transform:scaleX(1);opacity:.6} 12%{transform:scaleX(.92);opacity:.4} }
 .companion-cast { height:72px; gap:10px; margin-bottom:10px; }

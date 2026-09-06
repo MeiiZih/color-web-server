@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const {assertIllustration} = require('../services/contentIllustration');
+const {claimIllustration} = require('../services/contentIllustration');
 function metadata(body) {
  const result={};
  for(const key of ['sourceName','contentKind','registrationUrl','sourcePublishedAt','sourceCheckedAt']) if(typeof body[key]==='string')result[key]=body[key].slice(0,2000);
@@ -81,8 +81,11 @@ router.get('/:id', async (req, res) => {
 router.post('/', adminProtect, async (req, res) => {
     try {
         const { type, title, imageUrl, link, description } = req.body;
-        assertIllustration(req.body);
-        const created = await Homepage.create({ type, title, imageUrl, link, description, ...metadata(req.body) });
+        const created = new Homepage({ type, title, imageUrl, link, description, ...metadata(req.body) });
+        await Homepage.db.transaction(async session => {
+            await claimIllustration(Homepage.db.db, req.body, created._id, session);
+            await created.save({session});
+        });
         res.status(201).json(created);
     } catch (error) {
         res.status(error.status || 500).json({ message: error.status ? error.message : '新增失敗' });
@@ -93,8 +96,13 @@ router.post('/', adminProtect, async (req, res) => {
 router.put('/:id', adminProtect, async (req, res) => {
     try {
         const { type, title, imageUrl, link, description } = req.body;
-        assertIllustration(req.body);
-        const updated = await Homepage.findByIdAndUpdate(req.params.id, { type, title, imageUrl, link, description, ...metadata(req.body), updatedAt: Date.now() }, { new: true, runValidators: true });
+        let updated;
+        await Homepage.db.transaction(async session => {
+            const current = await Homepage.findById(req.params.id).session(session);
+            if (!current) throw Object.assign(new Error('找不到內容'), {status:404});
+            await claimIllustration(Homepage.db.db, req.body, current._id, session);
+            updated = await Homepage.findByIdAndUpdate(req.params.id, { type, title, imageUrl, link, description, ...metadata(req.body), updatedAt: Date.now() }, { new: true, runValidators: true, session });
+        });
         res.json(updated);
     } catch (error) {
         res.status(error.status || 500).json({ message: error.status ? error.message : '修改失敗' });

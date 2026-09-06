@@ -12,8 +12,10 @@
     <circle cx="157" cy="83" r="47" fill="#ffd66b"/>
     <circle cx="83" cy="157" r="47" fill="#79bfe3"/>
     <circle cx="157" cy="157" r="47" fill="#a9d584"/>
-    <circle cx="120" cy="120" r="38" fill="#fff"/>
+    <circle cx="120" cy="120" r="48" fill="#fffaf8"/>
   </g>
-  <path d="M105 103a25 25 0 1 0 0 34" fill="none" stroke="#4d4248" stroke-width="11" stroke-linecap="round"/>
-  <path d="M130 101v38h23" fill="none" stroke="#4d4248" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="none" stroke="#4d4248" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M113 104C106 97 92 98 87 108C83 116 83 124 87 132C92 142 106 143 113 136"/>
+    <path d="M133 101v38h22"/>
+  </g>
 </svg>

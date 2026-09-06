@@ -11,4 +11,25 @@ function assertIllustration(content) {
  }
  return entry;
 }
-module.exports = {assertIllustration};
+function assertUniqueIllustrations(contents) {
+ const seen = new Set();
+ for (const content of contents) {
+  const art = assertIllustration(content);
+  if (seen.has(art.sha256)) throw Object.assign(new Error('每篇貼文需使用獨立生成的插圖，清單不可重複使用相同圖片。'), {status:400});
+  seen.add(art.sha256);
+ }
+}
+// Keep ownership after archival/deletion, so an old illustration is never recycled.
+async function claimIllustration(db, content, owner, session) {
+ const art = assertIllustration(content), ownerId = String(owner);
+ const reused = () => Object.assign(new Error('此插圖已用於其他貼文，請為這篇內容生成新的插圖。'), {status:409});
+ const aliases = registry.filter(i => i.sha256 === art.sha256).map(i => i.imageUrl);
+ if (await db.collection('homepages').findOne({_id:{$ne:owner},imageUrl:{$in:aliases}}, {session})) throw reused();
+ const claims = db.collection('content_illustration_owners');
+ try {
+  await claims.updateOne({_id:art.sha256}, {$setOnInsert:{ownerId,imageUrl:art.imageUrl,createdAt:new Date()}}, {upsert:true,session});
+ } catch (error) { if (error.code === 11000) throw reused(); throw error; }
+ if ((await claims.findOne({_id:art.sha256}, {session})).ownerId !== ownerId) throw reused();
+ return art;
+}
+module.exports = {assertIllustration, assertUniqueIllustrations, claimIllustration};

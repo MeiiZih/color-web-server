@@ -53,12 +53,14 @@ test('draft import is nonpublic, immutable, deduplicated; approve and reject are
 test('stale original causes full batch rollback; archive hides public item and restore recovers it',async()=>{
  const target=await db.collection('homepages').findOne();
  const update={...add('updated'),action:'update',targetId:String(target._id)};
- await service.ingest(mongoose.connection,report([add('rollback'),update],'2026-09-14'));
+ const rollback=add('rollback');rollback.content.imageUrl='/assets/images/posts/workplace-20260906.webp';
+ await service.ingest(mongoose.connection,report([rollback,update],'2026-09-14'));
  const q=await db.collection('content_review_items').find({weekStart:'2026-09-14'}).toArray();
  await db.collection('homepages').updateOne({_id:target._id},{$set:{description:'A newer administrator edit'}});
  await assert.rejects(service.decide(mongoose.connection,q.map(i=>String(i._id)),'approve','QA'),{status:409});
  assert.equal(await db.collection('homepages').countDocuments(),1);
  assert.equal(await db.collection('content_review_items').countDocuments({weekStart:'2026-09-14',status:'pending'}),2);
+ assert.equal(await db.collection('content_illustration_owners').countDocuments(),1);
  const removal={action:'remove',targetId:String(target._id),title:target.title,sourceName:target.sourceName,sourceUrl:target.link,reason:'人工審核下架'};
  await service.ingest(mongoose.connection,report([removal],'2026-09-21'));
  const item=await db.collection('content_review_items').findOne({weekStart:'2026-09-21'});
@@ -94,4 +96,41 @@ test('missing generated illustration blocks review and direct publishing without
  assert.equal((await db.collection('content_review_items').findOne({_id:item._id})).status,'pending');
  const response=await fetch(base+'/api/homepage',{method:'POST',headers:{Authorization:'Bearer '+adminToken,'Content-Type':'application/json'},body:JSON.stringify(draft.content)});
  assert.equal(response.status,400);assert.equal(await db.collection('homepages').countDocuments(),before);
+});
+test('duplicate art blocks review and manual publication; a post can retain its own illustration',async()=>{
+ const draft=add('duplicate-art');
+ await service.ingest(mongoose.connection,report([draft],'2026-10-26'));
+ const item=await db.collection('content_review_items').findOne({weekStart:'2026-10-26'});
+ await assert.rejects(service.decide(mongoose.connection,[String(item._id)],'approve','QA'),{status:409});
+ assert.equal((await db.collection('content_review_items').findOne({_id:item._id})).status,'pending');
+ const headers={Authorization:'Bearer '+adminToken,'Content-Type':'application/json'};
+ assert.equal((await fetch(base+'/api/homepage',{method:'POST',headers,body:JSON.stringify(draft.content)})).status,409);
+ const target=await db.collection('homepages').findOne();
+ assert.equal((await fetch(base+'/api/homepage/'+target._id,{method:'PUT',headers,body:JSON.stringify({...draft.content,title:'same owner'})})).status,200);
+});
+test('concurrent publication claims one owner, blocks cross-post updates and keeps claims after deletion',async()=>{
+ const headers={Authorization:'Bearer '+adminToken,'Content-Type':'application/json'};
+ const content={...add('concurrent-art').content,imageUrl:'/assets/images/posts/workplace-20260906.webp'};
+ const responses=await Promise.all(['a','b'].map(suffix=>fetch(base+'/api/homepage',{method:'POST',headers,body:JSON.stringify({...content,link:content.link+suffix})})));
+ assert.deepEqual(responses.map(r=>r.status).sort(),[201,409]);
+ const created=await responses.find(r=>r.status===201).json();
+ const first=await db.collection('homepages').findOne({_id:{$ne:new mongoose.Types.ObjectId(created._id)}});
+ assert.equal((await fetch(base+'/api/homepage/'+first._id,{method:'PUT',headers,body:JSON.stringify(content)})).status,409);
+ assert.equal((await fetch(base+'/api/homepage/'+created._id,{method:'DELETE',headers})).status,200);
+ assert.equal((await fetch(base+'/api/homepage',{method:'POST',headers,body:JSON.stringify(content)})).status,409);
+});
+test('restoring legacy archives cannot bypass missing or reused illustration guards',async()=>{
+ for(const [imageUrl,status] of [['/assets/images/colorlab-support.svg',400],['/assets/images/posts/empathy-20260906.webp',409]]){
+  const targetId=new mongoose.Types.ObjectId(),reviewId=new mongoose.Types.ObjectId();
+  await db.collection('homepages').insertOne({...add('legacy-archive').content,_id:targetId,imageUrl,archivedAt:new Date()});
+  await db.collection('content_review_items').insertOne({_id:reviewId,key:String(reviewId),action:'remove',status:'approved',publishedId:targetId});
+  try {
+   await assert.rejects(service.restore(mongoose.connection,String(reviewId),'QA'),{status});
+   assert.ok((await db.collection('homepages').findOne({_id:targetId})).archivedAt);
+   assert.equal((await db.collection('content_review_items').findOne({_id:reviewId})).status,'approved');
+  } finally {
+   await db.collection('homepages').deleteOne({_id:targetId});
+   await db.collection('content_review_items').deleteOne({_id:reviewId});
+  }
+ }
 });

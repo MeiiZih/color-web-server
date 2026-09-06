@@ -21,6 +21,7 @@ add/update 的 content 必填：
 
 來源限官方白名單，新增單位需人工核實後更新 Server/services/contentReview.js。暫時連線失敗不判永久失效；舊文章不因年份早下架。查不到的內容列 sourceFailures，其他查核項可完成本週清單。
 每週已同步清單不可修改；同內容跨週去重；沒有候選也可同步空清單。
+插圖不可跨貼文重複：生成前比對登錄、歷史清單及既有內容的圖片路徑與 SHA256。不得以改檔名或裁切同一張圖冒充新插圖。同一篇更正可保留原本專屬插圖；主題改變或圖意不符時重新生成。
 生成後人工檢查主題、比例、人物肢體與誤導風險，再登錄 Server/data/contentIllustrations.json：imageUrl、WebP 檔案 sha256、generator、generatedAt、reviewed:true、prompt。不要臆造生成紀錄。優先900×600、200KB以內，保持原始生成檔。插圖與登錄先提交並部署前後端，確認線上圖片可讀且雜湊一致，才同步清單。內建生成不可用／額度不足時保留草稿並通知，不私自開通付費 API。
 同步指令檢查本機插圖與前端線上位元組；後端待審核准與手動新增／更正也檢查插圖登錄和檔案雜湊。後台可預覽圖片。舊貼文仍正常顯示；未準備插圖的更新會被阻擋。公開內容依然須由管理員核准，部署插圖不等於發布貼文。
 對照完整資訊清單（含已到期未歸檔）：先執行 node --env-file=.local/content-review.env scripts/read-review-content.cjs，再讀 tmp/content-review/current-content.json。會員資料不在蒐集範圍。沒有授權時可比對公開 API，但須註記无法涵蓋已隱藏的過期項目。
