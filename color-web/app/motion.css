@@ -1,0 +1,65 @@
+/* ColorLab paper-touch: one-shot, interruptible motion; content never waits for it. */
+:root {
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+  --motion-quick: 140ms;
+  --motion-step: 280ms;
+  --motion-reveal: 440ms;
+}
+.button:not(:disabled), .back-link, .text-button {
+  transition: transform var(--motion-quick) ease-out, background-color var(--motion-quick) ease-out;
+}
+:is(.button, .back-link, .text-button):active:not(:disabled) { transform: translateY(1px) scale(.985); }
+.button .icon, .read-link .icon, .history-card > .icon, .expand-symbol {
+  transition: transform var(--motion-step) var(--motion-ease);
+}
+.article-card, .resource-card, .history-card { transition: border-color var(--motion-quick) ease-out, background-color var(--motion-quick) ease-out; }
+
+/* The heading leads; the paper deck settles once. No idle loop or new artwork. */
+.hero-copy { animation: cl-arrive var(--motion-reveal) var(--motion-ease); }
+.color-studio { animation: cl-arrive var(--motion-reveal) 100ms var(--motion-ease) backwards; }
+.swatch { transform-origin: 50% 88%; transition: transform 320ms var(--motion-ease); }
+.swatch.selected .color-shape { animation: cl-ink var(--motion-reveal) var(--motion-ease); }
+.swatch:focus-visible { z-index: 7; }
+/* Reserve space for tilted paper edges on narrow touch screens. */
+@media (max-width:767px) { .color-deck { padding-inline: 20px; } }
+@media (hover:hover) and (pointer:fine) {
+  .button:hover:not(:disabled) .icon, .article-card:hover .read-link .icon, .history-card:hover > .icon { transform: translateX(2px); }
+  .swatch:hover { transform: translateY(-15px) rotate(var(--rotate)); }
+}
+
+#main > :is(.survey-list-page, .history-page, .profile-page),
+.account-app[data-studio="false"] #main > :is(.auth-layout, .form-width) {
+  animation: cl-arrive 320ms var(--motion-ease);
+}
+/* Only the form moves between questions. The progress rail and action semantics stay put. */
+.test-page .question-area { animation: none; }
+#question-form { animation: cl-question var(--motion-step) var(--motion-ease); }
+#main[data-step-motion="next"] { --question-x: 14px; --question-y: 0px; }
+#main[data-step-motion="previous"] { --question-x: -14px; --question-y: 0px; }
+.option:has(input:checked) .option-check .icon { animation: cl-check 220ms var(--motion-ease); }
+.option-letter { transition: background-color var(--motion-quick) ease-out, color var(--motion-quick) ease-out; }
+.option:active { transform: scale(.992); }
+progress::-webkit-progress-value { transition: width var(--motion-step) var(--motion-ease); }
+
+.result-hero { animation: cl-arrive var(--motion-reveal) var(--motion-ease); }
+.result-flower { animation: cl-ink 500ms 80ms var(--motion-ease) backwards; }
+.bar-track > span { transform-origin: left; animation: cl-fill 500ms 160ms var(--motion-ease) backwards; }
+.insight[open] p { animation: cl-arrive 220ms var(--motion-ease); }
+dialog[open] { animation: cl-dialog var(--motion-step) var(--motion-ease); }
+dialog[open]::backdrop { animation: cl-shade 180ms ease-out; }
+/* Error text remains in the live region; feedback never shakes a form or changes focus. */
+.form-status:not(:empty) { animation: cl-arrive 220ms var(--motion-ease); }
+
+@keyframes cl-arrive { from { opacity: .45; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes cl-question { from { opacity: .5; transform: translate(var(--question-x, 0px), var(--question-y, 6px)); } to { opacity: 1; transform: none; } }
+@keyframes cl-ink { from { opacity: .6; transform: translateY(3px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes cl-check { from { opacity: .4; transform: scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes cl-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes cl-dialog { from { opacity: .4; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes cl-shade { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+  :is(.button, .back-link, .text-button, .option):active:not(:disabled) { transform: none; }
+}

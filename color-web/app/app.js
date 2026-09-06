@@ -170,7 +170,7 @@ dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.clo
 dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
 dialog.addEventListener('close', () => { document.querySelector('#dialog-content').replaceChildren(); });
 
-function render() {
+function render(direction = 'page') {
   if (!state) return;
   if (dialog.open) dialog.close();
   const [rawRoute, id] = location.hash.slice(1).split('/');
@@ -181,6 +181,7 @@ function render() {
   const record = state.records.find(r => r.id === id);
   main.innerHTML = route === 'surveys' ? (catalog.length ? surveyList() : home()) : route === 'test' ? (!activeSurvey || id && !catalog.some(s => s.id === id) ? '<div class="empty-state"><h1>找不到這份問卷</h1><a href="#surveys" class="button primary">返回全部測驗</a></div>' : test()) : route === 'history' ? historyPage() : route === 'me' ? me() : route === 'result' && record ? result(record) : home();
   document.body.dataset.page = route;
+  main.dataset.stepMotion = direction === 'next' || direction === 'previous' ? direction : 'page';
   document.title = `ColorLab｜${({ home: '發現你的本色', surveys: '全部測驗', test: activeSurvey?.title || '測驗', history: '測驗紀錄', result: '測驗結果', me: '我的空間' })[route] || '首頁'}`;
   window.scrollTo({ top: 0, behavior: 'instant' });
   main.focus({ preventScroll: true });
@@ -211,7 +212,7 @@ function bindPage() {
     const a = isResource ? resources[Number(button.dataset.resource)] : articles[Number(button.dataset.article)];
     openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><img class="article-poster" src="${escape(a.image)}" alt="${escape(a.title)}">${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">前往網站${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}`);
   }));
-  document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render(); document.querySelector('legend').focus({ preventScroll: true }); } });
+  document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); } });
   document.querySelector('#question-form')?.addEventListener('change', event => {
     if (event.target.name !== 'answer') return;
     draft().answers[draft().index] = Number(event.target.value);
@@ -224,7 +225,7 @@ function bindPage() {
   document.querySelector('#question-form')?.addEventListener('submit', async event => {
     event.preventDefault();
     if (draft().answers[draft().index] === null) return;
-    if (draft().index < questions.length - 1) { draft().index++; persist(); render(); document.querySelector('legend').focus({ preventScroll: true }); }
+    if (draft().index < questions.length - 1) { draft().index++; persist(); render('next'); document.querySelector('legend').focus({ preventScroll: true }); }
     else {
       const missing = draft().answers.indexOf(null);
       if (missing !== -1) { draft().index = missing; persist(); render(); return; }
