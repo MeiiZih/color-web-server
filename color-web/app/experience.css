@@ -1,7 +1,8 @@
 /* ColorLab's paper cards unfold into a quiet reading space. */
 .color-detail-dialog { padding:0; overflow-x:hidden; }
-.color-detail-dialog[open] { animation:color-unfold 650ms cubic-bezier(.2,.7,.2,1); }
-.color-detail-dialog::backdrop { backdrop-filter:blur(4px); }
+.color-detail-dialog[open] { animation:color-unfold 220ms cubic-bezier(.2,.7,.2,1); }
+.color-detail-dialog::backdrop { backdrop-filter:none; }
+body:has(.color-detail-dialog[open]) main .articulated *,body:has(.color-detail-dialog[open]) main .articulated::after { animation-play-state:paused; }
 .color-detail-dialog .dialog-close { z-index:2; background:var(--white); }
 .color-detail-hero { display:flex; align-items:center; gap:28px; padding:42px 32px 26px; background:var(--detail-tint); color:var(--detail-ink); }
 .color-detail-hero>.report-character { width:130px; height:170px; flex-shrink:0; }
@@ -9,9 +10,7 @@
 .color-detail-copy { padding:26px 32px 32px; display:grid; gap:24px; }
 .color-detail-copy h3 { font:600 20px/1.5 var(--serif); margin-bottom:7px; }
 .color-detail-copy p { line-height:1.9; }
-@keyframes color-unfold { 0%{transform:perspective(1200px) rotateY(-88deg) scale(.55)} 55%{transform:perspective(1200px) rotateY(-24deg) scale(.85)} 100%{transform:perspective(1200px) rotateY(0) scale(1)} }
-.color-detail-dialog[open] .color-detail-copy { animation:detail-arrive 650ms ease-out; }
-@keyframes detail-arrive { 0%,45%{opacity:0;transform:translateY(14px)} 100%{opacity:1;transform:none} }
+@keyframes color-unfold { from{opacity:.6;transform:translateY(6px) scale(.98)} to{opacity:1;transform:none} }
 /* Independent character paths stay in the companion space, never over answers. */
 .quiz-companion .companion-cast { position:relative; pointer-events:none; --roam-x:9px; --roam-y:-15px; }
 .quiz-companion .companion-member { position:absolute; animation:companion-wander 14s ease-in-out infinite; }

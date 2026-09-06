@@ -252,7 +252,7 @@ function bindPage() {
     document.querySelector('.color-caption strong').textContent = `${colors[hue].name}色 · ${colors[hue].title}`;
     const c=colors[hue], d=colorDetails[c.key];
     if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
-      turn=button.animate([{transform:getComputedStyle(button).transform},{transform:'perspective(900px) rotateY(0deg) scale(1.08)',offset:.25},{transform:'perspective(900px) rotateY(88deg) scale(1.08)'}],{duration:380,easing:'ease-in',fill:'forwards'});
+      turn=button.animate([{transform:getComputedStyle(button).transform},{transform:'perspective(900px) rotateY(88deg) scale(1.02)'}],{duration:220,easing:'cubic-bezier(.4,0,.8,1)',fill:'forwards'});
       await turn.finished;
     }
     if(!button.isConnected || dialog.open)return;
