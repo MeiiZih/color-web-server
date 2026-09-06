@@ -77,6 +77,7 @@ test('valid corrections publish; expired events stay hidden even after restore',
  const item=await db.collection('content_review_items').findOne({weekStart:'2026-10-05'});
  await service.decide(mongoose.connection,[String(item._id)],'approve','QA');
  assert.equal((await db.collection('homepages').findOne()).title,'correction');
+ assert.equal((await service.ingest(mongoose.connection,report([update],'2026-10-12'))).count,0);
  await db.collection('homepages').updateOne({_id:target._id},{$set:{expiresAt:new Date('2020-01-01')}});
  assert.equal((await (await fetch(base+'/api/homepage')).json()).length,0);
  assert.equal((await fetch(base+'/api/homepage/'+target._id)).status,404);

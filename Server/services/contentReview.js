@@ -54,6 +54,7 @@ async function ingest(connection, report) {
    let before=null;
    if(item.targetId){before=await db.collection('homepages').findOne({_id:new ObjectId(item.targetId)},{session});if(!before||before.archivedAt)throw fail('原資訊已不存在或已下架，請重新查核。',409);}
    else if(await db.collection('homepages').findOne({link:item.content.link,archivedAt:{$exists:false}},{session}))continue;
+   if(item.action==='update'&&hash({...snapshot(before),sourceCheckedAt:null})===hash({...snapshot(item.content),sourceCheckedAt:null}))continue;
    const key=before?hash({proposal:item.key,beforeVersion:version(before)}):item.key;
    if(await db.collection('content_review_items').findOne({key},{session}))continue;
    await db.collection('content_review_items').insertOne({...item,key,before,beforeVersion:before?version(before):null,weekStart:batch.weekStart,status:'pending',createdAt:new Date()},{session});count++;
