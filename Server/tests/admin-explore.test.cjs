@@ -60,6 +60,17 @@ test('admin save/list/delete roundtrip is idempotent and owned independently', a
   assert.equal((await call('/records/' + saved.id, admin, 'admin', 'DELETE')).status, 404);
   assert.ok(await Record.findById(memberRecord.id));
 });
+test('cursor pagination passes 200 without duplicates and preserves owner boundaries', async () => {
+  const timestamp=new Date('2025-01-01');
+  const inserted=await Record.insertMany(Array.from({length:205},()=>({adminId:otherAdmin._id,testType:'Page fixture',timestamp})));
+  const first=await (await call('/records',otherAdmin,'admin')).json();assert.equal(first.length,200);
+  const last=first.at(-1), query='/records?'+new URLSearchParams({before:last.date,beforeId:last.id});
+  const second=await (await call(query,otherAdmin,'admin')).json();assert.equal(second.length,5);
+  assert.equal(new Set([...first,...second].map(r=>r.id)).size,205);
+  const ownerList=await (await call(query,admin,'admin')).json();assert(!ownerList.some(r=>inserted.some(i=>i.id===r.id)));
+  assert.equal((await call('/records?before=invalid&beforeId=bad',otherAdmin,'admin')).status,400);
+  await Record.deleteMany({_id:{$in:inserted.map(r=>r._id)}});
+});
 test('legacy same-email records stay with member only; spoofed owners cannot redirect save', async () => {
   const legacy = await Record.create({ email: user.email, testType: 'Legacy fixture' });
   const memberList = await (await call('/records', user, 'user')).json();

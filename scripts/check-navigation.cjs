@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const base = process.env.NAV_BASE || 'http://127.0.0.1:4180';
 const baseline = process.argv.includes('--baseline');
 (async () => {
- const browser = await chromium.launch({channel:'chrome',headless:true});
+ const browser = await chromium.launch({channel:'chrome',headless:true,ignoreDefaultArgs:['--disable-back-forward-cache']});
  try {
   for (const width of [390,1280]) {
    const page = await browser.newPage({viewport:{width,height:844},serviceWorkers:'block'}), errors=[], calls=[];
@@ -33,6 +33,7 @@ const baseline = process.argv.includes('--baseline');
    assert.deepEqual(errors,[]);await page.close();
    if(!base.includes('127.0.0.1'))continue;
    const admin=await browser.newPage({viewport:{width,height:844},serviceWorkers:'block'});
+   const adminCalls=[];admin.on('request',r=>{if(r.url().includes('/api/'))adminCalls.push(r.url());});
    await admin.addInitScript(()=>sessionStorage.setItem('adminToken','qa.'+btoa(JSON.stringify({exp:4102444800}))+'.invalid'));
    await admin.goto(base+'/app/account.html#admin');await admin.getByRole('heading',{name:'照顧每一次探索。'}).waitFor();
    for(const route of ['users','surveys','statistics','records','feedbacks','admin-profile','admin']) {
@@ -41,6 +42,25 @@ const baseline = process.argv.includes('--baseline');
     await admin.locator('main h1').waitFor();
     console.log(JSON.stringify({width,page:'admin/'+route,ms:Date.now()-then}));
    }
+   // Return restores the exact list node, its search input, and scroll without another query.
+   await admin.evaluate(()=>{location.hash='users';});await admin.locator('#users-list').waitFor();
+   await admin.locator('[name=search]').fill('member3');
+   await admin.evaluate(()=>{window.retainedList=document.querySelector('#users-list');document.querySelector('#users-list a').addEventListener('click',()=>{window.retainedTop=scrollY;},{once:true});});
+   await admin.locator('#users-list a').first().click();await admin.getByRole('heading',{name:'本機測試會員',exact:true}).waitFor();
+   const beforeReturn=adminCalls.length;
+   await admin.locator('.back-link').click();await admin.locator('#users-list').waitFor();
+   assert.equal(adminCalls.length,beforeReturn,'return skips duplicate API reads');
+   assert.equal(await admin.locator('[name=search]').inputValue(),'member3');
+   assert(await admin.evaluate(()=>document.querySelector('#users-list')===window.retainedList),'retains bound DOM');
+   assert(await admin.evaluate(()=>Math.abs(scrollY-window.retainedTop)<2),'restores list scroll');
+   // A successful write clears private views; next visit must obtain fresh data.
+   await admin.evaluate(async()=>{const {api,json}=await import('/app/auth.mjs');await api('/api/user/update-profile',json('PUT',{name:'本機測試會員'}));location.hash='admin';});
+   await admin.getByRole('heading',{name:'照顧每一次探索。'}).waitFor();
+   const beforeFresh=adminCalls.filter(u=>u.endsWith('/api/admin/users')).length;
+   await admin.evaluate(()=>{location.hash='users';});await admin.locator('#users-list').waitFor();
+   assert.equal(adminCalls.filter(u=>u.endsWith('/api/admin/users')).length,beforeFresh+1,'write invalidates views');
+   await admin.evaluate(()=>{location.hash='admin';});await admin.getByRole('heading',{name:'照顧每一次探索。'}).waitFor();
+   await admin.evaluate(async()=>{(await import('/app/navigation-state.mjs')).markDataChanged();});
    // Slow destination and out-of-order responses must never blank or replace a newer page.
    let release;const hold=new Promise(r=>release=r);
    await admin.route('**/api/admin/users',async r=>{await hold;await r.continue();});
@@ -49,7 +69,35 @@ const baseline = process.argv.includes('--baseline');
    await admin.evaluate(()=>{location.hash='surveys';});await admin.getByRole('heading',{name:'問卷管理',exact:true}).waitFor();
    release();await admin.waitForTimeout(200);
    assert(await admin.getByRole('heading',{name:'問卷管理',exact:true}).isVisible());
+   await admin.evaluate(async()=>{(await import('/app/auth.mjs')).clearSession();location.hash='users';});
+   await admin.locator('#login-form').waitFor();
+   assert.equal(await admin.locator('#users-list').count(),0,'logout cannot restore a private cached list');
    await admin.close();
+   if(!baseline) {
+    const pdfContext=await browser.newContext({viewport:{width,height:844},serviceWorkers:'block'}),pdfBack=await pdfContext.newPage();let privateReads=0;
+    // Production static documents allow bfcache; the fixture server otherwise sends no-store globally.
+    await pdfBack.route('**/app/account.html',async route=>{const response=await route.fetch();await route.fulfill({response,headers:{...response.headers(),'cache-control':'public, max-age=0, s-maxage=300'}});});
+    pdfBack.on('request',r=>{if(r.url().includes('/api/admin/'))privateReads++;});
+    await pdfBack.addInitScript(()=>sessionStorage.setItem('adminToken','qa.'+btoa(JSON.stringify({exp:4102444800}))+'.invalid'));
+    await pdfBack.goto(base+'/app/account.html#records');await pdfBack.locator('[data-record]').first().click();await pdfBack.locator('dialog[open]').waitFor();
+    const firstDetailReads=privateReads;
+    await pdfBack.locator('dialog .dialog-close').click();await pdfBack.locator('[data-record]').first().click();await pdfBack.locator('dialog[open]').waitFor();
+    assert.equal(privateReads,firstDetailReads,'reopening unchanged record uses memory snapshot');
+    await pdfBack.evaluate(()=>{window.nativeRecordPage=true;});const readsBeforePDF=privateReads;
+    await pdfBack.getByRole('link',{name:'預覽 PDF',exact:true}).click();await pdfBack.locator('.pdf-shell').waitFor();
+    await pdfBack.locator('.text-button').click();await pdfBack.locator('dialog[open]').waitFor({timeout:5000});
+    assert(await pdfBack.evaluate(()=>window.nativeRecordPage),'native PDF return restores document');
+    assert.equal(privateReads,readsBeforePDF,'PDF back skips private reload');
+    await pdfBack.goto(base+'/app/pdf.html?returnTo=https%3A%2F%2Fevil.invalid%2F&from=admin');
+    assert.equal(await pdfBack.locator('.text-button').getAttribute('href'),base+'/app/account.html#records','untrusted return target falls back locally');
+    await pdfBack.goto(base+'/app/account.html#users');await pdfBack.locator('#users-list').waitFor();
+    await pdfBack.evaluate(()=>localStorage.setItem('adminToken',sessionStorage.getItem('adminToken')));
+    const peer=await pdfBack.context().newPage();await peer.goto(base+'/app/account.html#about');
+    await peer.evaluate(async()=>{(await import('/app/auth.mjs')).clearSession();});
+    await pdfBack.locator('#login-form').waitFor();
+    assert.equal(await pdfBack.locator('#users-list').count(),0,'other-tab logout clears visible private view');await peer.close();
+    await pdfContext.close();
+   }
    if(!baseline) {
     const slow=await browser.newPage({viewport:{width,height:844},serviceWorkers:'block'}), starts=[];
     await slow.addInitScript(()=>sessionStorage.setItem('adminToken','qa.'+btoa(JSON.stringify({exp:4102444800}))+'.invalid'));

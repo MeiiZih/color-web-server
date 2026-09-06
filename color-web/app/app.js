@@ -5,10 +5,20 @@ import { verificationStatus, bindVerificationStatus } from './verification-statu
 import { mediaFor, contentMedia } from './content-media.mjs';
 import { character, characterCast, motionToggle, bindCharacterMotion } from './character-art.mjs';
 import { bindCompanionInteractions } from './companion-interaction.mjs';
-import { bindLegacyImport } from './legacy-import.mjs';
+import { historySelection } from './history-view.mjs';
+import { pdfHref, accountHref, sessionIdentity, dataRevision, markDataChanged } from './navigation-state.mjs';
 import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
 restoreSession();
+const loadedIdentity=sessionIdentity();
+let loadedRevision=dataRevision();
+function markLocalChange(){markDataChanged();loadedRevision=dataRevision();}
+window.addEventListener('colorlab:session-changed',()=>{document.querySelector('main').replaceChildren();location.reload();});
+window.addEventListener('pageshow',event=>{
+  if(event.persisted&&(sessionIdentity()!==loadedIdentity||dataRevision()!==loadedRevision)){
+    document.querySelector('main').replaceChildren();location.reload();
+  }
+});
 
 const main = document.querySelector('main');
 const dialog = document.querySelector('dialog');
@@ -25,6 +35,11 @@ let FEATURED_SURVEY;
 let member = null;
 let storageKey;
 let historyError = '';
+const historyOptions = {range:'all',from:'',to:'',size:'20',page:1};
+let historyComplete = false, historyLoading = false;
+const routeScroll = new Map();
+let paintedRoute = '';
+window.addEventListener('scroll',()=>{if(paintedRoute)routeScroll.set(paintedRoute,window.scrollY);},{passive:true});
 const publicViews = new Map(); // Only public read-only views; no forms, records or account data.
 const icons = {
   home: '<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',
@@ -75,7 +90,6 @@ function home() {
   if (!featured) return '<div class="empty-state"><h1>新的探索，正在準備中</h1><p>目前沒有開放的問卷，過去的紀錄仍可查看。</p><a class="button primary" href="#history">查看測驗紀錄</a></div>';
   const count = answered(featured.id);
   return `<div class="home-page page-width">
-    <aside class="first-visit"><a href="/app/account.html#install"><span class="first-visit-symbol" aria-hidden="true">${icon('home')}</span><span><span class="eyebrow">START HERE</span><strong>初次使用 ColorLab</strong><span>怎麼開始測驗、保存紀錄，或加入手機主畫面？</span><span class="first-visit-link">查看完整使用說明 ${icon('arrow')}</span></span></a></aside>
     <section class="hero" aria-labelledby="home-heading">
       <div class="hero-copy"><div class="eyebrow"><svg class="tiny-flower quiet-glint" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 3C12 9 9 12 3 12C9 12 12 15 12 21C12 15 15 12 21 12C15 12 12 9 12 3Z" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/></svg> A LITTLE CLOSER TO YOU</div>
         <h1 id="home-heading">你的每一面，<br>都有自己的<span class="rose-word">顏色。</span></h1>
@@ -84,6 +98,7 @@ function home() {
         <a class="button primary hero-cta" href="#test/${featured.id}">${count ? `繼續測驗 · 第 ${state.drafts[featured.id].index + 1} 題` : featured.resultType === 'color-mbti' ? '開始我的色彩探索' : '開始探索'}${icon('arrow')}</a>
         <p class="microcopy">${count ? `已完成 ${count} / ${featured.questions.length} 題，進度保留在這個瀏覽器。` : '沒有標準答案，選最像你的就好。'}</p>
         <a class="text-button all-surveys-link" href="#surveys">探索全部測驗${icon('arrow')}</a>
+        <a class="first-use-link" href="/app/account.html#install">${icon('home')}<span>初次使用 ColorLab？<small>使用說明與加入主畫面</small></span>${icon('arrow')}</a>
       </div>
       <div class="color-studio"><div class="studio-top"><span>THE COLORS OF YOU</span><span>01 — 04</span></div>
         <div class="color-deck" aria-label="探索四種性格色彩">${colors.map((c, i) => `<button class="swatch ${i === hue ? 'selected' : ''}" data-hue="${i}" aria-pressed="${i === hue}" aria-label="${c.name}色：${c.title}" style="--swatch:${c.light};--color:${c.ink};--rotate:${[-12, -4, 5, 13][i]}deg;--order:${i}"><span class="swatch-number">0${i + 1}</span>${character(c.key)}<span class="swatch-word">${c.word}</span><span class="swatch-english">${c.en.toUpperCase()}</span></button>`).join('')}</div>
@@ -98,7 +113,7 @@ function home() {
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><a class="text-button collection-entry" href="#resources">探索全部內容${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
-    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
+    <footer class="page-footer organized-footer"><div class="footer-brand"><strong>ColorLab<span class="brand-dot">.</span></strong><p>每一種顏色，都有值得被理解的地方。</p><small>自我探索與心理健康資訊</small></div><nav aria-label="網站資訊"><h2>認識 ColorLab</h2><a href="/app/account.html#about">關於我們</a><a href="/app/account.html#privacy">隱私與資料</a></nav><div class="footer-contact"><h2>與我們聯繫</h2><p>使用上的問題或想法，都可以告訴我們。</p><a href="/app/account.html#contact">意見回饋 ${icon('arrow')}</a></div></footer>
   </div>`;
 }
 
@@ -167,7 +182,29 @@ function receipt(record, survey) {
 }
 
 function historyPage() {
-  return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">收藏不同問卷的作答與結果。</p><div class="history-heading"><h2>我的測驗紀錄</h2><span>${state.records.length} 份紀錄</span></div>${state.records.length ? state.records.map(r=>`<div class="history-entry">${historyCard(r)}<button class="delete-record" data-delete-record="${escape(r.id)}" aria-label="刪除 ${escape(r.title || r.survey?.title || '測驗')} 紀錄">刪除紀錄</button></div>`).join('') : `<div class="empty-state">${shape('green')}<h2>第一頁，等你來寫。</h2><p>完成測驗後，你的紀錄就會出現在這裡。</p><a href="#surveys" class="button primary">選擇測驗${icon('arrow')}</a></div>`}<p class="preview-note">${escape(historyError || (member ? '顯示此帳號最近 200 份紀錄。' : '訪客紀錄僅在此瀏覽器可用。'))}</p></div>`;
+  const view=historySelection(state.records,historyOptions);historyOptions.page=view.page;
+  const options=(list,value)=>list.map(([key,label])=>`<option value="${key}" ${String(value)===String(key)?'selected':''}>${label}</option>`).join('');
+  return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">${member?'收藏不同問卷的作答與結果。':'本機訪客紀錄只保存在這個瀏覽器，不會自動合併到帳號。'}</p>
+    <div class="history-heading"><h2>${member?'我的測驗紀錄':'本機訪客紀錄'}</h2><span>${view.total} 份${!historyComplete?'（整理中）':''}</span></div>
+    <form class="history-filters" id="history-filters"><label>時間範圍<select name="range">${options([['all','全部時間'],['month','本月'],['half','近半年'],['year','今年'],['custom','自訂日期']],historyOptions.range)}</select></label><label>每頁筆數<select name="size">${options([['20','20 筆'],['50','50 筆'],['100','100 筆'],['150','150 筆'],['all','全部顯示']],historyOptions.size)}</select></label><div class="history-dates" ${historyOptions.range==='custom'?'':'hidden'}><label>開始日期<input type="date" name="from" value="${escape(historyOptions.from)}"></label><label>結束日期<input type="date" name="to" value="${escape(historyOptions.to)}"></label></div></form>
+    <p class="history-load-status" role="status">${escape(historyError||(!historyComplete?'正在整理較早的紀錄，已載入的內容可先查看。':''))}</p>${historyError&&!historyComplete?'<button class="button secondary" data-history-retry>重新讀取較早紀錄</button>':''}
+    ${view.invalidRange?'<p role="alert">結束日期不能早於開始日期。</p>':view.groups.length?view.groups.map(group=>`<section class="history-month"><h3>${group.key.includes('-')?group.key.replace(/^(\d+)-(\d+)$/,'$1 年 $2 月'):group.key}</h3>${group.records.map(r=>`<div class="history-entry">${historyCard(r)}<button class="delete-record" data-delete-record="${escape(r.id)}" aria-label="刪除 ${escape(r.title || r.survey?.title || '測驗')} 紀錄">刪除紀錄</button></div>`).join('')}</section>`).join(''):`<div class="empty-state"><h2>${state.records.length?'這段時間沒有紀錄':'第一頁，等你來寫。'}</h2><p>${state.records.length?'試著調整時間範圍。':'完成測驗後，紀錄會出現在這裡。'}</p><a href="#surveys" class="text-button">查看全部測驗${icon('arrow')}</a></div>`}
+    <nav class="history-pagination" aria-label="測驗紀錄分頁"><button class="button secondary" data-history-page="${view.page-1}" ${view.page===1?'disabled':''}>上一頁</button><span>第 ${view.page} / ${view.pages} 頁</span><button class="button secondary" data-history-page="${view.page+1}" ${view.page===view.pages?'disabled':''}>下一頁</button></nav><p class="preview-note">${member?'紀錄依完成時間由新到舊排列。':'清除網站資料或更換瀏覽器，可能遺失本機紀錄。'}</p></div>`;
+}
+async function completeHistory() {
+  if(historyComplete||historyLoading||!member)return;
+  historyLoading=true;historyError='';
+  try {
+    let batch=state.records.filter(r=>r.cloud).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.id.localeCompare(a.id));
+    if(!batch.length){batch=await request('/api/explore/records');state.records=state.records.filter(r=>!r.cloud).concat(batch);}
+    while(batch.length>=200){
+      const last=batch.at(-1), next=await request('/api/explore/records?'+new URLSearchParams({before:last.date,beforeId:last.id}));
+      const ids=new Set(state.records.map(r=>r.id)), fresh=next.filter(r=>!ids.has(r.id));
+      if(next.length&&!fresh.length)throw new Error('較早的紀錄暫時無法載入，請稍後重試。');
+      state.records.push(...fresh);batch=next;
+    }
+    historyComplete=true;
+  } catch(error){historyError=error.message;} finally {historyLoading=false;if(location.hash==='#history')render('retain');}
 }
 function legacyResult(record) {
   const primary = Array.isArray(record.colorResult?.primary) ? record.colorResult.primary : [record.colorResult?.primary];
@@ -179,7 +216,8 @@ function legacyResult(record) {
 function me() {
   const admin = member?.role === 'admin' || (!member && sessionStorage.getItem('adminToken'));
   const guestAccount = !member && !admin ? `<section class="guest-account" aria-labelledby="guest-account-title"><h2 id="guest-account-title">收藏接下來的每一次探索。</h2><p>登入後完成的測驗，會儲存在你的帳號中。</p><div class="guest-account-actions"><a class="button primary" href="/app/account.html#login">登入</a><a class="button secondary" href="/app/account.html#register">建立帳號</a></div><p class="guest-account-note">目前的訪客紀錄只保存在這個瀏覽器，不會自動合併到會員帳號。</p></section>` : '';
-  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div>${guestAccount}<a class="profile-row" href="#history">${icon('history')}我的測驗紀錄<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗與未完成的問卷${icon('arrow')}</a>${admin ? `<a class="profile-row" href="/app/account.html#admin">${icon('me')}管理後台${icon('arrow')}</a><button class="button secondary" data-logout>登出</button>` : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : ''}</div>`;
+  const unfinished=catalog.filter(s=>answered(s.id)>0);
+  return `<div class="narrow-width profile-page"><span class="eyebrow">YOUR LITTLE SPACE</span><h1>給自己的一個角落。</h1><div class="profile-card"><img src="/colorlab-mark.svg" alt="" width="72" height="72"><div><h2>嗨，${escape(member?.name || (admin ? '管理員' : '探索中的你'))}</h2><p>${member ? escape(member.email) : admin ? '管理員模式' : '目前以訪客身分探索'}</p></div></div>${guestAccount}<a class="profile-row" href="#history">${icon('history')}${member||admin?'我的測驗紀錄':'本機訪客紀錄'}<span>${state.records.length} 份 ${icon('arrow')}</span></a><a class="profile-row" href="#surveys">${icon('test')}全部測驗${icon('arrow')}</a>${unfinished.map(s=>`<a class="profile-row" href="#test/${escape(s.id)}">${icon('clock')}繼續未完成測驗：${escape(s.title)}${icon('arrow')}</a>`).join('')}${admin ? `<a class="profile-row" href="/app/account.html#admin">${icon('me')}管理後台${icon('arrow')}</a><button class="button secondary" data-logout>登出</button>` : member ? '<a class="profile-row" href="/app/account.html#profile">編輯會員資料</a><button class="button secondary" data-logout>登出</button>' : ''}</div>`;
 }
 
 function openDialog(content) {
@@ -193,6 +231,7 @@ document.addEventListener('pointerdown', () => dialog.setAttribute('data-pointer
 document.addEventListener('keydown', () => document.querySelectorAll('[data-pointer-focus]').forEach(el => el.removeAttribute('data-pointer-focus')));
 
 function render(direction = 'page') {
+  if(paintedRoute)routeScroll.set(paintedRoute,window.scrollY);
   if (!state) return;
   // Keep the mounted cast and its animation timelines alive between questions.
   if (['next','previous'].includes(direction) && document.body.dataset.page === 'test' && main.querySelector('#question-form')) {
@@ -225,16 +264,22 @@ function render(direction = 'page') {
   document.body.dataset.page = route;
   main.dataset.stepMotion = direction === 'next' || direction === 'previous' ? direction : 'page';
   document.title = `ColorLab｜${({ home: '發現你的本色', news: '最近，值得留意的事', resources: '給心一點空間', surveys: '全部測驗', test: activeSurvey?.title || '測驗', history: '測驗紀錄', result: '測驗結果', me: '我的空間' })[route] || '首頁'}`;
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  paintedRoute=location.hash||'#home';
+  window.scrollTo({ top: direction==='retain'?window.scrollY:routeScroll.get(paintedRoute)||0, behavior: 'instant' });
   main.focus({ preventScroll: true });
   if (!reuse) bindPage();
   if (reusable) publicViews.set(route, {signature, node:main.firstElementChild});
+  if(route==='history'&&!historyError)completeHistory();
 }
 
 function bindPage() {
+  main.querySelectorAll('a[href^="/app/account.html#"]').forEach(a=>{const route=a.hash.slice(1);if(!['login','admin-login','register'].includes(route))a.href=accountHref(route);});
   bindCharacterMotion(main);
   bindCompanionInteractions(main);
-  if (member?.role === 'admin') bindLegacyImport(main, async () => { state.records = await request('/api/explore/records'); render(); notify('舊測驗紀錄已同步。'); });
+  const filters=main.querySelector('#history-filters');
+  if(filters){filters.onsubmit=e=>e.preventDefault();filters.onchange=()=>{Object.assign(historyOptions,Object.fromEntries(new FormData(filters)),{page:1});render('retain');};}
+  main.querySelectorAll('[data-history-page]').forEach(button=>button.onclick=()=>{historyOptions.page=Number(button.dataset.historyPage);render('retain');main.querySelector('.history-heading').scrollIntoView({block:'start',behavior:'instant'});});
+  main.querySelector('[data-history-retry]')?.addEventListener('click',()=>completeHistory());
   document.querySelectorAll('[data-delete-record]').forEach(button=>button.addEventListener('click',()=>{
     const record=state.records.find(r=>r.id===button.dataset.deleteRecord);if(!record)return;
     openDialog(`<h2 id="dialog-title">刪除這份測驗紀錄？</h2><p>${escape(record.title || record.survey?.title || '測驗紀錄')} · ${dateLabel(record.date)}</p><p>刪除後無法復原，不會影響其他紀錄或未完成的問卷。${record.cloud?'此操作會刪除帳號中的這份紀錄。':'此操作只刪除此瀏覽器的這份紀錄。'}</p><p role="alert" id="delete-error"></p><div class="delete-actions"><button class="button secondary" data-cancel-delete>取消</button><button class="button primary" data-confirm-delete>確認刪除</button></div>`);
@@ -248,6 +293,7 @@ function bindPage() {
         const remaining=state.records.filter(r=>r.id!==record.id);
         if(!record.cloud)previewStorage.setItem(storageKey,JSON.stringify({drafts:state.drafts,records:remaining.filter(r=>!r.cloud)}));
         state.records=remaining;
+        markLocalChange();
         if(errorNode.isConnected && dialog.open)dialog.close();
         if(!dialog.open && location.hash==='#history')render();
         notify('這份測驗紀錄已刪除。');
@@ -333,13 +379,13 @@ function bindPage() {
         state.records = [record, ...state.records.filter(r => r.id !== record.id)];
         delete state.drafts[survey.id];
         persist();
-        location.hash = `result/${record.id}`;
+        markLocalChange();location.hash = `result/${record.id}`;
       } catch (error) { notify(error.message); button.disabled = false; button.textContent = '重新儲存'; }
     }
   });
   document.querySelector('[data-pdf]')?.addEventListener('click', event => {
     const url = event.currentTarget.dataset.pdf;
-    location.href = '/app/pdf.html?file=' + encodeURIComponent(url);
+    location.href = pdfHref(url);
 
   });
 }
@@ -366,6 +412,7 @@ try {
     if (recordsRead.status === 'fulfilled') state.records = recordsRead.value;
     else historyError = recordsRead.reason.message;
   }
+  historyComplete=!member||(recordsRead.status==='fulfilled'&&recordsRead.value.length<200);
   try {
     if (feedRead.status === 'rejected') throw feedRead.reason;
     const feed = feedRead.value;

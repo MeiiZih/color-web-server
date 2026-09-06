@@ -88,10 +88,17 @@ html[data-character-motion="off"] .articulated *,html[data-character-motion="off
 .quiz-companion .is-greeting .character-blink { animation:none; }
 .quiz-companion .is-greeting { z-index:3; }
 .quiz-companion .has-greeting .companion-member { animation-play-state:paused; }
-.quiz-companion .companion-reply { position:absolute; left:50%; bottom:0; transform:translateX(-50%); padding:4px 10px; border-radius:12px; background:#fffaf5; color:#72555e; box-shadow:0 2px 8px #54403412; font:500 11px/1.4 system-ui,sans-serif; white-space:nowrap; opacity:0; pointer-events:none; z-index:4; }
+.quiz-companion .companion-reply { position:absolute; left:50%; top:0; transform:translateX(-50%); padding:4px 10px; border-radius:12px; background:#fffaf5; color:#72555e; box-shadow:0 2px 8px #54403412; font:500 11px/1.4 system-ui,sans-serif; white-space:nowrap; opacity:0; pointer-events:none; z-index:4; }
 .quiz-companion .companion-reply.is-visible { opacity:1; }
+/* Keep a permanent speech lane, so greetings do not move or cover the quiz. */
+@media(max-width:767px) {
+ .quiz-companion.companion-mobile .companion-cast { min-height:82px; }
+ .quiz-companion.companion-mobile .companion-member { height:calc(100% - 34px); }
+}
+@media(min-width:768px) {
+ .quiz-companion.companion-desktop .companion-cast { height:350px; }
+ .quiz-companion.companion-desktop .companion-member { height:125px; }
+ .quiz-companion.companion-desktop .companion-member:nth-child(-n+2) { top:32px; }
+}
 @keyframes companion-idle { 0%,100%{transform:none} 50%{transform:translateY(-2px) scale(1.005,1.015)} }
 @media(prefers-reduced-motion:reduce) { .quiz-companion .character-art { animation:none; } }
-.quiz-companion .companion-flame-burst { pointer-events:none; }
-.quiz-companion .companion-flame-burst path { opacity:.86; }
-@media(prefers-reduced-motion:reduce) { .quiz-companion .companion-flame-burst { display:none; } }

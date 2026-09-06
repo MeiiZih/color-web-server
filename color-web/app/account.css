@@ -40,7 +40,7 @@
 .account-app .hint { font-size:13px; color:var(--muted); line-height:1.75; }
 .account-app .password-box { display:flex; position:relative; }
 .account-app .password-box input { padding-right:55px; }
-.account-app .password-toggle { position:absolute; right:3px; top:3px; bottom:3px; width:43px; border:0; background:none; color:var(--muted); display:grid; place-items:center; cursor:pointer; border-radius:8px; }
+.account-app .password-toggle { position:absolute; right:3px; top:3px; bottom:3px; width:44px; border:0; background:none; color:var(--muted); display:grid; place-items:center; cursor:pointer; border-radius:8px; }
 .account-app .auth-layout { display:grid; grid-template-columns:1fr 440px; gap:70px; align-items:center; max-width:1020px; margin:0 auto; }
 .account-app .auth-story h1 { font-size:clamp(34px,4vw,52px); line-height:1.45; margin:22px 0; }
 .account-app .auth-story p { color:var(--muted); }
@@ -57,6 +57,13 @@
 .account-app .auth-switch { display:block; margin-top:24px; font-size:13px; text-align:center; color:var(--muted); }
 .account-app .auth-help { margin:16px 0 0; text-align:center; color:var(--muted); font-size:13px; line-height:1.8; }
 .account-app .auth-help a { display:inline-flex; align-items:center; min-height:44px; color:var(--rose); text-decoration:underline; text-underline-offset:4px; }
+.account-app .auth-role-nav { display:flex; border-bottom:1px solid var(--line); gap:24px; margin:12px 0 24px; }
+.account-app .auth-role-nav a { display:flex; align-items:center; min-height:44px; color:var(--muted); text-decoration:none; border-bottom:2px solid transparent; }
+.account-app .auth-role-nav a[aria-current] { color:var(--rose); border-color:var(--rose); font-weight:600; }
+.account-app .auth-panel .auth-password-help { margin:-14px 0 -12px; text-align:right; }
+.account-app .auth-register { margin:24px 0 0; text-align:center; font-size:14px; }
+.account-app .auth-register a,.account-app .auth-guest a { display:inline-flex; align-items:center; min-height:44px; gap:8px; color:var(--rose); }
+.account-app .auth-guest { border-top:1px solid var(--line); margin-top:20px; padding-top:16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; font-size:14px; color:var(--muted); }
 .account-app .recovery-page .form-stack { gap:18px; }
 .account-app .recovery-help { padding-top:20px; border-top:1px solid var(--line); }
 .account-app .recovery-help h2,.account-app .recovery-success h2 { font-size:20px; margin-bottom:10px; }

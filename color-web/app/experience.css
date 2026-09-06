@@ -160,3 +160,16 @@ main[data-flipping] .articulated *,main[data-flipping] .articulated::after { ani
 .guest-account-actions .button{min-width:124px}
 .guest-account .guest-account-note{padding-top:16px;border-top:1px solid var(--line);font-size:14px}
 @media(max-width:600px){.guest-account{padding:20px}.guest-account h2{font-size:19px}.guest-account-actions .button{flex:1;min-width:0}}
+.first-use-link{display:flex;align-items:center;gap:10px;max-width:380px;margin-top:16px;padding:12px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.first-use-link>span{flex:1}.first-use-link small{display:block;font-size:11px}.first-use-link .icon{width:18px;height:18px}.first-use-link:hover{color:var(--rose)}
+.organized-footer{display:grid;grid-template-columns:1.6fr 1fr 1.2fr;gap:32px;text-align:left;align-items:start}
+.organized-footer .footer-brand>strong{font:600 30px Georgia,serif}.organized-footer h2{font:600 14px var(--body-font);margin:0 0 12px}.organized-footer p{font-size:13px;margin:12px 0;color:var(--muted)}
+.organized-footer a{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;width:fit-content}.organized-footer small{font-size:11px;color:var(--muted)}
+.history-filters{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 0;border-block:1px solid var(--line)}
+.history-filters label{display:flex;flex-direction:column;gap:8px;min-width:0;font-size:13px;color:var(--muted)}
+.history-filters :is(select,input){width:100%;min-width:0;min-height:44px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:var(--ink);font:inherit;font-size:16px}
+.history-dates{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:16px}.history-dates[hidden]{display:none}
+.history-load-status{font-size:13px;color:var(--muted);margin-top:12px}.history-month{margin-top:28px}.history-month>h3{font-size:16px;margin-bottom:12px;color:var(--muted)}
+.history-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:24px;font-size:13px}.history-pagination .button{padding:10px 14px;min-height:44px}
+.history-entry{content-visibility:auto;contain-intrinsic-size:auto 200px}
+@media(max-width:767px){.organized-footer{grid-template-columns:1fr 1fr;gap:24px}.organized-footer .footer-brand{grid-column:1/-1;border-bottom:1px solid var(--line);padding-bottom:20px}.organized-footer .footer-contact p{font-size:12px}.history-page{padding-inline:20px}}

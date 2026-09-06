@@ -1,6 +1,7 @@
 import { icon } from './ui.mjs';
+import { bindPdfReturn } from './navigation-state.mjs';
 document.querySelector('.text-button').innerHTML = icon('back') + ' 測驗紀錄';
-if (new URLSearchParams(location.search).get('from') === 'admin') document.querySelector('.text-button').href='/app/account.html#records';
+bindPdfReturn(document.querySelector('.text-button'));
 document.querySelector('#download').innerHTML = icon('download') + ' 下載 PDF';
 document.querySelector('#share').innerHTML = icon('arrow') + ' 分享／儲存到檔案';
 document.querySelector('#original').innerHTML = icon('eye') + ' 開啟原始 PDF';

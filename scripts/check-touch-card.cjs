@@ -34,10 +34,12 @@ const assert = require('node:assert/strict');
         await page.keyboard.press('Escape');
         assert.equal(await page.evaluate(() => document.activeElement.matches('[data-article], [data-resource]')), true);
       }
-      const help = page.locator('.first-visit a');
-      assert.equal(await page.locator('.home-page > :first-child').getAttribute('class'), 'first-visit');
+      const help = page.locator('.first-use-link');
+      assert.equal(await page.locator('.first-visit').count(), 0);
+      assert(await help.evaluate(el=>!!el.closest('.hero-copy')));
       assert.match(await help.innerText(), /初次使用 ColorLab/);
-      assert.equal(await help.getAttribute('href'), '/app/account.html#install');
+      assert.equal(new URL(await help.getAttribute('href'), 'http://127.0.0.1:4180').hash, '#install');
+      assert.equal(new URL(await help.getAttribute('href'), 'http://127.0.0.1:4180').searchParams.get('returnTo'), '/app/#home');
       await help.scrollIntoViewIfNeeded();
       await page.screenshot({ path: `tmp/first-visit-${width}.png` });
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

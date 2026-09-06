@@ -46,9 +46,10 @@ const mailToken = () => delivery.at(-1).textContent.match(/#verify\/([a-f0-9]{64
 test('existing members remain optional and new registrations cannot opt out or obtain a session', async () => {
   const legacy = new User({ email: 'legacy@example.invalid', password: 'fixture-password' }); await legacy.save();
   assert.equal(service.needsVerification(legacy), false); assert.ok(legacy.generateToken());
-  const r = await post('/register', { email: ' NEW@example.invalid ', password: 'fixture-password', emailVerificationRequired: false, emailVerifiedAt: new Date() });
+  const r = await post('/register', { name:'新會員',gender:'unknown',birthDate:'2000-01-01',email: ' NEW@example.invalid ', password: 'fixture-password', emailVerificationRequired: false, emailVerifiedAt: new Date() });
   assert.equal(r.status, 202); const data = await r.json(); assert.equal(data.mailSent, true); assert.equal(data.token, undefined);
   const user = member('new@example.invalid'); assert.equal(service.needsVerification(user), true); assert.throws(() => user.generateToken());
+  assert.equal(user.phone, '', 'phone can be omitted on a valid registration');
   assert.equal((await post('/login', { email: user.email, password: user.password })).status, 403);
   assert.equal((await post('/login', { email: legacy.email, password: legacy.password })).status, 200);
   assert.equal(delivery.at(-1).to[0].email, user.email); assert.equal(records.get(String(user._id)).tokenHash, digest(mailToken()));
@@ -78,12 +79,12 @@ test('resend requires ownership, keeps the existing password, and invalidates pr
 });
 test('provider failure retains a pending account; missing configuration creates no account', async () => {
   mailFailure = true;
-  const r = await post('/register', { email: 'failed@example.invalid', password: 'fixture-password' });
+  const r = await post('/register', { name:'新會員',gender:'unknown',birthDate:'2000-01-01',email: 'failed@example.invalid', password: 'fixture-password' });
   assert.equal(r.status, 202); assert.equal((await r.json()).mailSent, false);
   assert.equal(service.needsVerification(member('failed@example.invalid')), true);
   assert.equal((await post('/login', { email: 'failed@example.invalid', password: 'fixture-password' })).status, 403);
   delete process.env.BREVO_API_KEY;
-  assert.equal((await post('/register', { email: 'unavailable@example.invalid', password: 'fixture-password' })).status, 503);
+  assert.equal((await post('/register', { name:'新會員',gender:'unknown',birthDate:'2000-01-01',email: 'unavailable@example.invalid', password: 'fixture-password' })).status, 503);
   assert.equal(member('unavailable@example.invalid'), undefined);
   process.env.BREVO_API_KEY = 'fixture-not-a-real-key'; mailFailure = false;
 });
@@ -98,4 +99,22 @@ test('persistent counters enforce daily per-member limits without storing raw IP
   for (let i=0;i<3;i++) { user.emailSendAfter = new Date(0); await service.sendVerification(user); }
   user.emailSendAfter = new Date(0); await assert.rejects(service.sendVerification(user), e => e.status === 429);
   assert.equal([...counters.keys()].some(key => key.includes('127.0.0.1')), false);
+});
+
+test('required registration identity fields reject missing, malformed and impossible values without accounts or mail', async () => {
+  const invalid = [
+    {name:undefined},{name:'   '},{name:17},
+    {gender:undefined},{gender:''},{gender:'invalid'},
+    {birthDate:undefined},{birthDate:'not-a-date'},{birthDate:'2000-02-30'},{birthDate:'2999-01-01'}
+  ];
+  const beforeUsers=users.size,beforeDelivery=delivery.length,beforeRecords=records.size;
+  for (const [index,patch] of invalid.entries()) {
+    // Isolate schema validation from the already-covered request-rate quota.
+    counters.clear();
+    const email=`invalid-${index}@example.invalid`;
+    const response=await post('/register',{name:'註冊測試',gender:'unknown',birthDate:'2000-01-01',email,password:'fixture-password',...patch});
+    assert.equal(response.status,400,JSON.stringify(patch));
+    assert.equal(member(email),undefined);
+  }
+  assert.equal(users.size,beforeUsers);assert.equal(delivery.length,beforeDelivery);assert.equal(records.size,beforeRecords);
 });

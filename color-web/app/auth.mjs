@@ -1,4 +1,13 @@
 const USER_KEY = 'colorlab:user-session:v1';
+function changed() {
+  localStorage.setItem('colorlab:data-revision:v1', Date.now() + ':' + Math.random());
+  globalThis.window?.dispatchEvent(new Event('colorlab:data-changed'));
+}
+globalThis.window?.addEventListener('storage', event => {
+  if (event.key !== null && !['adminToken',USER_KEY].includes(event.key)) return;
+  for (const key of ['adminToken','adminEmail','adminName','admin','userToken','token','user','userId','userEmail','userName']) sessionStorage.removeItem(key);
+  window.dispatchEvent(new Event('colorlab:session-changed'));
+});
 export function validToken(token) {
   try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000 > Date.now(); } catch { return false; }
 }
@@ -21,6 +30,7 @@ export function clearSession() {
   for (const store of [sessionStorage, localStorage]) {
     for (const key of ['adminToken', 'adminEmail', 'adminName', 'admin', 'userToken', 'token', 'user', 'userId', 'userEmail', 'userName', 'isGuest', 'guestId', USER_KEY]) store.removeItem(key);
   }
+  changed();
 }
 export function saveSession(data, role) {
   clearSession();
@@ -41,6 +51,7 @@ export async function api(path, { role = 'user', ...options } = {}) {
   const response = await fetch(path, { ...options, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers }, signal: options.signal || AbortSignal.timeout(25000) });
   const data = await response.json().catch(() => ({ message: '服務尚未準備好，請稍後重試。' }));
   if (!response.ok) { const error = new Error(data.message || '操作未完成，請稍後重試。'); error.status = response.status; error.code = data.code; throw error; }
+  if (!['GET','HEAD'].includes((options.method || 'GET').toUpperCase())) changed();
   return data;
 }
 export const json = (method, value, role) => ({ method, role, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });

@@ -48,6 +48,10 @@ router.post('/register', emailVerification.limitRequest, async (req, res) => {
         const { name, gender, birthDate, phone, password, occupation } = req.body;
         const email = emailVerification.normalizeEmail(req.body.email);
 
+        const birthday = typeof birthDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(birthDate) ? new Date(birthDate) : new Date(NaN);
+        if (typeof name !== 'string' || !name.trim() || !['男', '女', 'unknown', 'male', 'female'].includes(gender) || !Number.isFinite(birthday.getTime()) || birthday.toISOString().slice(0, 10) !== birthDate || birthDate > new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)) {
+            return res.status(400).json({ message: '請填寫姓名、選擇性別，並填寫有效的出生日期；電話可留空。' });
+        }
         if (!emailVerification.validEmail(email) || typeof password !== 'string' || password.length < 6 || password.length > 128) {
             return res.status(400).json({ message: '請填寫所有必要欄位' });
         }
@@ -74,9 +78,9 @@ router.post('/register', emailVerification.limitRequest, async (req, res) => {
             emailVerificationRequired: true,
             email, 
             password,
-            name: name || email.split('@')[0], // 使用提供的名稱或郵箱前綴
+            name: name.trim(),
             gender: processedGender,
-            birthDate: birthDate || new Date(),
+            birthDate,
             phone: phone || '',
             occupation: occupation || '未設定'
         });

@@ -49,7 +49,13 @@ router.route('/records/legacy-import').all((req, res, next) => {
   catch (error) { if (!error.status) throw error; res.status(error.status).json({ message: error.message }); }
 }));
 router.get('/records', handle(async (req, res) => {
-  const records = await TestRecord.find(ownerQuery(req)).sort({ timestamp: -1 }).limit(200).lean();
+  let query = ownerQuery(req);
+  if (req.query.before || req.query.beforeId) {
+    const date = new Date(req.query.before);
+    if (!Number.isFinite(date.getTime()) || !/^[a-f\d]{24}$/i.test(req.query.beforeId || '')) return res.status(400).json({ message: '紀錄分頁位置無效。' });
+    query = { $and: [query, { $or: [{ timestamp: { $lt: date } }, { timestamp: date, _id: { $lt: req.query.beforeId } }] }] };
+  }
+  const records = await TestRecord.find(query).sort({ timestamp: -1, _id: -1 }).limit(200).lean();
   res.json(records.map(recordView));
 }));
 

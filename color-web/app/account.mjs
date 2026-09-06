@@ -3,6 +3,7 @@ import { esc, icon, date, button, link, field, area, select, table } from './ui.
 import { safeUrl } from './client.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 import {reviewPage,bindReview,adminContentMedia} from './content-review.mjs';
+import { pdfHref, bindAppReturn, sessionIdentity, dataRevision } from './navigation-state.mjs';
 
 const main = document.querySelector('main');
 const modal = document.querySelector('dialog');
@@ -18,8 +19,37 @@ let revision = 0, recordsRevision = 0, current = '', page = 1, dirty = false, pe
 let survey, contentItems = [], currentRecords = [], userItems = [];
 let verificationToken = '';
 let recoveryToken = null;
+const retainedViews = new Map(), retainedRoutes = new Set(['admin','users','user','surveys','content','records','statistics','feedbacks','about','privacy','install']);
+const retainedRecords = new Map();
+let mountedKey = '', retainedIdentity = sessionIdentity(), retainedRevision = dataRevision();
+function invalidateViews() { retainedViews.clear(); retainedRecords.clear(); mountedKey = ''; }
+async function recordDetail(id) {
+  if(sessionIdentity()!==retainedIdentity||dataRevision()!==retainedRevision)invalidateViews();
+  const previous=retainedRecords.get(id);
+  if(previous&&Date.now()-previous.at<5*60*1000)return previous.value;
+  const value=await adminAPI('/api/admin/records/'+encodeURIComponent(id));
+  retainedRecords.set(id,{value,at:Date.now()});
+  if(retainedRecords.size>20)retainedRecords.delete(retainedRecords.keys().next().value);
+  return value;
+}
+function saveView() {
+  if (!mountedKey || !retainedRoutes.has(mountedKey.split('/')[0]) || dirty || pendingSave) return;
+  const previous = retainedViews.get(mountedKey);
+  retainedViews.set(mountedKey, { nodes:[...main.childNodes], title:document.title, top:scrollY, page, survey, contentItems, currentRecords, userItems, at:previous?.at || Date.now() });
+  if (retainedViews.size > 8) retainedViews.delete(retainedViews.keys().next().value);
+}
+window.addEventListener('colorlab:data-changed', invalidateViews);
+window.addEventListener('colorlab:session-changed', () => { invalidateViews(); main.replaceChildren(); render(); });
+const leaveWarning = event => { event.preventDefault(); event.returnValue = ''; };
+function updateLeaveWarning() { window.removeEventListener('beforeunload', leaveWarning); if (dirty || pendingSave) window.addEventListener('beforeunload', leaveWarning); }
+document.addEventListener('input', () => queueMicrotask(updateLeaveWarning));
+document.addEventListener('click', () => queueMicrotask(updateLeaveWarning));
+window.addEventListener('pageshow', event => {
+  if (!event.persisted) return;
+  if (sessionIdentity() !== retainedIdentity || dataRevision() !== retainedRevision) { invalidateViews(); main.replaceChildren(); render(); }
+});
 function verificationPage(confirm = false) {
-  return `<div class="form-width">${back('#login','回到登入')}${intro(confirm ? '確認這個 Email 屬於你' : '到信箱完成最後一步', confirm ? '請輸入你的 ColorLab 密碼，完成電子郵件驗證。' : '新會員驗證後即可登入。既有會員可自由選擇驗證，不影響原本的使用。')}<section class="panel form-stack"><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>${confirm ? `<form id="verify-form" class="form-stack">${password()}${status}${submit('確認並驗證 Email')}</form>` : `<p>驗證連結有效 24 小時。若沒有收到，請先查看垃圾郵件；重新寄送後請使用最新一封信。</p><form id="resend-form" class="form-stack">${field('email','註冊的電子郵件',sessionStorage.getItem('colorlab:pending-email')||'','type="email" autocomplete="username" required')}${password()}${status}${submit('重新寄送驗證信')}</form>`}<div class="actions">${link('#login','我已驗證，前往登入')}${confirm ? link('#verification','重新寄送驗證信') : ''}</div><p class="hint">若不是你申請的帳號，請勿驗證。</p></section></div>`;
+  return `<div class="form-width">${back('#login','回到登入')}${intro(confirm ? '確認這個 Email 屬於你' : '到信箱完成最後一步', confirm ? '請輸入你的 ColorLab 密碼，完成電子郵件驗證。' : '新會員驗證後即可登入。既有會員可自由選擇驗證，不影響原本的使用。')}<section class="panel form-stack"><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>${confirm ? `<form id="verify-form" class="form-stack">${password()}${status}${submit('確認並驗證 Email')}</form>` : `<p>驗證連結有效 24 小時。若沒有收到，請先查看垃圾郵件；重新寄送後請使用最新一封信。</p><form id="resend-form" class="form-stack">${field('email','註冊的電子郵件',sessionStorage.getItem('colorlab:pending-email')||'','type="email" autocomplete="username" required')}${password()}${status}${submit('重發驗證信')}</form>`}<div class="actions">${link('#login','我已驗證，前往登入')}${confirm ? link('#verification','重發驗證信') : ''}</div><p class="hint">若不是你申請的帳號，請勿驗證。</p></section></div>`;
 }
 function verificationProfile(user) {
   return `<section class="panel form-stack"><div data-verification-status>${verificationStatus(user)}</div><div data-verification-request ${user.emailVerifiedAt ? 'hidden' : ''}><form id="request-verification-form" class="form-stack">${status}${submit('寄送驗證信')}</form><p class="hint">寄送至帳號中的 Email；連結有效 24 小時。</p></div></section>`;
@@ -39,7 +69,7 @@ async function saveForm(form, task) {
   pendingSave = true; submitter.disabled = true; form.setAttribute('aria-busy', 'true');
   const text = submitter.innerHTML; submitter.textContent = '正在儲存…'; formError(form, '');
   try { await task(); dirty = false; } catch (error) { formError(form, error); }
-  finally { pendingSave = false; submitter.disabled = false; submitter.innerHTML = text; form.removeAttribute('aria-busy'); }
+  finally { pendingSave = false; submitter.disabled = false; submitter.innerHTML = text; form.removeAttribute('aria-busy'); updateLeaveWarning(); }
 }
 let dialogPointer = false;
 document.addEventListener('pointerdown', () => { dialogPointer = true; modal.setAttribute('data-pointer-focus',''); }, true);
@@ -76,9 +106,14 @@ document.addEventListener('click', event => {
     dirty=false;clearSession();location.assign('/app/account.html#login');
   }
 });
-window.addEventListener('beforeunload', event => { if (dirty || pendingSave) { event.preventDefault(); event.returnValue = ''; } });
 function authPage(admin = false) {
-  return `<div class="auth-layout"><section class="auth-story"><span class="eyebrow">A LITTLE CLOSER TO YOU</span><h1>每一面，<br>都值得被理解。</h1><p>留一點時間給自己。<br>從一場色彩探索，重新認識你的模樣。</p><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div></section><section class="panel auth-panel">${back('/app/#home', '回到首頁')}<h2>${admin ? '管理員登入' : '會員登入'}</h2><p class="hint">${admin ? '使用管理員電子郵件進入管理工作室。' : '以會員身分登入，保存每一次探索；管理員請使用下方專用入口。'}</p><form id="login-form" class="form-stack">${field('email', admin ? '管理員電子郵件' : '會員電子郵件', '', 'type="email" autocomplete="username" required')}${password()}${status}${submit(admin ? '登入管理工作室' : '登入會員帳號')}</form><div data-login-guidance></div><p class="auth-help"><a href="#${admin?'admin-forgot-password':'forgot-password'}">忘記密碼？</a></p>${admin ? '<a class="auth-switch" href="#login">回到會員登入</a>' : `<div class="auth-links">${link('/app/#surveys', '先以訪客探索')}${link('#register', '建立帳號')}</div><a class="auth-switch" href="#admin-login">管理員登入</a>`}</section></div>`;
+  return `<div class="auth-layout"><section class="auth-story"><span class="eyebrow">A LITTLE CLOSER TO YOU</span><h1>每一面，<br>都值得被理解。</h1><p>留一點時間給自己。<br>從一場色彩探索，重新認識你的模樣。</p><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div></section><section class="panel auth-panel">
+    ${back('/app/#me', '回到我的帳號')}
+    <nav class="auth-role-nav" aria-label="選擇登入身分"><a href="#login" ${admin?'':'aria-current="page"'}>會員登入</a><a href="#admin-login" ${admin?'aria-current="page"':''}>管理員登入</a></nav>
+    <h2>${admin ? '登入管理員帳號' : '歡迎回來'}</h2><p class="hint">${admin ? '登入後可從「我的」進入管理後台或查看個人紀錄。' : '登入帳號，接續你的探索紀錄。'}</p>
+    <form id="login-form" class="form-stack">${field('email', admin ? '管理員電子郵件' : '會員電子郵件', '', 'type="email" autocomplete="username" required')}${password()}<p class="auth-help auth-password-help"><a href="#${admin?'admin-forgot-password':'forgot-password'}">忘記密碼？</a></p>${status}${submit(admin ? '登入管理員帳號' : '登入會員帳號')}</form><div data-login-guidance></div>
+    ${admin ? '' : '<p class="auth-register">還沒有帳號？ <a href="#register">建立帳號</a></p><div class="auth-guest"><span>想先看看？</span><a href="/app/#surveys">先以訪客探索 '+icon('arrow')+'</a></div>'}
+  </section></div>`;
 }
 function recoveryPage(admin=false,reset=false){
   const role=admin?'admin':'user',login=admin?'admin-login':'login',forgot=admin?'admin-forgot-password':'forgot-password';
@@ -86,7 +121,7 @@ function recoveryPage(admin=false,reset=false){
   return `<div class="form-width recovery-page">${back('#'+login,admin?'回到管理員登入':'回到會員登入')}${intro(reset?'設定新密碼':admin?'找回管理員密碼':'找回會員密碼',reset?'設定完成後，請用新密碼重新登入。':'我們會透過帳號信箱協助你重新設定密碼。')}<section class="panel form-stack">${reset?(usable?`<form id="reset-password-form" data-recovery-role="${role}" class="form-stack">${password('password','新密碼','required minlength="6" maxlength="128"','new-password')}${password('confirmPassword','確認新密碼','required minlength="6" maxlength="128"','new-password')}<p class="hint">請設定至少 6 個字元的密碼。最多 72 個英數字元；中文或表情符號可用字數較少。完成後，其他裝置也需重新登入。</p>${status}${submit('更新密碼')}</form><p class="auth-help"><a href="#${forgot}">連結過期或不能使用？重新申請</a></p>`:`<p role="alert">這個重設連結無法使用。請從信件重新開啟完整連結，或重新申請。</p>${link('#'+forgot,'重新申請重設連結','primary')}`):`<form id="forgot-password-form" data-recovery-role="${role}" class="form-stack">${field('email',admin?'管理員電子郵件':'會員電子郵件','','type="email" autocomplete="email" required maxlength="254"')}${status}${submit('寄送重設連結')}</form><div class="recovery-help"><h2>收不到信，或沒有可用的信箱？</h2><p>請先查看垃圾郵件。未綁定信箱、無法開啟信箱，或會員尚未完成 Email 驗證時，請聯絡管理員協助確認身分；我們不會在此顯示帳號是否存在。</p><a href="#contact">聯絡管理員</a></div>`}</section></div>`;
 }
 function registerPage() {
-  return `<div class="form-width">${back('#login','回到登入')}${intro('建立你的探索空間','登入後的測驗紀錄會保存在帳號中，訪客紀錄不會自動合併。')}<form id="register-form" class="panel form-stack"><div class="form-grid">${field('name','姓名','','autocomplete="name" required')}${select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']])}${field('birthDate','出生日期','','type="date" required max="'+new Date().toISOString().slice(0,10)+'"')}${field('phone','電話（選填）','','type="tel" autocomplete="tel"')}</div>${field('email','電子郵件','','type="email" autocomplete="email" required')}${password('password','密碼','required minlength="6"','new-password')}${password('confirmPassword','確認密碼','required minlength="6"','new-password')}<p class="hint">密碼至少 6 個字元。新會員須完成 Email 驗證後才能登入。</p><label class="check-label"><input type="checkbox" name="consent" required><span>我已閱讀並同意 <a href="#privacy" target="_blank">隱私與資料說明</a>。</span></label>${link('#verification','已註冊但沒有收到驗證信？')}${status}${submit('建立帳號並寄送驗證信')}</form></div>`;
+  return `<div class="form-width">${back('#login','回到登入')}${intro('建立你的探索空間','電話選填，其餘欄位皆須填寫。登入後的測驗紀錄會保存在帳號中，訪客紀錄不會自動合併。')}<form id="register-form" class="panel form-stack"><div class="form-grid">${field('name','姓名','','autocomplete="name" required')}${select('gender','性別',[['','請選擇'],['unknown','不願透露'],['男','男'],['女','女']]).replace('<select ','<select required ')}${field('birthDate','出生日期','','type="date" required max="'+new Date(Date.now()+8*3600000).toISOString().slice(0,10)+'"')}${field('phone','電話（選填）','','type="tel" autocomplete="tel"')}</div>${field('email','電子郵件','','type="email" autocomplete="email" required')}${password('password','密碼','required minlength="6"','new-password')}${password('confirmPassword','確認密碼','required minlength="6"','new-password')}<p class="hint">密碼至少 6 個字元。下一步將寄送驗證信，新會員須完成 Email 驗證後才能登入。</p><label class="check-label"><input type="checkbox" name="consent" required><span>我已閱讀並同意 <a href="#privacy" target="_blank">隱私與資料說明</a>。</span></label>${status}${submit('建立帳號並寄送驗證信')}</form></div>`;
 }
 function occupationField(value = '') {
   const choices = ['學生','軍公教','資訊科技','醫療照護','服務業','金融商業','製造業','自由工作者','家管','退休','待業／求職中'];
@@ -138,13 +173,13 @@ function information(route) {
     const sketch=(device,steps)=>`<figure class="install-sketch"><figcaption>${device} 操作示意・非實際截圖</figcaption><div class="install-frames">${steps.map(([title,screen,caption],i)=>`<div class="install-frame"><div class="install-window ${device==='電腦'?'is-desktop':''}" aria-hidden="true"><div class="install-address"><span>ColorLab</span><span>···</span></div>${screen}</div><p class="install-caption"><b>${i+1}</b><span><strong>${title}</strong>${caption}</span></p></div>`).join('')}</div><p class="hint">圖中標示僅用來辨認操作位置；請在你自己的瀏覽器操作，實際選單會依版本不同。</p></figure>`;
     const appTile='<div class="install-app-tile"><img src="/colorlab-mark.svg" alt=""><span>ColorLab</span></div>';
     const iosSketch=sketch('iPhone／iPad',[
-      ['找到分享選單',`<div class="install-page">${appTile}</div><div class="install-browser-bar"><span>‹</span><span class="install-highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 9H5v12h14V9h-3M12 15V2m-4 4 4-4 4 4"/></svg> 分享</span><span>↻</span></div>`,'在 Safari 開啟後，找方框向上箭頭。'],
+      ['找到分享選單',`<div class="install-page">${appTile}</div><div class="install-browser-bar"><span>‹</span><span class="install-highlight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 9H5v12h14V9h-3M12 15V2m-4 4 4-4 4 4"/></svg> 分享</span><span>↻</span></div>`,'Safari 可直接點分享；精簡版工具列先點「更多」，再點分享。'],
       ['選擇加入主畫面','<div class="install-sheet"><span class="install-sheet-handle"></span><span>分享選單</span><span class="install-menu-row">拷貝</span><span class="install-menu-row install-highlight">＋ 加入主畫面</span></div>','在分享選單往下找這個項目。'],
       ['開啟網頁 App 並加入',`<div class="install-sheet"><span class="install-sheet-title">加入主畫面 <b>加入</b></span>${appTile}<span class="install-menu-row">以網頁 App 開啟 <i class="install-toggle"></i></span></div>`,'若有此開關請開啟；加入後點主畫面圖示。']
     ]);
     const androidSketch=sketch('Android',[
       ['開啟 Chrome 選單',`<div class="install-page">${appTile}<span class="install-menu-cue">右上角 <b>⋮</b></span></div>`,'在網址列旁點「更多」。'],
-      ['找到安裝選項','<div class="install-sheet"><span class="install-menu-row">分享…</span><span class="install-menu-row install-highlight">加入主畫面</span><span class="install-menu-row">或：安裝並建立捷徑</span></div>','選單名稱可能不同，繼續選「安裝」。'],
+      ['找到安裝選項','<div class="install-sheet"><span class="install-menu-row">分享…</span><span class="install-menu-row install-highlight">安裝並建立捷徑 ›</span><span class="install-menu-row">安裝</span></div>','選單名稱可能不同，繼續選「安裝」。'],
       ['確認安裝',`<div class="install-sheet">${appTile}<span class="install-dialog-title">要安裝 ColorLab 嗎？</span><span class="install-confirm">安裝</span></div>`,'確認後，從 ColorLab 圖示開啟。']
     ]);
     const desktopSketch=sketch('電腦',[
@@ -154,11 +189,11 @@ function information(route) {
     ]);
     return `<article class="prose first-use-guide">${back('/app/#home','回到首頁')}${intro('初次使用 ColorLab','先了解怎麼開始、紀錄存在哪裡，再決定要不要放到主畫面。')}
       <section class="guide-step" aria-labelledby="guide-start"><span class="guide-number" aria-hidden="true">01</span><div><h2 id="guide-start">開始，或接著上次的進度</h2><p>首頁可以快速開始主打色彩測驗；想試其他問卷，就點「測驗」查看全部。每題選好答案後按「下一題」，也可以按「上一題」修改。</p><p>還沒做完時，點「暫存並離開」。之後在<strong>同一個裝置、瀏覽器與登入身分</strong>開啟，可接著作答。未完成的進度不會跨裝置同步；題目更新時也可能需要重新開始。</p><div class="actions">${link('/app/#surveys','查看全部測驗','secondary','test')}</div></div></section>
-      <section class="guide-step" aria-labelledby="guide-save"><span class="guide-number" aria-hidden="true">02</span><div><h2 id="guide-save">先決定紀錄要存在哪裡</h2><p>想換手機或電腦仍看得到<strong>已完成</strong>的紀錄，請先登入，再開始作答。</p><dl class="guide-saving"><div><dt>會員登入</dt><dd>完成並儲存成功後，紀錄會存到會員帳號。新註冊會員需先完成 Email 驗證。</dd></div><div><dt>管理員登入</dt><dd>也可以親自作答，紀錄存到管理員自己的帳號。不會自動合併同 Email 的會員紀錄；如需找回舊紀錄，可在管理員個人測驗紀錄頁點「找回以前的測驗」，主動確認同步，原紀錄仍會保留。</dd></div><div><dt>訪客使用</dt><dd>不用登入也能作答，但紀錄只留在目前瀏覽器。清除網站資料、換裝置或換瀏覽器，可能就看不到了。</dd></div></dl><p class="guide-caution">訪客紀錄不會在登入後自動搬到帳號。未完成的草稿也只存在目前裝置，請不要把「進度自動儲存」當成雲端備份。</p><div class="actions">${link('#login','登入或建立帳號','secondary','me')}</div></div></section>
-      <section class="guide-step" aria-labelledby="guide-history"><span class="guide-number" aria-hidden="true">03</span><div><h2 id="guide-history">查看你的測驗紀錄</h2><p>點導覽列的「紀錄」，或從「我的」進入「我的測驗紀錄」。點日期卡片即可看當次結果與作答；有完整報告的測驗，也能預覽或下載 PDF。</p><p>登入後顯示此帳號最近 200 份紀錄。想刪除某一筆，可點該筆的「刪除紀錄」並再次確認；刪除後無法從此頁復原。</p><div class="actions">${link('/app/#history','查看我的紀錄','secondary','history')}</div></div></section>
+      <section class="guide-step" aria-labelledby="guide-save"><span class="guide-number" aria-hidden="true">02</span><div><h2 id="guide-save">先決定紀錄要存在哪裡</h2><p>想換手機或電腦仍看得到<strong>已完成</strong>的紀錄，請先登入，再開始作答。</p><dl class="guide-saving"><div><dt>會員登入</dt><dd>完成並儲存成功後，紀錄會存到會員帳號。新註冊會員需先完成 Email 驗證。</dd></div><div><dt>管理員登入</dt><dd>也可以親自作答，完成後的紀錄儲存在管理員自己的帳號，與會員資料分開。已完成移轉的歷史紀錄會保留，不需要重複同步。</dd></div><div><dt>訪客使用</dt><dd>不用登入也能作答，但紀錄只留在目前瀏覽器。清除網站資料、換裝置或換瀏覽器，可能就看不到了。</dd></div></dl><p class="guide-caution">訪客紀錄不會在登入後自動搬到帳號。未完成的草稿也只存在目前裝置，請不要把「進度自動儲存」當成雲端備份。</p><div class="actions">${link('#login','登入或建立帳號','secondary','me')}</div></div></section>
+      <section class="guide-step" aria-labelledby="guide-history"><span class="guide-number" aria-hidden="true">03</span><div><h2 id="guide-history">查看你的測驗紀錄</h2><p>點導覽列的「紀錄」，或從「我的」進入「我的測驗紀錄」。點日期卡片即可看當次結果與作答；有完整報告的測驗，也能預覽或下載 PDF。</p><p>紀錄按年月由新到舊排列，可篩選時間、選擇每頁筆數或全部顯示。較早紀錄會分批讀取，不限最近 200 份。想刪除某一筆，可點該筆的「刪除紀錄」並再次確認；刪除後無法從此頁復原。</p><div class="actions">${link('/app/#history','查看我的紀錄','secondary','history')}</div></div></section>
       <section class="guide-step" aria-labelledby="guide-install"><span class="guide-number" aria-hidden="true">04</span><div><h2 id="guide-install">推薦加入主畫面，完整體驗 ColorLab</h2><p>想讓 ColorLab 更像隨手可開的小空間，建議加入主畫面：從圖示進入獨立 App 模式，不必每次尋找網址，畫面也少了瀏覽器工具列。這是選用功能，<strong>不安裝也能使用 ColorLab</strong>。登入、載入題庫與儲存帳號紀錄仍需要網路。</p><div class="guide-mode" role="status"><strong>${standalone?'目前以獨立 App 模式開啟':'目前以瀏覽器模式開啟'}</strong><p>${standalone?'已偵測到獨立模式。時間、電量與底部操作指示仍由手機系統顯示，不是網站邊框。':'目前可能看得到網址列與瀏覽器工具列，網站不能自行隱藏。請依裝置安裝後，從主畫面的圖示重新開啟，再回來確認。'}</p></div>
         <div class="guide-devices">
-          <details><summary>iPhone／iPad：從 Safari 加入</summary>${iosSketch}<ol><li>先用 Safari 開啟 ColorLab；若現在在其他 App 裡，請先選擇在 Safari 開啟。</li><li>開啟 Safari 的分享選單，往下找「加入主畫面」。</li><li>若出現「以網頁 App 開啟／Open as Web App」，保持開啟，再按「加入」。</li><li>回到主畫面，點 ColorLab 圖示開啟，再到本頁確認是否顯示「獨立 App 模式」。</li></ol><a href="https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios" target="_blank" rel="noopener noreferrer">Apple 官方安裝說明 ↗</a></details>
+          <details><summary>iPhone／iPad：從 Safari 加入</summary>${iosSketch}<ol><li>先用 Safari 開啟 ColorLab；若現在在其他 App 裡，請先選擇在 Safari 開啟。</li><li>在 Safari 點「分享」；若使用精簡版工具列，先點「更多」再點「分享」。往下找「加入主畫面」，找不到時可在「編輯動作」加入。</li><li>若出現「以網頁 App 開啟／Open as Web App」，保持開啟，再按「加入」。</li><li>回到主畫面，點 ColorLab 圖示開啟，再到本頁確認是否顯示「獨立 App 模式」。</li></ol><a href="https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios" target="_blank" rel="noopener noreferrer">Apple 官方安裝說明 ↗</a></details>
           <details><summary>Android：從 Chrome 安裝</summary>${androidSketch}<ol><li>用 Chrome 開啟 ColorLab 網站。</li><li>點網址列右側「更多」選單，找「安裝並建立捷徑」或「加入主畫面」。</li><li>依畫面選「安裝」並確認，完成後從 ColorLab 圖示開啟。</li></ol><p class="hint">選單名稱會隨 Chrome 版本不同；只建立捷徑不一定會以獨立視窗開啟。</p><a href="https://support.google.com/chrome/answer/9658361?hl=zh-Hant&amp;co=GENIE.Platform%3DAndroid" target="_blank" rel="noopener noreferrer">Google 官方 Android 安裝說明 ↗</a></details>
           <details><summary>電腦：從 Chrome 安裝</summary>${desktopSketch}<ol><li>在 Windows 或 Mac 的 Chrome 開啟 ColorLab。</li><li>打開右上角「更多」，選「投放、儲存及分享」→「將頁面安裝為應用程式」；也可以使用網址列出現的安裝圖示。</li><li>依畫面確認安裝，再從應用程式圖示開啟 ColorLab。</li></ol><a href="https://support.google.com/chrome/answer/9658361?hl=zh-Hant&amp;co=GENIE.Platform%3DDesktop" target="_blank" rel="noopener noreferrer">Google 官方電腦安裝說明 ↗</a></details>
         </div><p class="guide-caution">已有舊捷徑時，先確認現在的圖示能正常開啟，再自行移除舊捷徑。不要為了重新安裝而清除網站資料，以免遺失訪客紀錄或草稿；不同入口可能需要重新登入。</p>
@@ -171,8 +206,16 @@ function information(route) {
 
 async function render() {
   const seq = ++revision;
+  const identity = sessionIdentity(), version = dataRevision();
+  if (identity !== retainedIdentity || version !== retainedRevision) invalidateViews();
+  else saveView();
+  retainedIdentity = identity; retainedRevision = version;
   if (modal.open && !pendingSave) modal.close();
   const [route = 'login', rawId] = location.hash.slice(1).split('/');
+  const routeKey = location.hash.slice(1) || 'login';
+  // Explicit renders (save, retry, pagination) refresh; route returns restore the existing DOM.
+  const retained = mountedKey !== routeKey ? retainedViews.get(routeKey) : null;
+  if (mountedKey === routeKey) retainedViews.delete(routeKey);
   if (current !== route) page = 1;
   current = route || 'login'; const id = rawId ? decodeURIComponent(rawId) : '';
   if (current === 'verify' && id) { verificationToken = id; history.replaceState(null,'',location.pathname+'#verify'); }
@@ -183,6 +226,14 @@ async function render() {
   if (isAdmin && role !== 'admin') { location.replace('#admin-login'); return; }
   if (current === 'profile' && role !== 'user') { location.replace('#login'); return; }
   frame(isAdmin); dirty = false;
+  updateLeaveWarning();
+  if (retained && Date.now() - retained.at < 5 * 60 * 1000) {
+    main.replaceChildren(...retained.nodes); document.title=retained.title;
+    ({page,survey,contentItems,currentRecords,userItems}=retained); mountedKey=routeKey;
+    main.inert=false; main.removeAttribute('aria-busy');
+    const notice=document.querySelector('#route-status');if(notice)notice.hidden=true;
+    window.scrollTo({top:retained.top,behavior:'instant'}); return;
+  }
   // Leave the previous page painted, but disable its actions until the destination is ready.
   main.setAttribute('aria-busy', 'true'); main.inert = true;
   let loading = document.querySelector('#route-status');
@@ -218,9 +269,13 @@ async function render() {
     if (seq !== revision) return;
     main.innerHTML=html; document.title='ColorLab｜'+(main.querySelector('h1,h2')?.textContent||'我的空間');
     main.inert = false; main.focus({preventScroll:true}); window.scrollTo(0,0); bind(loaded);
+    if(!['login','admin-login','register'].includes(current))bindAppReturn(main.querySelector('.back-link[href^="/app/#"]'));
+    mountedKey=routeKey;
+    if (retainedRoutes.has(current) && isAdmin) main.querySelector('.page-intro')?.insertAdjacentHTML('beforeend','<button type="button" class="text-button" data-refresh-view>更新資料</button>');
     if (current==='content-review') await bindReview(main,{showDialog,modal,notify,setBusy:value=>{pendingSave=value;}});
   } catch(error) {
     if(seq!==revision)return;
+    mountedKey='';
     main.innerHTML=`${intro('暫時無法開啟',error.message)}<div class="actions">${button('重新載入','data-retry','primary')}${link(isAdmin?'#admin-login':'#login','重新登入')}</div>`;
     main.querySelector('[data-retry]').onclick=render;
   } finally {
@@ -291,7 +346,7 @@ function bind(loaded) {
     main.querySelector('[data-login-guidance]').replaceChildren();
     try {result=await api('/api/'+role+'/login',json('POST',values));}
     catch(error){if(role==='user'&&error.code==='EMAIL_VERIFICATION_REQUIRED'){sessionStorage.setItem('colorlab:pending-email',values.email);main.querySelector('[data-login-guidance]').innerHTML='<p class="auth-help">完成 Email 驗證後即可登入。<a href="#verification">前往驗證協助</a></p>';}throw error;}
-    saveSession(result,role);location.assign(role==='admin'?'/app/account.html#admin':'/app/#me');
+    saveSession(result,role);location.assign('/app/#me');
   });};
   const registration=main.querySelector('#register-form');
   if(registration)registration.onsubmit=event=>{event.preventDefault();saveForm(registration,async()=>{const values=data(registration);if(values.password!==values.confirmPassword)throw new Error('兩次密碼不同，請再確認。');const result=await api('/api/user/register',json('POST',values));if(result.verificationRequired){sessionStorage.setItem('colorlab:pending-email',result.email);dirty=false;location.hash='verification';notify(result.message);return;}throw new Error('請重新整理後再試，註冊服務正在更新。');});};
@@ -312,6 +367,7 @@ function bind(loaded) {
 }
 main.addEventListener('click',async event=>{
   const el=event.target.closest('button');if(!el||el.disabled)return;
+  if(el.hasAttribute('data-refresh-view')){invalidateViews();await render();return;}
   if(el.hasAttribute('data-page')){page=Number(el.dataset.page);if(current==='users')document.querySelector('#users-list').innerHTML=usersView(document.querySelector('[name=search]').value);else if(current==='records')await loadRecords();else await render();}
   if(el.hasAttribute('data-delete-user')){const u=userItems.find(u=>u._id===el.dataset.deleteUser);confirmAction('刪除會員帳號',`確定刪除 ${u.email}？帳號刪除後無法復原，既有研究紀錄不會在此操作中刪除。`,()=>adminAPI('/api/admin/users/'+u._id,{method:'DELETE'}));}
   if(el.hasAttribute('data-delete-content'))confirmAction('刪除首頁資訊','這筆資訊將從首頁移除，無法復原。',()=>adminAPI('/api/homepage/'+el.dataset.deleteContent,{method:'DELETE'}));
@@ -325,7 +381,7 @@ main.addEventListener('click',async event=>{
     drawQuestions();
   }
   if(el.hasAttribute('data-record')){
-    try {const r=await adminAPI('/api/admin/records/'+encodeURIComponent(el.dataset.record));const snapshot=r.exploration?.survey;const answers=snapshot?snapshot.questions.map((q,i)=>({question:q.question,answer:q.options[r.exploration.answers?.[i]??r.answers?.[i]]})):r.answers||[];const primary=Array.isArray(r.colorResult?.primary)?r.colorResult.primary:[r.colorResult?.primary];const colors=primary.filter(c=>['red','yellow','green','blue'].includes(c)).sort();const report=/^[EI][NS][FT][JP]$/.test(r.mbtiResult||'')&&colors.length?`/test/detailed-reports/${r.mbtiResult}-${colors.join('-')}.pdf`:null;showDialog(r.testType||'測驗紀錄',`<section class="record-summary" aria-label="本次測驗摘要"><dl class="record-meta"><div><dt>作答身分</dt><dd>${esc(r.email||'訪客')}</dd></div><div><dt>完成時間</dt><dd>${date(r.timestamp)}</dd></div></dl><div class="record-result"><span>${r.mbtiResult?'MBTI 結果':'測驗類型'}</span><strong>${esc(r.mbtiResult||'一般問卷')}</strong>${colors.length?`<span class="record-color-label">主要色彩</span>${colors.map(c=>`<span class="record-color" data-color="${c}">${({red:'紅色',yellow:'黃色',green:'綠色',blue:'藍色'})[c]}</span>`).join('')}`:''}</div>${report?`<div class="actions">${link('/app/pdf.html?from=admin&file='+encodeURIComponent(report),'預覽 PDF','secondary','eye')}${`<a class="button primary" href="${esc(report)}" download>${icon('download')}<span>下載 PDF</span></a>`}</div>`:''}</section>${answers.map((a,i)=>`<section class="record-answer"><h3>${i+1}. ${esc(String(a.question||'原始題目').replace(/^\s*\d+[.、．]\s*/,''))}</h3><p>${esc(a.answer??'未記錄')}</p></section>`).join('')}`);}catch(error){notify(error.message);}
+    try {const seq=revision, identity=sessionIdentity();const r=await recordDetail(el.dataset.record);if(seq!==revision||identity!==sessionIdentity())return;const snapshot=r.exploration?.survey;const answers=snapshot?snapshot.questions.map((q,i)=>({question:q.question,answer:q.options[r.exploration.answers?.[i]??r.answers?.[i]]})):r.answers||[];const primary=Array.isArray(r.colorResult?.primary)?r.colorResult.primary:[r.colorResult?.primary];const colors=primary.filter(c=>['red','yellow','green','blue'].includes(c)).sort();const report=/^[EI][NS][FT][JP]$/.test(r.mbtiResult||'')&&colors.length?`/test/detailed-reports/${r.mbtiResult}-${colors.join('-')}.pdf`:null;showDialog(r.testType||'測驗紀錄',`<section class="record-summary" aria-label="本次測驗摘要"><dl class="record-meta"><div><dt>作答身分</dt><dd>${esc(r.email||'訪客')}</dd></div><div><dt>完成時間</dt><dd>${date(r.timestamp)}</dd></div></dl><div class="record-result"><span>${r.mbtiResult?'MBTI 結果':'測驗類型'}</span><strong>${esc(r.mbtiResult||'一般問卷')}</strong>${colors.length?`<span class="record-color-label">主要色彩</span>${colors.map(c=>`<span class="record-color" data-color="${c}">${({red:'紅色',yellow:'黃色',green:'綠色',blue:'藍色'})[c]}</span>`).join('')}`:''}</div>${report?`<div class="actions">${link(pdfHref(report,{admin:true}),'預覽 PDF','secondary','eye')}${`<a class="button primary" href="${esc(report)}" download>${icon('download')}<span>下載 PDF</span></a>`}</div>`:''}</section>${answers.map((a,i)=>`<section class="record-answer"><h3>${i+1}. ${esc(String(a.question||'原始題目').replace(/^\s*\d+[.、．]\s*/,''))}</h3><p>${esc(a.answer??'未記錄')}</p></section>`).join('')}`);}catch(error){notify(error.message);}
   }
   if(el.hasAttribute('data-export')){
     const rows=[['帳號','測驗','結果','完成時間'],...currentRecords.map(r=>[r.email,r.testType,r.mbtiResult,r.timestamp])];const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/^[=+\-@]/,"'$&").replaceAll('"','""')+'"').join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='ColorLab-測驗紀錄-本頁.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
