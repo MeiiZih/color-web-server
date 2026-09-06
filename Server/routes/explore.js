@@ -26,7 +26,7 @@ router.use(async (req, res, next) => {
   } catch { res.status(401).json({ message: '登入已過期，請重新登入；作答進度仍會保留。' }); }
 });
 
-router.get('/me', (req, res) => res.json({ id: String(req.member._id), email: req.member.email, name: req.member.name }));
+router.get('/me', (req, res) => res.json({ id: String(req.member._id), email: req.member.email, name: req.member.name, emailVerifiedAt: req.member.emailVerifiedAt || null, emailVerificationRequired: req.member.emailVerificationRequired === true }));
 router.get('/records', handle(async (req, res) => {
   const records = await TestRecord.find({ $or: [{ userId: req.member._id }, { userId: null, email: req.member.email }] }).sort({ timestamp: -1 }).limit(200).lean();
   res.json(records.map(recordView));

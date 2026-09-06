@@ -1,0 +1,7 @@
+.verification-panel { padding:20px; margin:0 0 24px; background:var(--white); border:1px solid var(--line); border-radius:14px; }
+[data-verification-status] { display:grid; justify-items:start; gap:12px; }
+[data-verification-status] h2 { font:600 18px/1.5 var(--body-font); }
+.verification-badge { padding:4px 12px; border-radius:8px; color:var(--rose); background:var(--rose-soft); font-size:14px; font-weight:600; }
+.verification-badge.is-verified { color:#355b43; background:#e8f0e7; }
+[data-verification-message] { color:var(--muted); font-size:13px; }
+.source-note { font-size:11px; color:var(--muted); margin-top:10px; line-height:1.8; }

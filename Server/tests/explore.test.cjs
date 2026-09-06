@@ -67,6 +67,15 @@ test('record ownership comes from the verified member, not email query parameter
   assert.equal(lastFilter.$or[0].userId, member._id);
   assert.equal(lastFilter.$or[1].email, member.email);
 });
+test('me returns current verification facts without treating legacy members as verified', async () => {
+  let data = await (await fetch(base + '/me', { headers: headers() })).json();
+  assert.equal(data.emailVerifiedAt, null);
+  assert.equal(data.emailVerificationRequired, false);
+  member.emailVerifiedAt = '2026-09-06T06:00:00.000Z';
+  data = await (await fetch(base + '/me', { headers: headers() })).json();
+  assert.equal(data.emailVerifiedAt, member.emailVerifiedAt);
+  delete member.emailVerifiedAt;
+});
 test('submit rejects incomplete/version mismatch and deduplicates repeated submission', async () => {
   const survey = catalogEntry(doc);
   const body = { surveyId: survey.id, version: survey.version, answers: Array(20).fill(0), key: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' };

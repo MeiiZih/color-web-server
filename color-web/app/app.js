@@ -1,6 +1,7 @@
 import { colors, scoreAnswers, finishSurvey } from './model.mjs';
 import { request, readLocal, saveRecord, safeUrl } from './client.mjs';
 import { restoreSession, clearSession } from './auth.mjs';
+import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 restoreSession();
 
 const main = document.querySelector('main');
@@ -83,11 +84,11 @@ function home() {
     </section>
     <section class="gentle-note"><span class="note-symbol">↳</span><p>不急著定義自己，<strong>先好好認識自己。</strong></p><span class="note-end">YOUR OWN PACE</span></section>
     <section class="editorial-section" aria-labelledby="news-heading"><div class="section-heading"><div><span class="eyebrow">SOMETHING TO EXPLORE</span><h2 id="news-heading">最近，值得留意的事</h2></div><span class="section-meta">最新資訊<span>滑動看看</span></span></div>
-      <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image"><img src="${escape(a.image)}" alt="${escape(a.title)}活動海報" width="400" height="280" loading="lazy"><span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><span class="read-link">看看活動 ${icon('arrow')}</span></div></button>`).join('')}</div>
+      <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image"><img src="${escape(a.image)}" alt="" width="400" height="280" loading="lazy"><span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
       <p class="archive-note">活動日期與參加方式，請以主辦單位公告為準。</p>
     </section>
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><span class="section-meta">一般資訊<span>滑動看看</span></span></div>
-      <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}"><img src="${escape(a.image)}" alt="" width="100" height="100" loading="lazy"><span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p></span>${icon('arrow')}</button>`).join('')}</div>
+      <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}"><img src="${escape(a.image)}" alt="" width="100" height="100" loading="lazy"><span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
     <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>國立臺中科技大學 · 資訊管理系專題</small></footer>
   </div>`;
@@ -189,6 +190,10 @@ function render(direction = 'page') {
 }
 
 function bindPage() {
+  const profile = document.querySelector('.profile-page');
+  if (profile && !member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<p class="muted">${sessionStorage.getItem('adminToken') ? '目前使用管理員身分；會員 Email 驗證不適用於管理員帳號。' : '登入會員後，可在這裡查看 Email 驗證狀態。'}</p>`);
+  if (profile && member) profile.querySelector('.profile-card').insertAdjacentHTML('afterend', `<section class="verification-panel"><div data-verification-status>${verificationStatus(member)}</div><a class="text-button" href="/app/account.html#profile">管理 Email 驗證${icon('arrow')}</a></section>`);
+  bindVerificationStatus(document.querySelector('[data-verification-status]'), () => request('/api/user/profile'), user => { member = { ...member, emailVerifiedAt: user.emailVerifiedAt || null, emailVerificationRequired: user.emailVerificationRequired === true }; });
   if (document.body.dataset.page === 'test' && draft()?.pending) {
     document.querySelector('#selection-status').textContent = '上次儲存尚未確認，請重新儲存相同答案，避免產生重複紀錄。';
   }
@@ -210,7 +215,7 @@ function bindPage() {
   document.querySelectorAll('[data-article], [data-resource]').forEach(button => button.addEventListener('click', () => {
     const isResource = button.hasAttribute('data-resource');
     const a = isResource ? resources[Number(button.dataset.resource)] : articles[Number(button.dataset.article)];
-    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><img class="article-poster" src="${escape(a.image)}" alt="${escape(a.title)}">${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">前往網站${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}`);
+    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><img class="article-poster" src="${escape(a.image)}" alt="">${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}`);
   }));
   document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); } });
   document.querySelector('#question-form')?.addEventListener('change', event => {
@@ -272,9 +277,10 @@ try {
   }
   try {
     const feed = await request('/api/homepage');
-    const mapItem = a => ({ tag: a.type === 'news' ? '最新資訊' : '一般資訊', title: a.title, description: a.description, image: safeUrl(a.imageUrl), url: safeUrl(a.link, '') });
-    articles = feed.filter(a => a.type === 'news').map(mapItem);
-    resources = feed.filter(a => a.type === 'common').map(mapItem);
+    const mapItem = a => ({ tag: /^\/assets\/images\/act[1-6]\./.test(a.imageUrl || '') ? '歷史活動存檔' : a.type === 'news' ? '最新資訊' : '一般資訊', title: a.title, description: a.description, image: safeUrl(a.imageUrl), url: safeUrl(a.link, ''), sourceNote: a.sourceName ? [a.sourceName, a.sourcePublishedAt && `發布 ${a.sourcePublishedAt}`, a.sourceCheckedAt && `查核 ${a.sourceCheckedAt}`].filter(Boolean).join(' · ') : '' });
+    const currentFeed = feed.filter(a => !a.expiresAt || new Date(a.expiresAt).getTime() > Date.now());
+    articles = currentFeed.filter(a => a.type === 'news').map(mapItem);
+    resources = currentFeed.filter(a => a.type === 'common').map(mapItem);
   } catch { articles = []; resources = []; }
   render();
   if ('serviceWorker' in navigator && window.COLORLAB_STATIC) navigator.serviceWorker.register('/service-worker.js').catch(() => {});

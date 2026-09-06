@@ -6,6 +6,10 @@ const homepageSchema = new mongoose.Schema({
     imageUrl: { type: String, required: true },
     link: { type: String, required: true },
     description: { type: String, required: true },
+    sourceName: String,
+    sourcePublishedAt: String,
+    sourceCheckedAt: String,
+    expiresAt: Date,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

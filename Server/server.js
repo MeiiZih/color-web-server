@@ -279,6 +279,7 @@ const PORT = process.env.PORT || 3000;          // Render 會提供 PORT
 async function startServer() {
   await connectDB();
   await seedDefaultContent();
+  await require('./services/publishOfficialContent')();
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

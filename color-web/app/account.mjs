@@ -1,6 +1,7 @@
 import { api, json, restoreSession, saveSession, clearSession, updateSessionUser } from './auth.mjs';
 import { esc, icon, date, button, link, field, area, select, table } from './ui.mjs';
 import { safeUrl } from './client.mjs';
+import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 
 const main = document.querySelector('main');
 const modal = document.querySelector('dialog');
@@ -17,7 +18,7 @@ function verificationPage(confirm = false) {
   return `<div class="form-width">${back('#login','回到登入')}${intro(confirm ? '確認這個 Email 屬於你' : '到信箱完成最後一步', confirm ? '請輸入你的 ColorLab 密碼，完成電子郵件驗證。' : '新會員驗證後即可登入。既有會員可自由選擇驗證，不影響原本的使用。')}<section class="panel form-stack"><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>${confirm ? `<form id="verify-form" class="form-stack">${password()}${status}${submit('確認並驗證 Email')}</form>` : `<p>驗證連結有效 24 小時。若沒有收到，請先查看垃圾郵件；重新寄送後請使用最新一封信。</p><form id="resend-form" class="form-stack">${field('email','註冊的電子郵件',sessionStorage.getItem('colorlab:pending-email')||'','type="email" autocomplete="username" required')}${password()}${status}${submit('重新寄送驗證信')}</form>`}<div class="actions">${link('#login','我已驗證，前往登入')}${confirm ? link('#verification','重新寄送驗證信') : ''}</div><p class="hint">若不是你申請的帳號，請勿驗證。</p></section></div>`;
 }
 function verificationProfile(user) {
-  return `<section class="panel form-stack"><h2>Email 驗證</h2><p>${user.emailVerifiedAt ? '已驗證，你的電子郵件已確認。' : '尚未驗證。你是既有會員，可選擇補上驗證，不影響登入與測驗紀錄。'}</p>${user.emailVerifiedAt ? '' : `<form id="request-verification-form" class="form-stack">${status}${submit('寄送驗證信')}</form><p class="hint">寄送至帳號中的 Email；連結有效 24 小時。</p>`}</section>`;
+  return `<section class="panel form-stack"><div data-verification-status>${verificationStatus(user)}</div><div data-verification-request ${user.emailVerifiedAt ? 'hidden' : ''}><form id="request-verification-form" class="form-stack">${status}${submit('寄送驗證信')}</form><p class="hint">寄送至帳號中的 Email；連結有效 24 小時。</p></div></section>`;
 }
 const adminAPI = (path, options = {}) => api(path, { ...options, role: 'admin' });
 const status = '<p class="form-status" role="alert"></p>';
@@ -166,6 +167,7 @@ async function upload(input) {
   catch(error){note.textContent=error.message;}finally{input.disabled=false;form.querySelector('[type=submit]').disabled=false;}
 }
 function bind(loaded) {
+  bindVerificationStatus(main.querySelector('[data-verification-status]'), () => api('/api/user/profile'), user => { main.querySelector('[data-verification-request]').hidden = Boolean(user.emailVerifiedAt); });
   const verify = main.querySelector('#verify-form');
   if (verify) verify.onsubmit = event => { event.preventDefault(); saveForm(verify, async () => {
     const result = await api('/api/user/email-verification/confirm',json('POST',{token:verificationToken,password:data(verify).password}));
