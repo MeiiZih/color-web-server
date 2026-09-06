@@ -71,8 +71,30 @@ function authPage(admin = false) {
 function registerPage() {
   return `<div class="form-width">${back('#login','回到登入')}${intro('建立你的探索空間','登入後的測驗紀錄會保存在帳號中，訪客紀錄不會自動合併。')}<form id="register-form" class="panel form-stack"><div class="form-grid">${field('name','姓名','','autocomplete="name" required')}${select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']])}${field('birthDate','出生日期','','type="date" required max="'+new Date().toISOString().slice(0,10)+'"')}${field('phone','電話（選填）','','type="tel" autocomplete="tel"')}</div>${field('email','電子郵件','','type="email" autocomplete="email" required')}${password('password','密碼','required minlength="6"','new-password')}${password('confirmPassword','確認密碼','required minlength="6"','new-password')}<p class="hint">密碼至少 6 個字元。新會員須完成 Email 驗證後才能登入。</p><label class="check-label"><input type="checkbox" name="consent" required><span>我已閱讀並同意 <a href="#privacy" target="_blank">隱私與資料說明</a>。</span></label>${link('#verification','已註冊但沒有收到驗證信？')}${status}${submit('建立帳號並寄送驗證信')}</form></div>`;
 }
+function occupationField(value = '') {
+  const choices = ['學生','軍公教','資訊科技','醫療照護','服務業','金融商業','製造業','自由工作者','家管','退休','待業／求職中'];
+  const saved = value === '未設定' ? '' : (value || '');
+  const custom = Boolean(saved && !choices.includes(saved));
+  return `<div class="form-stack" data-occupation>${select('occupation-choice','職業（選填）',[['','請選擇（可不填）'],...choices.map(v=>[v,v]),['__other','其他（自行填寫）']],custom ? '__other' : saved)}<div data-occupation-other ${custom ? '' : 'hidden'}>${field('occupation','其他職業',custom ? saved : '',custom ? 'required' : 'disabled')}</div></div>`;
+}
+function bindOccupation(form) {
+  const group = form?.querySelector('[data-occupation]');
+  if (!group) return;
+  const choice = group.querySelector('select'), box = group.querySelector('[data-occupation-other]'), input = box.querySelector('input');
+  const validate = () => input.setCustomValidity(!input.disabled && !input.value.trim() ? '請填寫其他職業，或選擇「請選擇（可不填）」。' : '');
+  const sync = () => {
+    const other = choice.value === '__other';
+    box.hidden = !other; input.disabled = !other; input.required = other;
+    choice.name = other ? '' : 'occupation'; // Submit exactly one occupation string to the existing API.
+    validate();
+  };
+  choice.addEventListener('change', () => { sync(); if (!box.hidden) input.focus(); });
+  input.addEventListener('input', validate);
+  form.addEventListener('reset', () => queueMicrotask(sync));
+  sync();
+}
 function profilePage(user, isAdmin = false) {
-  return `<div class="form-width">${back(isAdmin ? '#admin' : '/app/#me', isAdmin ? '管理總覽' : '我的空間')}${intro(isAdmin ? '管理員資料' : '我的個人資料','確認內容後按下儲存，變更才會生效。')}<form id="profile-form" class="panel form-stack"><div class="form-grid">${field('name','姓名',user.name,'required autocomplete="name"')}${field('email','電子郵件',user.email,'readonly')}${isAdmin ? field('department','處室',user.department,'required') : select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']],user.gender)}${field('phone','電話（選填）',user.phone,'type="tel" autocomplete="tel"')}${isAdmin ? '' : field('birthDate','出生日期',user.birthDate?.slice(0,10),'type="date"') + field('occupation','職業（選填）',user.occupation)}</div>${isAdmin ? `<details><summary>修改管理員密碼</summary><div class="form-stack">${password('password','新密碼','minlength="6"','new-password')}${password('confirmPassword','確認新密碼','','new-password')}<p class="hint">不修改密碼時請留空。</p></div></details>` : ''}${status}<div class="actions form-actions">${submit('儲存資料')}${button('取消修改','data-reset')}</div></form>${isAdmin ? '' : verificationProfile(user)}</div>`;
+  return `<div class="form-width">${back(isAdmin ? '#admin' : '/app/#me', isAdmin ? '管理總覽' : '我的空間')}${intro(isAdmin ? '管理員資料' : '我的個人資料','確認內容後按下儲存，變更才會生效。')}<form id="profile-form" class="panel form-stack"><div class="form-grid">${field('name','姓名',user.name,'required autocomplete="name"')}${field('email','電子郵件',user.email,'readonly')}${isAdmin ? field('department','處室',user.department,'required') : select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']],user.gender)}${field('phone','電話（選填）',user.phone,'type="tel" autocomplete="tel"')}${isAdmin ? '' : field('birthDate','出生日期',user.birthDate?.slice(0,10),'type="date"') + occupationField(user.occupation)}</div>${isAdmin ? `<details><summary>修改管理員密碼</summary><div class="form-stack">${password('password','新密碼','minlength="6"','new-password')}${password('confirmPassword','確認新密碼','','new-password')}<p class="hint">不修改密碼時請留空。</p></div></details>` : ''}${status}<div class="actions form-actions">${submit('儲存資料')}${button('取消修改','data-reset')}</div></form>${isAdmin ? '' : verificationProfile(user)}</div>`;
 }
 function pagination(total, prefix = '') { return `<div class="pagination">${button('上一頁', `data-page="${page-1}" ${page <= 1 ? 'disabled' : ''}`, 'secondary','back')}<span>${prefix}第 ${page} / ${Math.max(1,total)} 頁</span>${button('下一頁', `data-page="${page+1}" ${page >= total ? 'disabled' : ''}`, 'secondary','arrow')}</div>`; }
 function usersView(filter = '') {
@@ -196,6 +218,7 @@ function bind(loaded) {
   const registration=main.querySelector('#register-form');
   if(registration)registration.onsubmit=event=>{event.preventDefault();saveForm(registration,async()=>{const values=data(registration);if(values.password!==values.confirmPassword)throw new Error('兩次密碼不同，請再確認。');const result=await api('/api/user/register',json('POST',values));if(result.verificationRequired){sessionStorage.setItem('colorlab:pending-email',result.email);dirty=false;location.hash='verification';notify(result.message);return;}throw new Error('請重新整理後再試，註冊服務正在更新。');});};
   const profile=main.querySelector('#profile-form');
+  bindOccupation(profile);
   if(profile){profile.querySelector('[data-reset]').onclick=()=>{profile.reset();dirty=false;};profile.onsubmit=event=>{event.preventDefault();saveForm(profile,async()=>{const values=data(profile);if(values.password!==undefined&&values.password!==values.confirmPassword)throw new Error('兩次新密碼不同。');const admin=current==='admin-profile';const result=await api('/api/'+(admin?'admin':'user')+'/update-profile',json('PUT',values,admin?'admin':'user'));updateSessionUser(result.user,admin?'admin':'user');await render();notify('資料已儲存。');});};}
   const contact=main.querySelector('#contact-form');
   if(contact)contact.onsubmit=event=>{event.preventDefault();saveForm(contact,async()=>{await api('/api/user/feedback',json('POST',data(contact)));contact.reset();notify('謝謝你的回饋，我們已收到。');});};
