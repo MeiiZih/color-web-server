@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>測驗結果 - ColorMind Lab</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>測驗結果 - ColorLab</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/result.css">
     <script src="../js/navbar.js"></script>
     <script src="../js/test-api.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.plugin.standard_fonts_metrics.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* 隱藏次要顏色和測驗分數部分 */
         .secondary-color, .result-section:last-of-type {
             display: none;
         }
     </style>
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="page-test-result">
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title">ColorMind Lab</a>
+            <a href="/index.html" class="site-title">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link">首頁</a>
@@ -44,7 +46,7 @@
             <div class="action-buttons">
                 <button class="action-button active">測驗報告</button>
                 <button class="action-button" onclick="goToInformation()">問卷回饋</button>
-                <button class="action-button" onclick="downloadReport()">下載報告</button>
+                <button class="action-button" id="downloadReportButton" type="button" onclick="downloadReport()">預覽／下載 PDF</button>
                 <button class="action-button" onclick="shareResult()">分享小卡</button>
             </div>
             <div class="content-section">
@@ -62,6 +64,10 @@
                 <div class="description">
                     <p>藍象徵深邃冷靜，洞察力與內在智慧。INFJ 以其強大的共感能力和遠見卓識著稱，能在混亂中找到秩序，並運用深刻的思考影響世界。</p>
                 </div>
+
+                <aside class="ux-result-disclaimer" aria-label="結果使用提醒">
+                    本結果提供自我探索與交流參考，不是心理或醫療診斷；請依實際情況理解內容，不需要被單一類型限制。
+                </aside>
                 
                 <div class="result-section">
                     <h3 class="section-title">您的個性解析</h3>
@@ -135,7 +141,7 @@
     </div>
     <div class="navigation-buttons">
         <button class="back-button" onclick="window.location.href='/test/select.html'">測驗列表</button>
-        <button class="nav-button" onclick="window.location.href='/test/color-test-intro.html'">再測一次</button>
+        <button class="nav-button" onclick="window.location.href='/test/color-test-new.html?restart=1'">再測一次</button>
     </div>
 
     <footer class="footer">
@@ -212,7 +218,7 @@
         }
         
         // 下載報告功能
-        function downloadReport() {
+        async function downloadGeneratedReportLegacy() {
             // 取得當前測驗結果 - 優先使用 window.currentTestResult（通過 id 載入的數據）
             let resultData = null;
             
@@ -602,11 +608,80 @@
             }
             // ======================================
 
-            // 開啟下載連結
-            window.open(pdfUrl, '_blank');
+            // 將目前頁面上載入的完整分析內容直接產生多頁 A4 PDF，不再跳轉至 Dropbox。
+            const downloadButton = document.getElementById('downloadReportButton');
+            const originalButtonText = downloadButton ? downloadButton.textContent : '';
+
+            try {
+                if (downloadButton) {
+                    downloadButton.disabled = true;
+                    downloadButton.textContent = '正在產生 PDF…';
+                    downloadButton.setAttribute('aria-busy', 'true');
+                }
+
+                await generatePDF(null, topColors, mbtiType);
+                if (window.ColorLabUX && typeof window.ColorLabUX.toast === 'function') {
+                    window.ColorLabUX.toast('PDF 報告已開始下載', 'success');
+                }
+            } catch (error) {
+                console.error('產生 PDF 報告失敗:', error);
+                alert('PDF 報告產生失敗，請稍後再試。');
+            } finally {
+                if (downloadButton) {
+                    downloadButton.disabled = false;
+                    downloadButton.textContent = originalButtonText || '下載 PDF 報告';
+                    downloadButton.removeAttribute('aria-busy');
+                }
+            }
         }
 
         // ========== PATCH 1: 相容的「用 id 取單筆紀錄」 ==========
+        function downloadReport() {
+            let resultData = window.currentTestResult || null;
+
+            if (!resultData) {
+                try {
+                    const stored = localStorage.getItem('currentTestResult');
+                    resultData = stored ? JSON.parse(stored) : null;
+                } catch (error) {
+                    console.error('無法讀取測驗結果：', error);
+                }
+            }
+
+            if (!resultData) {
+                alert('無法取得測驗結果，請重新進行測驗。');
+                return;
+            }
+
+            const normalized = typeof normalizeColorResult === 'function'
+                ? normalizeColorResult(resultData)
+                : resultData.colorResult;
+            const mbtiType = String(resultData.mbtiResult || resultData.mbtiType || '').toUpperCase();
+            const scores = resultData.scores;
+
+            let topColors = [];
+            if (normalized && Array.isArray(normalized.primary) && normalized.primary.length > 0) {
+                topColors = parseTopColorsFromColorResult(normalized);
+            } else if (scores) {
+                topColors = getTopColors(scores);
+            }
+
+            const validColors = new Set(['blue', 'green', 'red', 'yellow']);
+            const colors = [...new Set(topColors.map(color => {
+                const key = color && (color.color || color.en || color);
+                return String(key || '').toLowerCase();
+            }).filter(color => validColors.has(color)))].sort();
+
+            if (!/^[A-Z]{4}$/.test(mbtiType) || colors.length === 0) {
+                alert('測驗結果資料不完整，無法下載完整報告。');
+                return;
+            }
+
+            const colorKey = colors.join('-');
+            const previewUrl = `/test/report-preview.html?mbti=${encodeURIComponent(mbtiType)}&colors=${encodeURIComponent(colorKey)}`;
+            window.location.href = previewUrl;
+        }
+
         async function fetchRecordByIdMultiTry(id, headers = {}) {
             // 優先策略：直接從用戶記錄列表中查找（這是最可靠的方式）
             const userEmail = sessionStorage.getItem('userEmail');
@@ -782,6 +857,10 @@
             } else if (colorCount === 3) {
                 folderPath = `Full-report/three color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en}`;
                 fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
+                // 既有 ENFJ 藍紅黃素材的檔名誤植為「藍綠黃」，內容本身仍是正確的藍紅黃報告。
+                if (mbtiType === 'ENFJ' && sortedColors.map(color => color.en).join(' x ') === 'Blue x Red x Yellow') {
+                    fileName = 'ENFJ主人公x藍綠黃.png';
+                }
             } else if (colorCount === 4) {
                 folderPath = `Full-report/four color/${sortedColors[0].en} x ${sortedColors[1].en} x ${sortedColors[2].en} x ${sortedColors[3].en}`;
                 fileName = getFileName(mbtiType, sortedColors).replace('.txt', '.png');
@@ -1968,7 +2047,18 @@ ${colorInfo.description}
                 
                 // 下載 PDF - 使用新的檔案名稱格式
                 const fileName = getFileName(mbtiType, topColors).replace('.txt', '完整報告.pdf');
-                pdf.save(fileName);
+                const pdfBlob = pdf.output('blob');
+                const downloadUrl = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.download = fileName;
+                downloadLink.hidden = true;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+
+                return { fileName, size: pdfBlob.size, type: pdfBlob.type, pages: totalPages };
                 
             } catch (error) {
                 console.error('生成 PDF 時發生錯誤:', error);
@@ -2111,6 +2201,23 @@ ${colorInfo.description}
                 window.location.href = '../main/login-user.html';
             }
         }
+        function showResultEmptyState(message, destination = 'test.html') {
+            document.querySelector('.result-card')?.remove();
+            document.querySelector('.navigation-buttons')?.remove();
+            const container = document.querySelector('.main-container');
+            if (!container) return;
+            container.innerHTML = `
+                <section class="ux-empty-state" role="status">
+                    <div class="ux-empty-state-icon" aria-hidden="true">🎨</div>
+                    <h1>目前沒有可顯示的測驗結果</h1>
+                    <p>${message}</p>
+                    <div class="ux-empty-actions">
+                        <a class="nav-button" href="${destination}">返回測驗頁</a>
+                        <a class="back-button" href="/main/common.html">回首頁</a>
+                    </div>
+                </section>`;
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             checkPageAccess();
             if (typeof updateNavbar === 'function') updateNavbar();
@@ -2135,8 +2242,7 @@ ${colorInfo.description}
                     const rec = await fetchRecordByIdMultiTry(qsId, headers);
                     if (!rec) {
                         console.error('無法找到測驗記錄，ID:', qsId);
-                        alert('無法找到該測驗記錄，請確認記錄是否存在。');
-                        window.location.href = 'history.html';
+                        showResultEmptyState('這筆紀錄可能已刪除或連結已失效。', 'history.html');
                         return;
                     }
                     
@@ -2152,16 +2258,14 @@ ${colorInfo.description}
                     }
                 } catch (e) {
                     console.error('載入單筆測驗紀錄失敗：', e);
-                    alert('載入測驗記錄時發生錯誤：' + e.message);
-                    window.location.href = 'history.html';
+                    showResultEmptyState('載入紀錄時發生問題，請稍後再試。', 'history.html');
                     return;
                 }
             } else if (testType && timestamp && (email || guestId)) {
                 // 用複合條件查詢
                 resultData = await fetchTestDetailByInfo(email, testType, timestamp, guestId);
                 if (!resultData) {
-                    alert('查無此測驗紀錄，請返回歷史紀錄頁面。');
-                    window.location.href = 'history.html';
+                    showResultEmptyState('找不到這筆測驗紀錄，請回歷史紀錄重新選擇。', 'history.html');
                     return;
                 }
                 // 修正：這裡同步設全域變數與 localStorage，讓後續功能都抓到正確資料
@@ -2182,8 +2286,7 @@ ${colorInfo.description}
                 }
                 
                 if (!resultData) {
-                    alert('無法顯示測驗結果，請重新進行測驗。');
-                    window.location.href = 'test.html';
+                    showResultEmptyState('完成 20 題測驗後，分析結果就會出現在這裡。', 'color-test-intro.html');
                     return;
                 }
             }
@@ -2316,4 +2419,4 @@ ${colorInfo.description}
         }
     </script>
 </body>
-</html> 
+</html>

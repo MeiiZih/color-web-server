@@ -312,3 +312,46 @@
         font-size: 14px;
     }
 }
+
+/* 返回操作與內容卡片採用同一視覺比例 */
+body {
+    background:
+        radial-gradient(circle at 8% 18%, rgba(255, 194, 207, 0.34), transparent 28rem),
+        radial-gradient(circle at 92% 76%, rgba(184, 224, 255, 0.42), transparent 30rem),
+        #fffafc;
+}
+
+.intro-back-section {
+    width: min(calc(100% - 32px), 800px);
+    margin: 100px auto 12px;
+    text-align: left;
+}
+
+.intro-back-section .back-button {
+    position: static;
+    inset: auto;
+    margin: 0;
+}
+
+.main-container {
+    margin: 0 auto 42px;
+    padding-top: 8px;
+}
+
+.intro-card {
+    border: 1px solid rgba(255, 103, 125, 0.13);
+    border-radius: 26px;
+    box-shadow: 0 20px 55px rgba(72, 52, 59, 0.1);
+}
+
+@media (max-width: 768px) {
+    .intro-back-section {
+        width: calc(100% - 28px);
+        margin: 86px auto 8px;
+    }
+
+    .main-container {
+        margin-top: 0;
+        padding: 8px 14px 24px;
+    }
+}

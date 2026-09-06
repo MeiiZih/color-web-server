@@ -1,7 +1,10 @@
 // Server/server.js
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
+const fs = require('fs/promises');
+const { createCanvas } = require('@napi-rs/canvas');
 
 // 你自己的模組
 const connectDB = require('./config/db');
@@ -10,36 +13,82 @@ const testRoutes = require('./routes/test');
 const surveyRoutes = require('./routes/survey');
 const adminRoutes = require('./routes/admin');
 const homepageRoutes = require('./routes/homepage');
+const seedDefaultContent = require('./services/seedDefaultContent');
 
 // ---- 環境/基礎設定 ----
 const isDevelopment = process.env.NODE_ENV !== 'production';
 console.log(`運行環境: ${isDevelopment ? '開發環境' : '生產環境'}`);
 
 const app = express();
-
-// 先連 DB（會讀取 MONGODB_URI）
-connectDB();
+app.disable('x-powered-by');
+app.use(compression());
 
 // CORS（如需鎖網域可改成陣列白名單）
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['X-Report-Pages', 'X-Report-Width', 'X-Report-Height', 'Content-Disposition'],
 }));
 
 // 解析 JSON
-app.use(express.json());
+app.use(express.json({limit:'256kb'}));
 
 // ---- 靜態檔與頁面路由 ----
 // color-web 放在 Server 的上一層目錄
 const STATIC_DIR = path.join(__dirname, '..', 'color-web');
-app.use(express.static(STATIC_DIR));                         // 直接提供整個 color-web
-app.use('/main', express.static(path.join(STATIC_DIR, 'main')));
+const LAUNCHER_FILE = path.join(__dirname, '..', 'launcher-site', 'index.html');
+const LAUNCHER_LOGO_FILE = path.join(__dirname, '..', 'launcher-site', 'colorlab-mark.svg');
+const REPORTS_DIR = path.join(STATIC_DIR, 'test', 'detailed-reports');
+const PDFJS_BUILD_DIR = path.join(__dirname, 'node_modules', 'pdfjs-dist', 'legacy', 'build');
+const REPORT_IMAGE_CACHE_LIMIT = 40;
+const reportImageCache = new Map();
+let pdfjsModulePromise;
+const VALID_MBTI_TYPES = new Set([
+  'ENFJ', 'ENFP', 'ENTJ', 'ENTP',
+  'ESFJ', 'ESFP', 'ESTJ', 'ESTP',
+  'INFJ', 'INFP', 'INTJ', 'INTP',
+  'ISFJ', 'ISFP', 'ISTJ', 'ISTP'
+]);
+const VALID_REPORT_COLORS = new Set([
+  'blue', 'green', 'red', 'yellow',
+  'blue-green', 'blue-red', 'blue-yellow',
+  'green-red', 'green-yellow', 'red-yellow',
+  'blue-green-red', 'blue-green-yellow', 'blue-red-yellow',
+  'green-red-yellow', 'blue-green-red-yellow'
+]);
+const staticOptions = {
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+    if (extension === '.html' || filePath.endsWith('service-worker.js') || extension === '.webmanifest') {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico', '.woff', '.woff2'].includes(extension)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else if (extension === '.css' || extension === '.js' || extension === '.mjs') {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+};
+const { frontendTarget } = require('./services/frontendRoutes');
+app.use((req, res, next) => {
+  if (!['GET', 'HEAD'].includes(req.method)) return next();
+  const target = frontendTarget(req.path, req.url.split('?')[1] || '') || (req.path.startsWith('/app/') ? req.originalUrl : null);
+  if (target) return res.redirect(302, 'https://colorlab-start.onrender.com' + target);
+  next();
+});
+app.use('/vendor/pdfjs', express.static(PDFJS_BUILD_DIR, staticOptions));
+app.use(express.static(STATIC_DIR, staticOptions));          // 直接提供整個 color-web
+app.get('/main/login-admin.html', (_req, res) => {
+  res.redirect('/main/login-user.html?mode=admin');
+});
+app.use('/main', express.static(path.join(STATIC_DIR, 'main'), staticOptions));
 
 // 上傳檔（如果有）
 app.use(
   '/uploads/homepage',
-  express.static(path.join(__dirname, 'uploads', 'homepage'))
+  express.static(path.join(__dirname, 'uploads', 'homepage'), { maxAge: '1d', etag: true })
 );
 
 // 首頁（/ 直接丟 color-web/index.html）
@@ -49,7 +98,7 @@ app.get('/', (_req, res) => {
 
 // 讓 /login-admin.html 重新導向舊路徑（若前端仍有舊連結）
 app.get('/login-admin.html', (_req, res) => {
-  res.redirect('/main/login-admin.html');
+  res.redirect('/main/login-user.html?mode=admin');
 });
 
 // 允許以 /main/xxx.html 直接存取（例如 /main/register.html）
@@ -61,12 +110,163 @@ app.get('/main/:page', (req, res, next) => {
 // 健康檢查（雲端監測、你自己也可測）
 app.get('/health', (_req, res) => res.send('OK'));
 
+// PWA 開啟時會優先從快取顯示這個品牌等待頁，再於背景喚醒 Render。
+app.get('/wake.html', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(LAUNCHER_FILE, (error) => (error ? next(error) : null));
+});
+
+app.get('/colorlab-mark.svg', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'public, max-age=604800');
+  res.sendFile(LAUNCHER_LOGO_FILE, (error) => (error ? next(error) : null));
+});
+
+function resolveReportFile(req, res) {
+  const mbti = String(req.params.mbti || '').toUpperCase();
+  const colors = String(req.params.colors || '').toLowerCase();
+
+  if (!VALID_MBTI_TYPES.has(mbti) || !VALID_REPORT_COLORS.has(colors)) {
+    res.status(400).json({ message: 'Invalid report selection.' });
+    return null;
+  }
+
+  return {
+    reportPath: path.join(REPORTS_DIR, `${mbti}-${colors}.pdf`),
+    downloadName: `ColorLab-${mbti}-${colors}-full-report.pdf`
+  };
+}
+
+function handleReportError(error, res, next) {
+  if (!error) return;
+  if (res.headersSent) return next(error);
+  if (error.code === 'ENOENT' || error.statusCode === 404) {
+    return res.status(404).json({ message: 'Report not found.' });
+  }
+  return next(error);
+}
+
+function loadServerPdfjs() {
+  if (!pdfjsModulePromise) {
+    pdfjsModulePromise = import('pdfjs-dist/legacy/build/pdf.mjs');
+  }
+  return pdfjsModulePromise;
+}
+
+function cacheReportImage(key, value) {
+  if (reportImageCache.has(key)) reportImageCache.delete(key);
+  reportImageCache.set(key, value);
+  while (reportImageCache.size > REPORT_IMAGE_CACHE_LIMIT) {
+    reportImageCache.delete(reportImageCache.keys().next().value);
+  }
+}
+
+async function renderReportPage(reportPath, pageNumber) {
+  const cacheKey = `${reportPath}:${pageNumber}`;
+  const cached = reportImageCache.get(cacheKey);
+  if (cached) {
+    reportImageCache.delete(cacheKey);
+    reportImageCache.set(cacheKey, cached);
+    return cached;
+  }
+
+  const [pdfjsLib, fileBuffer] = await Promise.all([
+    loadServerPdfjs(),
+    fs.readFile(reportPath)
+  ]);
+  const pdf = await pdfjsLib.getDocument({
+    data: new Uint8Array(fileBuffer),
+    disableWorker: true,
+    useSystemFonts: true
+  }).promise;
+
+  try {
+    if (pageNumber > pdf.numPages) {
+      const error = new Error('Report page not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+    await page.render({
+      canvasContext: canvas.getContext('2d'),
+      viewport
+    }).promise;
+
+    const result = {
+      buffer: canvas.toBuffer('image/webp', 82),
+      totalPages: pdf.numPages,
+      width: canvas.width,
+      height: canvas.height
+    };
+    cacheReportImage(cacheKey, result);
+    return result;
+  } finally {
+    await pdf.destroy();
+  }
+}
+
+// Preview the original report inside the ColorLab report viewer.
+app.get('/api/reports/preview/:mbti/:colors', (req, res, next) => {
+  const report = resolveReportFile(req, res);
+  if (!report) return;
+
+  res.sendFile(report.reportPath, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${report.downloadName}"`,
+      'Cache-Control': 'private, no-store'
+    }
+  }, (error) => handleReportError(error, res, next));
+});
+
+// Download the original complete report that matches the user's MBTI and color result.
+app.get('/api/reports/download/:mbti/:colors', (req, res, next) => {
+  const report = resolveReportFile(req, res);
+  if (!report) return;
+
+  res.download(report.reportPath, report.downloadName, {
+    headers: {
+      'Cache-Control': 'private, no-store'
+    }
+  }, (error) => handleReportError(error, res, next));
+});
+
+// Render one report page as a lightweight image for iPhone/PWA preview compatibility.
+app.get('/api/reports/page/:mbti/:colors/:pageNumber', async (req, res, next) => {
+  const report = resolveReportFile(req, res);
+  if (!report) return;
+
+  const pageNumber = Number.parseInt(req.params.pageNumber, 10);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > 20) {
+    return res.status(400).json({ message: 'Invalid report page.' });
+  }
+
+  try {
+    const image = await renderReportPage(report.reportPath, pageNumber);
+    res.set({
+      'Content-Type': 'image/webp',
+      'Content-Length': String(image.buffer.length),
+      'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+      'X-Report-Pages': String(image.totalPages),
+      'X-Report-Width': String(image.width),
+      'X-Report-Height': String(image.height)
+    });
+    return res.send(image.buffer);
+  } catch (error) {
+    return handleReportError(error, res, next);
+  }
+});
+
 // ---- API 路由（保持你原本的）----
 app.use('/api/survey', surveyRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/content-review-ingest', require('./routes/contentReview').ingestion);
 app.use('/api/homepage', homepageRoutes);
+app.use('/api/explore', require('./routes/explore'));
 
 // ---- 錯誤處理 ----
 app.use((err, _req, res, _next) => {
@@ -76,7 +276,20 @@ app.use((err, _req, res, _next) => {
 
 // ---- 啟動 ----
 const PORT = process.env.PORT || 3000;          // Render 會提供 PORT
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Serving static files from: ${STATIC_DIR}`);
+
+async function startServer() {
+  await connectDB();
+  await seedDefaultContent();
+  await require('./services/publishOfficialContent')();
+  await require('./services/publishPublicMentalHealth')();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Serving static files from: ${STATIC_DIR}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error('Server startup failed:', error);
+  process.exit(1);
 });

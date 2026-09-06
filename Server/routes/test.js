@@ -1,7 +1,17 @@
 const express = require('express');
 const TestQuestion = require('../models/TestQuestion');
 const TestRecord = require('../models/TestRecord');
+const adminProtect = require('../middleware/adminProtect');
 const router = express.Router();
+
+function getCompatibleTestTypes(rawTestType) {
+    const normalized = decodeURIComponent(rawTestType).replace(/[\s\u3000]/g, '');
+    const aliases = {
+        '色彩性格測驗': ['色彩性格測驗', '我在色彩學中的MBTI'],
+        '我在色彩學中的MBTI': ['我在色彩學中的MBTI', '色彩性格測驗']
+    };
+    return aliases[normalized] || [normalized];
+}
 
 // 獲取所有測驗類型
 router.get('/types', async (req, res) => {
@@ -54,10 +64,8 @@ router.get('/surveys/:id', async (req, res) => {
 // 獲取特定測驗類型的所有題目
 router.get('/questions/:testType', async (req, res) => {
     try {
-        let { testType } = req.params;
-        testType = decodeURIComponent(testType).replace(/\s|　/g, ''); // 去除所有空白
-        // 用正則查詢，忽略全形/半形空白
-        const testData = await TestQuestion.findOne({ testType: { $regex: `^${testType}$`, $options: 'i' } });
+        const compatibleTypes = getCompatibleTestTypes(req.params.testType);
+        const testData = await TestQuestion.findOne({ testType: { $in: compatibleTypes } });
         
         if (!testData) {
             return res.status(404).json({ message: '找不到該測驗類型' });
@@ -77,7 +85,7 @@ router.get('/questions/:testType', async (req, res) => {
 });
 
 // 新增問卷
-router.post('/surveys', async (req, res) => {
+router.post('/surveys', adminProtect, async (req, res) => {
     try {
         const { testType, totalQuestions, questions, description, imgUrl } = req.body;
         
@@ -104,7 +112,7 @@ router.post('/surveys', async (req, res) => {
 });
 
 // 更新問卷
-router.put('/surveys/:id', async (req, res) => {
+router.put('/surveys/:id', adminProtect, async (req, res) => {
     try {
         const { id } = req.params;
         const { testType, totalQuestions, questions, description, imgUrl } = req.body;
@@ -143,7 +151,7 @@ router.put('/surveys/:id', async (req, res) => {
 });
 
 // 刪除問卷
-router.delete('/surveys/:id', async (req, res) => {
+router.delete('/surveys/:id', adminProtect, async (req, res) => {
     try {
         const { id } = req.params;
         
@@ -152,8 +160,7 @@ router.delete('/surveys/:id', async (req, res) => {
             return res.status(404).json({ message: '找不到該問卷' });
         }
         
-        // 同時刪除相關的測驗記錄
-        await TestRecord.deleteMany({ testType: deletedSurvey.testType });
+        // Retiring a questionnaire must not erase any completed research records.
         
         res.json({ message: '問卷刪除成功' });
     } catch (error) {
@@ -312,9 +319,8 @@ router.get('/recordByInfo', async (req, res) => {
 // 根據 testType 查詢問卷
 router.get('/surveys/type/:testType', async (req, res) => {
     try {
-        let { testType } = req.params;
-        testType = decodeURIComponent(testType).replace(/\s|　/g, '');
-        const testData = await TestQuestion.findOne({ testType: { $regex: `^${testType}$`, $options: 'i' } });
+        const compatibleTypes = getCompatibleTestTypes(req.params.testType);
+        const testData = await TestQuestion.findOne({ testType: { $in: compatibleTypes } });
         if (!testData) {
             return res.status(404).json({ message: '找不到該測驗類型' });
         }
@@ -384,4 +390,4 @@ router.post('/saveRecord', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

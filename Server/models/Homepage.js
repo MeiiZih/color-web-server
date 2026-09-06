@@ -6,6 +6,13 @@ const homepageSchema = new mongoose.Schema({
     imageUrl: { type: String, required: true },
     link: { type: String, required: true },
     description: { type: String, required: true },
+    sourceName: String,
+    contentKind: { type: String, enum: ['workshop', 'lecture', 'article', 'paper', 'resource'] },
+    registrationUrl: String,
+    sourcePublishedAt: String,
+    sourceCheckedAt: String,
+    expiresAt: Date,
+    archivedAt: Date,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

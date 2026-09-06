@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>編輯問卷 - ColorMind Lab</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>編輯問卷 - ColorLab</title>
     <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/admin.css">
     <link rel="stylesheet" href="../../css/EditSurvey.css">
     <script src="../../js/navbar.js"></script>
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-            <span class="site-title">ColorMind Lab</span>
+            <span class="site-title">ColorLab</span>
         </div>
         <div class="nav-links"></div>
     </nav>
@@ -126,7 +131,7 @@
               testType: data.testType,
               totalQuestions: data.totalQuestions,
               questions: Array.isArray(data.questions) ? data.questions : [],
-              description: data.description || `我們是國立台中科技大學資訊管理系的學生。此份問卷主要是想要探討MBTI與色彩學之間的聯繫。\n整份問卷總共有32道題目，大約會花費您6分鐘的時間。*註*請依照您的「第一直覺」作答，不需要思考太多!!!\n非常感謝您參與此次問卷的填寫。`,
+              description: data.description || `我們是國立台中科技大學資訊管理系的學生。此份問卷主要是想要探討MBTI與色彩學之間的聯繫。\n整份問卷總共有20道題目，大約會花費您6分鐘的時間。*註*請依照您的「第一直覺」作答，不需要思考太多!!!\n非常感謝您參與此次問卷的填寫。`,
               imgUrl: data.imgUrl || ''
             };
             updateUI();
@@ -167,16 +172,17 @@
               currentSurvey._id = result.survey?._id || result._id || currentSurvey._id;
             }
             if (!silent) alert('已儲存');
+            return true;
           } catch (e) {
             console.error(e);
             if (!silent) alert('儲存失敗');
+            return false;
           }
         }
       
         async function saveSurvey() {
-          await persistSurvey(false);
-          // 回到唯讀模式
-          setEditable(false);
+          const saved = await persistSurvey(false);
+          if (saved) setEditable(false);
         }
       
         async function deleteSurvey() {
@@ -432,4 +438,4 @@
         }
     </script>
 </body>
-</html> 
+</html>

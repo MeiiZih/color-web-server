@@ -1,0 +1,4 @@
+/static-dist/
+/.local/colorlab-mail.env
+/.local/content-review.env
+/tmp/

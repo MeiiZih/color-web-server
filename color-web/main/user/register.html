@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>建立帳號 - ColorMind Lab</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>建立帳號 - ColorLab</title>
     <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/register.css">
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
           <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-          <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+          <a href="/index.html" class="site-title" style="text-decoration:none;">ColorLab</a>
         </div>
         <div class="nav-links">
           <a href="/main/common.html" class="nav-link">首頁</a>
@@ -23,14 +28,14 @@
 
     <div class="main-container">
         <div class="register-container">
-            <h2 class="register-title">建立帳號</h2>
+            <h1 class="register-title">建立帳號</h1>
             <form id="registerForm">
                 <div class="form-group">
                     <label for="regName">
                         <img src="../../assets/icons/name.png" alt="姓名" class="input-icon">
                         姓名：
                     </label>
-                    <input type="text" id="regName" required>
+                    <input type="text" id="regName" name="name" autocomplete="name" required>
                 </div>
                 <div class="form-group">
                     <label>
@@ -42,6 +47,8 @@
                         <label for="male">男</label>
                         <input type="radio" id="female" name="gender" value="女" required>
                         <label for="female">女</label>
+                        <input type="radio" id="undisclosed" name="gender" value="不願透露" required>
+                        <label for="undisclosed">不願透露</label>
                     </div>
                 </div>
                 <div class="form-group">
@@ -50,9 +57,9 @@
                         出生日期：
                     </label>
                     <div class="date-inputs">
-                        <select id="year" required></select>
-                        <select id="month" required></select>
-                        <select id="day" required></select>
+                        <select id="year" name="birthYear" aria-label="出生年份" required></select>
+                        <select id="month" name="birthMonth" aria-label="出生月份" required></select>
+                        <select id="day" name="birthDay" aria-label="出生日期" required></select>
                     </div>
                 </div>
                 <div class="form-group">
@@ -60,28 +67,34 @@
                         <img src="../../assets/icons/email.png" alt="電子郵件" class="input-icon">
                         電子郵件：
                     </label>
-                    <input type="email" id="regEmail" required>
+                    <input type="email" id="regEmail" name="email" autocomplete="email" required>
                 </div>
                 <div class="form-group">
                     <label for="regPhone">
                         <img src="../../assets/icons/phone.png" alt="行動電話" class="input-icon">
-                        行動電話：
+                        行動電話（選填）：
                     </label>
-                    <input type="text" id="regPhone" required>
+                    <input type="tel" id="regPhone" name="phone" autocomplete="tel" inputmode="tel">
                 </div>
                 <div class="form-group">
                     <label for="regPassword">
                         <img src="../../assets/icons/password.png" alt="密碼" class="input-icon">
                         密碼：
                     </label>
-                    <input type="password" id="regPassword" required>
+                    <input type="password" id="regPassword" name="password" autocomplete="new-password" minlength="6" required>
                 </div>
                 <div class="form-group">
                     <label for="regConfirmPassword">
                         <img src="../../assets/icons/check.png" alt="確認密碼" class="input-icon">
                         確認密碼：
                     </label>
-                    <input type="password" id="regConfirmPassword" required>
+                    <input type="password" id="regConfirmPassword" name="confirmPassword" autocomplete="new-password" minlength="6" required>
+                </div>
+                <div class="ux-privacy-note">
+                    <label for="privacyConsent">
+                        <input type="checkbox" id="privacyConsent" required>
+                        我已閱讀並同意 <a href="/main/privacy.html" target="_blank" rel="noopener">隱私與資料使用說明</a>
+                    </label>
                 </div>
                 <button type="submit" class="register-button">建立帳號</button>
                 <div class="login-link">
@@ -124,8 +137,8 @@
             document.getElementById('successMessage').style.display = 'none';
 
             // 驗證所有欄位都已填寫
-            if (!name || !gender || !year || !month || !day || !email || !phone || !password || !confirmPassword) {
-                showError('請填寫所有欄位');
+            if (!name || !gender || !year || !month || !day || !email || !password || !confirmPassword) {
+                showError('請填寫所有必填欄位');
                 return;
             }
 
@@ -176,7 +189,7 @@
                     showSuccess('註冊成功！正在同步訪客測驗記錄...');
                     
                     // 同步訪客測驗記錄到新註冊的帳號
-                    await syncGuestRecords(email);
+                    await syncGuestRecords(email, data.token);
                     
                     setTimeout(() => {
                         window.location.href = '../login-user.html';
@@ -203,7 +216,7 @@
         }
 
         // 同步訪客測驗記錄到新註冊的帳號
-        async function syncGuestRecords(newEmail) {
+        async function syncGuestRecords(newEmail, token) {
             const guestId = sessionStorage.getItem('guestId');
             const isGuest = sessionStorage.getItem('isGuest') === 'true';
             
@@ -217,6 +230,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({
                         guestId: guestId,
@@ -308,4 +322,4 @@
         document.addEventListener('DOMContentLoaded', initializeDateSelects);
     </script>
 </body>
-</html> 
+</html>

@@ -94,6 +94,25 @@
     background: #FF677D;
 }
 
+.admin-login-link {
+    display: block;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid #f2b7c2;
+    border-radius: 7px;
+    color: #a44759;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.admin-login-link:hover {
+    background: #fff0f3;
+    color: #d74f68;
+}
+
 .back-button {
     position: absolute;
     left: 80px;
@@ -248,4 +267,4 @@
 .confirm-btn:disabled {
     background-color: #ccc;
     cursor: not-allowed;
-} 
+}

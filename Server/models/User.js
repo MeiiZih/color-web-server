@@ -3,6 +3,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
+    // Missing/false means a pre-existing member; never mark them verified automatically.
+    emailVerificationRequired: { type: Boolean, default: false },
+    emailVerifiedAt: { type: Date, default: null },
+    emailSendAfter: { type: Date, select: false },
     email: { 
         type: String, 
         required: true, 
@@ -63,6 +67,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 // 生成 JWT Token
 userSchema.methods.generateToken = function() {
+    if (this.emailVerificationRequired === true && !this.emailVerifiedAt) throw new Error('Email verification required');
     return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET || 'your-secret-key', {
         expiresIn: '30d'
     });

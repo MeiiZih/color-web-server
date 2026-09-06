@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Color Web Backend Server",
   "main": "server.js",
+  "engines": {
+    "node": ">=20 <25"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "set NODE_ENV=development && nodemon server.js",
@@ -13,13 +16,16 @@
     "backfill-imgurl": "node scripts/backfillImgUrl.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.100",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
     "cors": "^2",
     "express": "^4",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^8",
     "multer": "^2.0.2",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "pdfjs-dist": "5.4.624"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

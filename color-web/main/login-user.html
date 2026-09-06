@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>測驗端登入 - ColorMind Lab</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>測驗端登入 - ColorLab</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/login-user.css">
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorMind Lab</a>
+            <a href="/index.html" class="site-title" style="text-decoration:none;">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link active">首頁</a>
@@ -27,21 +32,24 @@
           <span class="back-text">返回</span>
         </a>
         <div class="login-container">
-            <h2 class="login-title">登入</h2>
+            <h1 class="login-title">登入</h1>
             <form id="loginForm">
                 <div class="form-group">
-                    <input type="text" id="email" placeholder="帳號" required>
+                    <label for="email">電子郵件或管理員帳號</label>
+                    <input type="text" id="email" name="email" placeholder="you@example.com 或 admin" autocomplete="username" inputmode="email" required>
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" placeholder="密碼" required>
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" name="password" placeholder="請輸入密碼" autocomplete="current-password" required>
                 </div>
-                <div id="errorMessage" class="error-message"></div>
-                <div id="successMessage" class="success-message"></div>
+                <div id="errorMessage" class="error-message" role="alert"></div>
+                <div id="successMessage" class="success-message" role="status" aria-live="polite"></div>
                 <button type="submit" class="login-button">登入</button>
                 <div class="action-row">
                   <a href="#" class="guest-link" id="guestLoginBtn">訪客登入</a>
                   <a href="/main/user/register.html" class="register-link">建立帳號</a>
                 </div>
+                <a href="/main/login-user.html?mode=admin" class="admin-login-link">使用管理員帳號登入</a>
             </form>
         </div>
     </div>
@@ -51,7 +59,7 @@
         <div class="guest-notice-container">
             <h3>訪客登入注意事項</h3>
             <div class="notice-content">
-                <p>請注意，訪客登入不會儲存本次的測驗紀錄及結果，請妥善保存此次的測驗紀錄，若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。</p>
+                <p>訪客模式會以匿名訪客編號保存測驗答案與分析結果，但不會綁定姓名、電話或一般帳號；若之後建立帳號，可將同一瀏覽器中的訪客紀錄同步到新帳號。</p>
                 <div class="checkbox-container">
                     <label class="checkbox-label">
                         <input type="checkbox" id="guestNoticeCheckbox">
@@ -81,12 +89,32 @@
         const apiBaseUrl = (hostname === 'localhost' || hostname === '127.0.0.1')
             ? `${protocol}//${hostname}:${port || '3000'}`
             : ''; // Render 生產環境使用相對路徑
+        const isAdminLoginMode = new URLSearchParams(window.location.search).get('mode') === 'admin';
+
+        if (isAdminLoginMode) {
+            window.ColorLabAuth?.clearPersistentUserSession();
+            ['token', 'userToken', 'userEmail', 'userName', 'userId', 'user', 'isGuest', 'guestId']
+                .forEach(key => sessionStorage.removeItem(key));
+        }
 
         let redirectTarget = null;
         document.addEventListener('DOMContentLoaded', function() {
             // 取得 redirectTarget 參數
             const urlParams = new URLSearchParams(window.location.search);
             redirectTarget = urlParams.get('redirectTarget');
+            if (!isAdminLoginMode && sessionStorage.getItem('userToken') && sessionStorage.getItem('userEmail') && sessionStorage.getItem('isGuest') !== 'true') {
+                window.location.replace(redirectTarget || '/main/common.html');
+                return;
+            }
+            if (isAdminLoginMode) {
+                document.querySelector('.login-title').textContent = '管理員登入';
+                document.querySelector('.login-button').textContent = '登入管理後臺';
+                const emailInput = document.getElementById('email');
+                emailInput.type = 'text';
+                emailInput.placeholder = '請輸入管理員帳號';
+                emailInput.autocomplete = 'username';
+                document.querySelector('label[for="email"]').textContent = '管理員帳號';
+            }
             const guestBtn = document.getElementById('guestLoginBtn');
             if (guestBtn) {
                 guestBtn.addEventListener('click', function(e) {
@@ -105,37 +133,7 @@
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
             try {
-                // 先查 users 資料表
-                let userOk = false;
-                let userData = {};
-                try {
-                    const userResponse = await fetch(`${apiBaseUrl}/api/user/login`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ email, password })
-                    });
-                    userData = await userResponse.json();
-                    if (userResponse.ok && userData.user) {
-                        sessionStorage.setItem('userEmail', email);
-                        sessionStorage.setItem('userName', userData.user.name || userData.user.nickname || '用戶');
-                        sessionStorage.setItem('user', JSON.stringify(userData.user));
-                        successMessage.textContent = '登入成功！正在跳轉...';
-                        successMessage.style.display = 'block';
-                        setTimeout(() => {
-                            if (redirectTarget) {
-                                window.location.href = redirectTarget;
-                            } else {
-                                window.location.href = '/main/common.html';
-                            }
-                        }, 1000);
-                        return;
-                    }
-                } catch (err) {
-                    // user login 失敗不影響 admin login
-                }
-                // 查詢 admin 資料表
+                // 同一個 Email 可能同時存在一般帳號與管理員帳號，必須先確認管理員。
                 let adminData = {};
                 try {
                     const adminResponse = await fetch(`${apiBaseUrl}/api/admin/login`, {
@@ -147,6 +145,9 @@
                     });
                     adminData = await adminResponse.json();
                     if (adminResponse.ok && adminData.user) {
+                        window.ColorLabAuth?.clearPersistentUserSession();
+                        ['token', 'userToken', 'userEmail', 'userName', 'userId', 'user', 'isGuest', 'guestId']
+                            .forEach(key => sessionStorage.removeItem(key));
                         sessionStorage.setItem('adminEmail', email);
                         sessionStorage.setItem('adminName', adminData.user.name || '管理員');
                         sessionStorage.setItem('admin', JSON.stringify(adminData.user));
@@ -163,7 +164,49 @@
                         return;
                     }
                 } catch (err) {
-                    // admin login 失敗
+                    // admin login 失敗時，繼續嘗試一般使用者登入
+                }
+
+                // 先查 users 資料表
+                let userData = {};
+                try {
+                    const userResponse = await fetch(`${apiBaseUrl}/api/user/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    userData = await userResponse.json();
+                    if (userResponse.ok && userData.user) {
+                        sessionStorage.setItem('userEmail', email);
+                        sessionStorage.setItem('userName', userData.user.name || userData.user.nickname || '用戶');
+                        sessionStorage.setItem('user', JSON.stringify(userData.user));
+                        sessionStorage.setItem('token', userData.token || '');
+                        sessionStorage.setItem('userToken', userData.token || '');
+                        sessionStorage.setItem('userId', userData.user.id || userData.user._id || '');
+                        sessionStorage.removeItem('isGuest');
+                        sessionStorage.removeItem('guestId');
+                        window.ColorLabAuth?.persistUserSession({
+                            token: userData.token,
+                            email,
+                            name: userData.user.name || userData.user.nickname || '使用者',
+                            user: userData.user,
+                            userId: userData.user.id || userData.user._id || ''
+                        });
+                        successMessage.textContent = '登入成功！正在跳轉...';
+                        successMessage.style.display = 'block';
+                        setTimeout(() => {
+                            if (redirectTarget) {
+                                window.location.href = redirectTarget;
+                            } else {
+                                window.location.href = '/main/common.html';
+                            }
+                        }, 1000);
+                        return;
+                    }
+                } catch (err) {
+                    // user login 失敗不影響 admin login
                 }
                 // 兩者都失敗
                 errorMessage.textContent = (userData && userData.message) || (adminData && adminData.message) || '登入失敗，請檢查帳號密碼';
@@ -219,9 +262,10 @@
     <!-- 修改登出邏輯，所有登出都回到 common.html -->
     <script>
         function logout() {
+            window.ColorLabAuth?.clearPersistentUserSession();
             sessionStorage.clear();
             window.location.href = 'common.html';
         }
     </script>
 </body>
-</html> 
+</html>

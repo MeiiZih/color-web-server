@@ -1,0 +1,136 @@
+// Isolated replica-set tests. Never connects to the production database.
+const {test,before,after}=require('node:test');
+const assert=require('node:assert/strict');
+const mongoose=require('mongoose');
+const {MongoMemoryReplSet}=require('../../tmp/review-qa/node_modules/mongodb-memory-server');
+const service=require('../services/contentReview');
+const express=require('express'),jwt=require('jsonwebtoken');
+let repl,server,base,db,adminToken;
+const report=(items,weekStart='2026-08-31')=>({weekStart,checkedAt:'2026-09-06',collectionComplete:true,sourceFailures:[],items});
+const add=(name)=>({action:'add',title:name,reason:'已查核官方來源，供管理員審核。',sourceName:'張老師',sourceUrl:'https://www.1980.org.tw/'+name,content:{imageUrl:'/assets/images/posts/empathy-20260906.webp',type:'common',contentKind:'article',title:name,description:'測試摘要',sourceName:'張老師',link:'https://www.1980.org.tw/'+name}});
+before(async()=>{
+ repl=await MongoMemoryReplSet.create({replSet:{count:1},binary:{version:'7.0.14'}});
+ await mongoose.connect(repl.getUri(),{dbName:'colorlab_review_isolated'});
+ db=mongoose.connection.db;
+ process.env.JWT_SECRET='isolated-test-only-secret';
+ process.env.CONTENT_REVIEW_INGEST_KEY='isolated-test-key-not-valid-on-production';
+ const id=new mongoose.Types.ObjectId();await db.collection('admins').insertOne({_id:id,name:'QA',email:'qa@example.invalid'});
+ adminToken=jwt.sign({id:String(id),role:'admin'},process.env.JWT_SECRET);
+ const app=express();app.use(express.json());
+ app.use('/api/admin',require('../routes/admin'));
+ app.use('/api/homepage',require('../routes/homepage'));
+ app.use('/api/content-review-ingest',require('../routes/contentReview').ingestion);
+ server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));base='http://127.0.0.1:'+server.address().port;
+});
+after(async()=>{if(server)await new Promise(r=>server.close(r));await mongoose.disconnect();if(repl)await repl.stop();});
+test('source/schema validation rejects unverified hosts, invalid weeks and undated events',()=>{
+ assert.throws(()=>service.normalize(report([{...add('bad'),sourceUrl:'https://example.com/no'}])),{status:400});
+ assert.throws(()=>service.normalize(report([], '2026-09-06')),{status:400});
+ const a=add('event');a.content.contentKind='workshop';assert.throws(()=>service.normalize(report([a])),{status:400});
+ assert.equal(service.content(add('ok').content,'2026-09-06').imageUrl,'/assets/images/posts/empathy-20260906.webp');
+});
+test('only authenticated administrators can review; ingestion credential cannot approve',async()=>{
+ assert.equal((await fetch(base+'/api/admin/content-review')).status,401);
+ const user=jwt.sign({id:new mongoose.Types.ObjectId(),role:'user'},process.env.JWT_SECRET);
+ assert.equal((await fetch(base+'/api/admin/content-review',{headers:{Authorization:'Bearer '+user}})).status,403);
+ assert.equal((await fetch(base+'/api/admin/content-review',{headers:{'X-Content-Review-Key':process.env.CONTENT_REVIEW_INGEST_KEY}})).status,401);
+ assert.equal((await fetch(base+'/api/admin/content-review',{headers:{Authorization:'Bearer '+adminToken}})).status,200);
+ assert.equal((await fetch(base+'/api/content-review-ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(report([]))})).status,401);
+});
+test('draft import is nonpublic, immutable, deduplicated; approve and reject are idempotent',async()=>{
+ const r=report([add('first'),add('skip')]);
+ assert.equal((await service.ingest(mongoose.connection,r)).count,2);
+ assert.equal(await db.collection('homepages').countDocuments(),0);
+ assert.equal((await service.ingest(mongoose.connection,r)).status,'already-synced');
+ await assert.rejects(service.ingest(mongoose.connection,report([add('changed')])),{status:409});
+ const items=await db.collection('content_review_items').find().sort({title:1}).toArray();
+ await Promise.all([service.decide(mongoose.connection,[String(items[0]._id)],'approve','QA'),service.decide(mongoose.connection,[String(items[0]._id)],'approve','QA')]);
+ assert.equal(await db.collection('homepages').countDocuments(),1);
+ await service.decide(mongoose.connection,[String(items[1]._id)],'reject','QA');
+ assert.equal((await service.decide(mongoose.connection,[String(items[1]._id)],'reject','QA')).changed,0);
+ assert.equal((await service.ingest(mongoose.connection,report(r.items,'2026-09-07'))).count,0);
+});
+test('stale original causes full batch rollback; archive hides public item and restore recovers it',async()=>{
+ const target=await db.collection('homepages').findOne();
+ const update={...add('updated'),action:'update',targetId:String(target._id)};
+ const rollback=add('rollback');rollback.content.imageUrl='/assets/images/posts/workplace-20260906.webp';
+ await service.ingest(mongoose.connection,report([rollback,update],'2026-09-14'));
+ const q=await db.collection('content_review_items').find({weekStart:'2026-09-14'}).toArray();
+ await db.collection('homepages').updateOne({_id:target._id},{$set:{description:'A newer administrator edit'}});
+ await assert.rejects(service.decide(mongoose.connection,q.map(i=>String(i._id)),'approve','QA'),{status:409});
+ assert.equal(await db.collection('homepages').countDocuments(),1);
+ assert.equal(await db.collection('content_review_items').countDocuments({weekStart:'2026-09-14',status:'pending'}),2);
+ assert.equal(await db.collection('content_illustration_owners').countDocuments(),1);
+ const removal={action:'remove',targetId:String(target._id),title:target.title,sourceName:target.sourceName,sourceUrl:target.link,reason:'人工審核下架'};
+ await service.ingest(mongoose.connection,report([removal],'2026-09-21'));
+ const item=await db.collection('content_review_items').findOne({weekStart:'2026-09-21'});
+ await service.decide(mongoose.connection,[String(item._id)],'approve','QA');
+ assert.equal((await (await fetch(base+'/api/homepage')).json()).length,0);
+ assert.equal(await db.collection('content_review_archives').countDocuments(),1);
+ await service.restore(mongoose.connection,String(item._id),'QA');
+ assert.equal((await (await fetch(base+'/api/homepage')).json()).length,1);
+ assert.equal((await db.collection('homepages').findOne()).description,'A newer administrator edit');
+ assert.equal((await service.ingest(mongoose.connection,report([removal],'2026-09-28'))).count,1);
+});
+test('valid corrections publish; expired events stay hidden even after restore',async()=>{
+ const target=await db.collection('homepages').findOne();
+ const update={...add('correction'),action:'update',targetId:String(target._id)};
+ await service.ingest(mongoose.connection,report([update],'2026-10-05'));
+ const item=await db.collection('content_review_items').findOne({weekStart:'2026-10-05'});
+ await service.decide(mongoose.connection,[String(item._id)],'approve','QA');
+ assert.equal((await db.collection('homepages').findOne()).title,'correction');
+ assert.equal((await service.ingest(mongoose.connection,report([update],'2026-10-12'))).count,0);
+ await db.collection('homepages').updateOne({_id:target._id},{$set:{expiresAt:new Date('2020-01-01')}});
+ assert.equal((await (await fetch(base+'/api/homepage')).json()).length,0);
+ assert.equal((await fetch(base+'/api/homepage/'+target._id)).status,404);
+ const inventory=await fetch(base+'/api/content-review-ingest/current',{headers:{'X-Content-Review-Key':process.env.CONTENT_REVIEW_INGEST_KEY}});
+ assert.equal(inventory.status,200);assert.equal((await inventory.json()).length,1);
+ assert.equal((await fetch(base+'/api/content-review-ingest/current')).status,401);
+});
+test('missing generated illustration blocks review and direct publishing without changing public data',async()=>{
+ const draft=add('missing-art');delete draft.content.imageUrl;
+ await service.ingest(mongoose.connection,report([draft],'2026-10-19'));
+ const item=await db.collection('content_review_items').findOne({weekStart:'2026-10-19'});
+ const before=await db.collection('homepages').countDocuments();
+ await assert.rejects(service.decide(mongoose.connection,[String(item._id)],'approve','QA'),{status:400});
+ assert.equal((await db.collection('content_review_items').findOne({_id:item._id})).status,'pending');
+ const response=await fetch(base+'/api/homepage',{method:'POST',headers:{Authorization:'Bearer '+adminToken,'Content-Type':'application/json'},body:JSON.stringify(draft.content)});
+ assert.equal(response.status,400);assert.equal(await db.collection('homepages').countDocuments(),before);
+});
+test('duplicate art blocks review and manual publication; a post can retain its own illustration',async()=>{
+ const draft=add('duplicate-art');
+ await service.ingest(mongoose.connection,report([draft],'2026-10-26'));
+ const item=await db.collection('content_review_items').findOne({weekStart:'2026-10-26'});
+ await assert.rejects(service.decide(mongoose.connection,[String(item._id)],'approve','QA'),{status:409});
+ assert.equal((await db.collection('content_review_items').findOne({_id:item._id})).status,'pending');
+ const headers={Authorization:'Bearer '+adminToken,'Content-Type':'application/json'};
+ assert.equal((await fetch(base+'/api/homepage',{method:'POST',headers,body:JSON.stringify(draft.content)})).status,409);
+ const target=await db.collection('homepages').findOne();
+ assert.equal((await fetch(base+'/api/homepage/'+target._id,{method:'PUT',headers,body:JSON.stringify({...draft.content,title:'same owner'})})).status,200);
+});
+test('concurrent publication claims one owner, blocks cross-post updates and keeps claims after deletion',async()=>{
+ const headers={Authorization:'Bearer '+adminToken,'Content-Type':'application/json'};
+ const content={...add('concurrent-art').content,imageUrl:'/assets/images/posts/workplace-20260906.webp'};
+ const responses=await Promise.all(['a','b'].map(suffix=>fetch(base+'/api/homepage',{method:'POST',headers,body:JSON.stringify({...content,link:content.link+suffix})})));
+ assert.deepEqual(responses.map(r=>r.status).sort(),[201,409]);
+ const created=await responses.find(r=>r.status===201).json();
+ const first=await db.collection('homepages').findOne({_id:{$ne:new mongoose.Types.ObjectId(created._id)}});
+ assert.equal((await fetch(base+'/api/homepage/'+first._id,{method:'PUT',headers,body:JSON.stringify(content)})).status,409);
+ assert.equal((await fetch(base+'/api/homepage/'+created._id,{method:'DELETE',headers})).status,200);
+ assert.equal((await fetch(base+'/api/homepage',{method:'POST',headers,body:JSON.stringify(content)})).status,409);
+});
+test('restoring legacy archives cannot bypass missing or reused illustration guards',async()=>{
+ for(const [imageUrl,status] of [['/assets/images/colorlab-support.svg',400],['/assets/images/posts/empathy-20260906.webp',409]]){
+  const targetId=new mongoose.Types.ObjectId(),reviewId=new mongoose.Types.ObjectId();
+  await db.collection('homepages').insertOne({...add('legacy-archive').content,_id:targetId,imageUrl,archivedAt:new Date()});
+  await db.collection('content_review_items').insertOne({_id:reviewId,key:String(reviewId),action:'remove',status:'approved',publishedId:targetId});
+  try {
+   await assert.rejects(service.restore(mongoose.connection,String(reviewId),'QA'),{status});
+   assert.ok((await db.collection('homepages').findOne({_id:targetId})).archivedAt);
+   assert.equal((await db.collection('content_review_items').findOne({_id:reviewId})).status,'approved');
+  } finally {
+   await db.collection('homepages').deleteOne({_id:targetId});
+   await db.collection('content_review_items').deleteOne({_id:reviewId});
+  }
+ }
+});

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8bcc8">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+  <title>ColorLab｜目前離線</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: #443c42;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(248, 188, 200, .7), transparent 32%),
+        radial-gradient(circle at 88% 80%, rgba(184, 222, 240, .65), transparent 34%),
+        #fff9f7;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    main {
+      width: min(480px, 100%);
+      padding: 38px;
+      text-align: center;
+      background: rgba(255, 255, 255, .9);
+      border: 1px solid rgba(89, 73, 82, .1);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(109, 70, 82, .14);
+    }
+    img { width: 120px; height: 120px; border-radius: 28px; }
+    h1 { margin: 20px 0 10px; font-size: 30px; }
+    p { margin: 0 0 24px; color: #716970; line-height: 1.8; }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 24px;
+      color: #fff;
+      background: #ef7183;
+      font: 700 15px "Microsoft JhengHei", sans-serif;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/assets/icons/icon-192.png" alt="ColorLab">
+    <h1>暫時沒有網路</h1>
+    <p>已安裝的 ColorLab 仍可開啟；重新連線後，就能繼續測驗與同步紀錄。</p>
+    <button type="button" onclick="window.location.reload()">重新連線</button>
+  </main>
+</body>
+</html>

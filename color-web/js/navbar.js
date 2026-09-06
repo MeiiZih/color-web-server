@@ -1,7 +1,102 @@
 // navbar.js - 導覽列與登入狀態統一管理
 
+const COLORLAB_USER_SESSION_KEY = 'colorlab:user-session:v1';
+
+function isExpiredToken(token) {
+    if (!token || !token.includes('.')) return true;
+    try {
+        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, '=')));
+        return !decoded.exp || decoded.exp * 1000 <= Date.now();
+    } catch (error) {
+        return true;
+    }
+}
+
+function persistUserSession(session = {}) {
+    try {
+        const token = session.token || sessionStorage.getItem('userToken') || sessionStorage.getItem('token');
+        const email = session.email || sessionStorage.getItem('userEmail');
+        const name = session.name || sessionStorage.getItem('userName');
+        const storedUser = sessionStorage.getItem('user');
+        const user = session.user || (storedUser ? JSON.parse(storedUser) : null);
+        const userId = session.userId || sessionStorage.getItem('userId') || user?.id || user?._id || '';
+
+        if (!token || !email || !name || isExpiredToken(token) || sessionStorage.getItem('isGuest') === 'true') {
+            return false;
+        }
+
+        const existing = JSON.parse(localStorage.getItem(COLORLAB_USER_SESSION_KEY) || 'null');
+        if (existing?.token === token && existing?.email === email && existing?.name === name) return true;
+
+        localStorage.setItem(COLORLAB_USER_SESSION_KEY, JSON.stringify({
+            token,
+            email,
+            name,
+            user,
+            userId,
+            savedAt: Date.now()
+        }));
+        return true;
+    } catch (error) {
+        console.warn('無法保存登入狀態', error);
+        return false;
+    }
+}
+
+function clearUserSessionStorage() {
+    ['token', 'userToken', 'userEmail', 'userName', 'userId', 'user'].forEach(key => {
+        sessionStorage.removeItem(key);
+    });
+}
+
+function restorePersistentUserSession() {
+    try {
+        if (sessionStorage.getItem('adminToken') || sessionStorage.getItem('isGuest') === 'true') return false;
+        const activeToken = sessionStorage.getItem('userToken') || sessionStorage.getItem('token');
+        if (activeToken && sessionStorage.getItem('userEmail')) {
+            if (!isExpiredToken(activeToken)) return true;
+            clearUserSessionStorage();
+            localStorage.removeItem(COLORLAB_USER_SESSION_KEY);
+        }
+
+        const savedSession = JSON.parse(localStorage.getItem(COLORLAB_USER_SESSION_KEY) || 'null');
+        if (!savedSession?.token || !savedSession?.email || isExpiredToken(savedSession.token)) {
+            localStorage.removeItem(COLORLAB_USER_SESSION_KEY);
+            return false;
+        }
+
+        sessionStorage.setItem('token', savedSession.token);
+        sessionStorage.setItem('userToken', savedSession.token);
+        sessionStorage.setItem('userEmail', savedSession.email);
+        sessionStorage.setItem('userName', savedSession.name || savedSession.email.split('@')[0]);
+        sessionStorage.setItem('userId', savedSession.userId || savedSession.user?.id || savedSession.user?._id || '');
+        if (savedSession.user) sessionStorage.setItem('user', JSON.stringify(savedSession.user));
+        sessionStorage.removeItem('isGuest');
+        sessionStorage.removeItem('guestId');
+        return true;
+    } catch (error) {
+        localStorage.removeItem(COLORLAB_USER_SESSION_KEY);
+        return false;
+    }
+}
+
+function clearPersistentUserSession() {
+    localStorage.removeItem(COLORLAB_USER_SESSION_KEY);
+}
+
+window.ColorLabAuth = Object.freeze({
+    persistUserSession,
+    restorePersistentUserSession,
+    clearPersistentUserSession
+});
+
+// 在其他頁面的登入檢查執行前先還原帳號，關閉瀏覽器後再次開啟也能直接使用。
+restorePersistentUserSession();
+
 // 動態渲染導覽列
 function renderNavbar() {
+    persistUserSession();
     const navLinks = document.querySelector('.nav-links');
     if (!navLinks) return;
     navLinks.innerHTML = '';
@@ -206,6 +301,7 @@ function getRelativePath(targetPath) {
 
 function logout() {
     // 清除所有登入相關的數據
+    clearPersistentUserSession();
     sessionStorage.clear();
     localStorage.removeItem('currentTestResult');
     
@@ -253,4 +349,4 @@ function updateNavigation() {
 document.addEventListener('DOMContentLoaded', function() {
     renderNavbar();
     setInterval(renderNavbar, 5000);
-}); 
+});

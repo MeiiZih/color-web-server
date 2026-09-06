@@ -163,7 +163,7 @@ async function submitAnswers() {
     const userMBTI = localStorage.getItem('userMBTI');
     
     try {
-        const response = await fetch('http://20.57.128.97:3000/api/submit', {
+        const response = await fetch('/api/survey/submit-answer', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

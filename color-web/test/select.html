@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ColorMind Lab - 測驗選擇</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>ColorLab - 測驗選擇</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/select.css">
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="page-test-select">
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title">ColorMind Lab</a>
+            <a href="/index.html" class="site-title">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link">首頁</a>
@@ -29,13 +34,18 @@
     </nav>
 
     <div class="main-container">
-        <div id="surveyList" class="test-grid">
+        <header class="test-page-header compact">
+            <span class="page-kicker">CHOOSE A TEST</span>
+            <h1>選擇你的色彩測驗</h1>
+            <p>跟著第一直覺作答，不需要想得太久，每一個選擇都沒有對錯。</p>
+        </header>
+        <div id="surveyList" class="test-grid" aria-live="polite">
             <!-- 問卷卡片將由 JS 動態渲染 -->
         </div>
     </div>
 
     <div class="back-section">
-        <a href="/test/test.html" class="back-button">返回</a>
+        <a href="/test/test.html" class="back-button"><span aria-hidden="true">←</span><span>返回測驗首頁</span></a>
     </div>
 
     <div class="login-modal" id="loginModal">
@@ -63,6 +73,10 @@
                         <input type="radio" name="gender" value="female" required>
                         女性
                     </label>
+                    <label class="gender-option">
+                        <input type="radio" name="gender" value="unknown" required>
+                        不願透露
+                    </label>
                 </div>
                 <div class="date-fields">
                     <input type="number" class="date-field" id="year" placeholder="年" min="1900" max="2024">
@@ -70,9 +84,12 @@
                     <input type="number" class="date-field" id="day" placeholder="日" min="1" max="31">
                 </div>
                 <input type="email" class="input-field" placeholder="電子郵件" id="regEmail">
-                <input type="tel" class="input-field" placeholder="行動電話" id="regPhone">
+                <input type="tel" class="input-field" placeholder="行動電話（選填）" id="regPhone">
                 <input type="password" class="input-field" placeholder="密碼" id="regPassword">
                 <input type="password" class="input-field" placeholder="確認密碼" id="regConfirmPassword">
+                <div class="ux-privacy-note">
+                    <label><input type="checkbox" id="modalPrivacyConsent">我已閱讀並同意 <a href="/main/privacy.html" target="_blank" rel="noopener">隱私與資料使用說明</a></label>
+                </div>
                 <button class="login-button" onclick="handleRegister()">建立帳號</button>
                 <div class="login-options">
                     <button class="option-button" onclick="showLoginForm()">返回登入</button>
@@ -86,7 +103,6 @@
     </footer>
 
     <script src="../js/navbar.js"></script>
-    <script src="../js/guest-record-saver.js"></script>
     <script>
     function checkPageAccess() {
         const adminToken = sessionStorage.getItem('adminToken');
@@ -114,27 +130,28 @@
 
     async function loadSurveyList() {
         const surveyListDiv = document.getElementById('surveyList');
-        surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;">載入中...</div>';
+        surveyListDiv.innerHTML = '<div class="test-list-state">載入測驗中...</div>';
         try {
             const response = await fetch('/api/test/surveys');
             if (!response.ok) throw new Error('無法取得問卷列表');
             const surveys = await response.json();
             if (!Array.isArray(surveys) || surveys.length === 0) {
-                surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;">目前沒有可用問卷</div>';
+                surveyListDiv.innerHTML = '<div class="test-list-state">目前沒有可用問卷</div>';
                 return;
             }
             surveyListDiv.innerHTML = surveys.map(survey => `
                 <div class="test-card">
-                    <div class="test-image">🎨</div>
+                    <div class="test-image" aria-hidden="true">✦</div>
                     <div class="test-content">
+                        <span class="test-meta">20 題 · 約 6 分鐘</span>
                         <h2 class="test-title">${survey.testType || '未命名問卷'}</h2>
                         <p class="test-desc">${survey.description ? survey.description.split('\n')[0] : ''}</p>
-                        <a href="color-test-intro.html?id=${survey._id}" class="test-button">開始測驗</a>
+                        <a href="color-test-intro.html?id=${survey._id}" class="test-button"><span>開始測驗</span><span aria-hidden="true">→</span></a>
                     </div>
                 </div>
             `).join('');
         } catch (e) {
-            surveyListDiv.innerHTML = '<div style="text-align:center;padding:40px;color:red;">載入失敗</div>';
+            surveyListDiv.innerHTML = '<div class="test-list-state error">載入失敗，請稍後重試</div>';
         }
     }
     // 訪客登入功能
@@ -151,7 +168,7 @@
             <div class="guest-notice-container">
                 <h3>訪客登入注意事項</h3>
                 <div class="notice-content">
-                    <p>請注意，訪客登入不會儲存本次的測驗紀錄及結果，請妥善保存此次的測驗紀錄，若想完整保存每次的測驗紀錄，請選擇註冊並登入帳號。</p>
+                    <p>訪客模式會以匿名訪客編號保存測驗答案與分析結果，但不會綁定姓名、電話或一般帳號；若之後建立帳號，可將同一瀏覽器中的訪客紀錄同步到新帳號。</p>
                     <div class="checkbox-container">
                         <label class="checkbox-label">
                             <input type="checkbox" id="guestNoticeCheckbox">
@@ -231,12 +248,14 @@
         const phone = document.getElementById('regPhone').value;
         const password = document.getElementById('regPassword').value;
         const confirmPassword = document.getElementById('regConfirmPassword').value;
+        const privacyConsent = document.getElementById('modalPrivacyConsent').checked;
 
         // 驗證所有欄位都已填寫
-        if (!name || !gender || !year || !month || !day || !email || !phone || !password || !confirmPassword) {
-            alert('請填寫所有欄位');
+        if (!name || !gender || !year || !month || !day || !email || !password || !confirmPassword) {
+            alert('請填寫所有必填欄位');
             return;
         }
+        if (!privacyConsent) return alert('請先閱讀並同意隱私與資料使用說明');
 
         // 驗證密碼
         if (password !== confirmPassword) {
@@ -327,7 +346,11 @@
                 sessionStorage.setItem('userEmail', username);
                 sessionStorage.setItem('userName', data.user.name || data.user.nickname || '用戶');
                 sessionStorage.setItem('user', JSON.stringify(data.user));
+                sessionStorage.setItem('token', data.token || '');
+                sessionStorage.setItem('userToken', data.token || '');
+                sessionStorage.setItem('userId', data.user.id || data.user._id || '');
                 sessionStorage.setItem('isGuest', 'false');
+                sessionStorage.removeItem('guestId');
                 
                 alert('登入成功！');
                 document.getElementById('loginModal').style.display = 'none';
@@ -342,4 +365,4 @@
     }
     </script>
 </body>
-</html> 
+</html>

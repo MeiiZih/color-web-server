@@ -3,8 +3,27 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const Feedback = require('../models/Feedback');
+const TestRecord = require('../models/TestRecord');
+const emailVerification = require('../services/emailVerification');
 
 const router = express.Router();
+router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+router.post('/email-verification/confirm', emailVerification.limitRequest, async (req, res) => {
+    try { res.json(await emailVerification.confirmVerification(req.body.token, req.body.password)); }
+    catch (error) { res.status(error.status || 503).json({ message: error.status ? error.message : '驗證未完成，請稍後重試。' }); }
+});
+router.post('/email-verification/resend', emailVerification.limitRequest, async (req, res) => {
+    try {
+        const email = emailVerification.normalizeEmail(req.body.email);
+        const user = await User.findOne({ email });
+        if (!user || typeof req.body.password !== 'string' || !(await user.matchPassword(req.body.password))) return res.status(401).json({ message: '帳號或密碼錯誤' });
+        res.json(await emailVerification.sendVerification(user));
+    } catch (error) { res.status(error.status || 503).json({ message: error.status ? error.message : '暫時無法寄送，請稍後再試。' }); }
+});
+router.post('/email-verification/request', protect, emailVerification.limitRequest, async (req, res) => {
+    try { res.json(await emailVerification.sendVerification(req.user)); }
+    catch (error) { res.status(error.status || 503).json({ message: error.status ? error.message : '暫時無法寄送，請稍後再試。' }); }
+});
 
 // 檢查電子郵件是否已註冊
 router.get('/check-email', async (req, res) => {
@@ -23,18 +42,20 @@ router.get('/check-email', async (req, res) => {
 });
 
 // 註冊
-router.post('/register', async (req, res) => {
+router.post('/register', emailVerification.limitRequest, async (req, res) => {
     try {
-        const { name, gender, birthDate, email, phone, password, occupation } = req.body;
+        const { name, gender, birthDate, phone, password, occupation } = req.body;
+        const email = emailVerification.normalizeEmail(req.body.email);
 
-        if (!email || !password) {
+        if (!emailVerification.validEmail(email) || typeof password !== 'string' || password.length < 6 || password.length > 128) {
             return res.status(400).json({ message: '請填寫所有必要欄位' });
         }
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: '此電子郵件已被註冊' });
+            return res.status(400).json({ message: '此電子郵件已被註冊；若尚未驗證，請使用「重新寄送驗證信」。' });
         }
+        if (!emailVerification.configured()) return res.status(503).json({ message: '驗證信服務尚未準備好，請稍後再註冊。' });
 
         // 處理性別值的轉換
         let processedGender = 'unknown';
@@ -49,6 +70,7 @@ router.post('/register', async (req, res) => {
         }
 
         const newUser = new User({ 
+            emailVerificationRequired: true,
             email, 
             password,
             name: name || email.split('@')[0], // 使用提供的名稱或郵箱前綴
@@ -59,25 +81,15 @@ router.post('/register', async (req, res) => {
         });
         await newUser.save();
 
-        // 生成 JWT Token
-        const token = newUser.generateToken();
-
-        res.status(201).json({ 
-            message: '註冊成功',
-            token,
-            user: {
-                id: newUser._id,
-                name: newUser.name,
-                email: newUser.email,
-                gender: newUser.gender,
-                birthDate: newUser.birthDate,
-                phone: newUser.phone,
-                occupation: newUser.occupation
-            }
-        });
+        try {
+            const sent = await emailVerification.sendVerification(newUser);
+            res.status(202).json({ ...sent, verificationRequired: true, email, message: '驗證信已寄出，請完成驗證後再登入。' });
+        } catch {
+            res.status(202).json({ verificationRequired: true, mailSent: false, email, message: '帳號已保留，但驗證信尚未成功寄出。請等候 60 秒後重新寄送。' });
+        }
 
     } catch (error) {
-        console.error('❌ 註冊錯誤:', error);
+        console.error('Registration failed:', error.name);
         res.status(500).json({ message: '伺服器錯誤，請稍後再試' });
     }
 });
@@ -85,7 +97,8 @@ router.post('/register', async (req, res) => {
 // 登入
 router.post('/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { password } = req.body;
+        const email = emailVerification.normalizeEmail(req.body.email);
 
         if (!email || !password) {
             return res.status(400).json({ message: '請填寫所有必要欄位' });
@@ -96,6 +109,7 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: '帳號或密碼錯誤' });
         }
 
+        if (emailVerification.needsVerification(user)) return res.status(403).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: '請先驗證 Email，再登入；可使用「重新寄送驗證信」。' });
         // 更新最後登入時間
         user.lastLogin = new Date();
         await user.save();
@@ -124,17 +138,11 @@ router.post('/login', async (req, res) => {
 });
 
 // 更新用戶資料
-router.put('/update-profile', async (req, res) => {
+router.put('/update-profile', protect, async (req, res) => {
     try {
-        const { userId, email, name, gender, birthDate, occupation, phone } = req.body;
-        
-        // 優先使用email查找用戶，如果沒有則使用userId
-        let user;
-        if (email) {
-            user = await User.findOne({ email });
-        } else if (userId) {
-            user = await User.findById(userId);
-        }
+        const { name, gender, birthDate, occupation, phone } = req.body;
+        // Ownership is derived only from the verified member token.
+        const user = req.user;
         
         if (!user) {
             return res.status(404).json({ 
@@ -201,13 +209,16 @@ router.post('/feedback', async (req, res) => {
 });
 
 // 驗證 Token 中間件
-const protect = async (req, res, next) => {
+async function protect(req, res, next) {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            if (decoded.role !== 'user') return res.status(403).json({ message: '請使用會員帳號' });
             req.user = await User.findById(decoded.id).select('-password');
+            if (!req.user) return res.status(401).json({ message: '請重新登入' });
+            if (emailVerification.needsVerification(req.user)) return res.status(403).json({ code: 'EMAIL_VERIFICATION_REQUIRED', message: '請先驗證 Email。' });
             next();
         } catch (error) {
             res.status(401).json({ message: '未授權，token無效' });
@@ -217,6 +228,34 @@ const protect = async (req, res, next) => {
         res.status(401).json({ message: '未授權，沒有token' });
     }
 };
+
+// 將同一瀏覽器中的訪客測驗紀錄轉入剛建立的正式帳號
+router.post('/sync-guest-records', protect, async (req, res) => {
+    try {
+        const { guestId, newEmail } = req.body || {};
+
+        if (!guestId || !newEmail) {
+            return res.status(400).json({ message: '缺少訪客編號或電子郵件' });
+        }
+
+        if (!req.user || req.user.email !== newEmail) {
+            return res.status(403).json({ message: '只能同步到目前登入的帳號' });
+        }
+
+        const result = await TestRecord.updateMany(
+            { guestId },
+            {
+                $set: { email: newEmail, userId: req.user._id },
+                $unset: { guestId: '' }
+            }
+        );
+
+        return res.json({ success: true, synced: result.modifiedCount });
+    } catch (error) {
+        console.error('同步訪客測驗紀錄失敗:', error);
+        return res.status(500).json({ message: '同步訪客測驗紀錄失敗' });
+    }
+});
 
 // 獲取用戶資料
 router.get('/profile', protect, async (req, res) => {

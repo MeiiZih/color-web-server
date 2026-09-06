@@ -3,16 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理員個人資料 - ColorMind Lab</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>管理員個人資料 - ColorLab</title>
     <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/profile-admin.css">
     <script src="../../js/navbar.js"></script>
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-            <span class="site-title">ColorMind Lab</span>
+            <span class="site-title">ColorLab</span>
         </div>
         <div class="nav-links"></div>
     </nav>
@@ -57,7 +62,7 @@
                     <div class="form-icon">🔒</div>
                     <div class="form-label">新密碼：</div>
                     <div class="form-value">
-                        <input type="password" id="adminPassword" class="form-input" minlength="6" placeholder="請輸入新密碼" disabled>
+                        <input type="password" id="adminPassword" class="form-input" minlength="5" placeholder="請輸入新密碼" disabled>
                     </div>
                 </div>
 
@@ -185,7 +190,7 @@
             if (!name) return showError('請輸入姓名');
             if (!department) return showError('請輸入處室');
             if (password) {
-                if (password.length < 6) return showError('密碼長度必須至少6個字符');
+                if (password.length < 5) return showError('密碼長度必須至少5個字符');
                 if (password !== confirmPassword) return showError('兩次輸入的密碼不一致');
             }
             const adminToken = sessionStorage.getItem('adminToken');
@@ -241,4 +246,4 @@
         });
     </script>
 </body>
-</html> 
+</html>

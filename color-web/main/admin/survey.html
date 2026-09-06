@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>問卷管理 - ColorMind Lab</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>問卷管理 - ColorLab</title>
         <link rel="stylesheet" href="../../css/common.css">
     <link rel="stylesheet" href="../../css/admin.css">
     <link rel="stylesheet" href="../../css/survey.css">
     <script src="../../js/navbar.js"></script>
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
 <body>
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="../../assets/images/logo.png" alt="Logo" class="site-logo">
-            <span class="site-title">ColorMind Lab</span>
+            <span class="site-title">ColorLab</span>
         </div>
         <div class="nav-links"></div>
     </nav>
@@ -38,7 +43,6 @@
     
     <script>
         let surveys = [];
-        let selectedSurveys = new Set();
         
         document.addEventListener('DOMContentLoaded', function() {
             // 檢查登入狀態
@@ -58,7 +62,6 @@
             
             // 綁定按鈕事件
             document.getElementById('addSurveyBtn').addEventListener('click', addNewSurvey);
-            document.getElementById('deleteSurveyBtn').addEventListener('click', deleteSelectedSurveys);
         });
         
         async function loadSurveys() {
@@ -130,20 +133,6 @@
             window.location.href = `EditSurvey.html?id=${surveyId}`;
         }
         
-        function deleteSelectedSurveys() {
-            if (selectedSurveys.size === 0) {
-                alert('請先選擇要刪除的問卷');
-                return;
-            }
-            
-            if (!confirm(`確定要刪除選中的 ${selectedSurveys.size} 個問卷嗎？此操作無法復原。`)) {
-                return;
-            }
-            
-            // 這裡可以實現批量刪除功能
-            alert('批量刪除功能開發中...');
-        }
-        
         // 自動同步 localStorage 與 sessionStorage
         (function syncAdminSession() {
             if (!sessionStorage.getItem('adminToken') && localStorage.getItem('adminToken')) {
@@ -155,4 +144,4 @@
         })();
     </script>
 </body>
-</html> 
+</html>

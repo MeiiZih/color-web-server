@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ColorMind Lab - 色彩性格測驗</title>
+    <meta name="theme-color" content="#f8bcc8">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+    <script src="/js/pwa.js" defer></script>
+    <title>ColorLab - 色彩性格測驗</title>
     <link rel="stylesheet" href="../css/common.css">
     <link rel="stylesheet" href="../css/test-style.css">
     <script src="../js/navbar.js"></script>
     <script src="../js/test-api.js"></script>
+    <link rel="stylesheet" href="/css/mobile.css">
 </head>
-<body>
+<body class="page-test-question">
     <nav class="nav-header">
         <div class="site-logo-title">
             <img src="/assets/images/logo.png" alt="Logo" class="site-logo">
-            <a href="/index.html" class="site-title">ColorMind Lab</a>
+            <a href="/index.html" class="site-title">ColorLab</a>
         </div>
         <div class="nav-links">
             <a href="/main/common.html" class="nav-link">首頁</a>
@@ -32,17 +37,21 @@
     <div class="main-container">
         <div class="question-container">
         <div class="progress-container">
-                <div class="progress-text">進度：<span id="progressText">0</span>/20</div>
+                <div class="progress-text"><span id="progressText">第 0 題／20 題</span></div>
             <div class="progress-bar">
                 <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="ux-test-meta">
+                <span id="progressPercent">完成 0%</span>
+                <span id="progressEta">約需 6 分鐘</span>
             </div>
         </div>
             
             <div class="question" id="questionText">載入中...</div>
             <div class="options" id="optionsContainer"></div>
             <div class="navigation-buttons">
-                <button class="nav-button" id="prevButton" onclick="previousQuestion()" disabled>上一題</button>
-                <button class="nav-button" id="nextButton" onclick="nextQuestion()">下一題</button>
+                <button type="button" class="nav-button" id="prevButton" onclick="previousQuestion()" disabled>上一題</button>
+                <button type="button" class="nav-button" id="nextButton" onclick="nextQuestion()" disabled>下一題</button>
             </div>
         </div>
     </div>
@@ -100,6 +109,44 @@
         let currentQuestionIndex = 0;
         let userAnswers = [];
         let surveyTestType = ''; // 新增：儲存問卷的 testType
+        let testCompleted = false;
+        const TEST_PROGRESS_KEY = 'colorlab-test-progress-v2';
+
+        function saveTestProgress() {
+            if (!questions.length || testCompleted || !userAnswers.some(answer => answer !== undefined)) return;
+            localStorage.setItem(TEST_PROGRESS_KEY, JSON.stringify({
+                currentQuestionIndex,
+                userAnswers,
+                questionCount: questions.length,
+                updatedAt: new Date().toISOString()
+            }));
+        }
+
+        function restoreTestProgress() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('restart') === '1') {
+                localStorage.removeItem(TEST_PROGRESS_KEY);
+                return false;
+            }
+
+            try {
+                const saved = JSON.parse(localStorage.getItem(TEST_PROGRESS_KEY) || 'null');
+                if (!saved || saved.questionCount !== questions.length || !Array.isArray(saved.userAnswers)) return false;
+                userAnswers = saved.userAnswers.slice(0, questions.length);
+                currentQuestionIndex = Math.min(Math.max(Number(saved.currentQuestionIndex) || 0, 0), questions.length - 1);
+
+                const note = document.createElement('div');
+                note.className = 'ux-resume-note';
+                note.setAttribute('role', 'status');
+                note.textContent = `已恢復上次進度，目前在第 ${currentQuestionIndex + 1} 題。`;
+                document.querySelector('.progress-container').insertAdjacentElement('afterend', note);
+                window.setTimeout(() => note.remove(), 5000);
+                return true;
+            } catch (error) {
+                localStorage.removeItem(TEST_PROGRESS_KEY);
+                return false;
+            }
+        }
 
         // 頁面載入時獲取題目
         async function loadQuestions() {
@@ -116,11 +163,8 @@
                     // 保存問卷的 testType，如果 API 沒有返回則使用預設值
                     surveyTestType = data.testType || '我在色彩學中的MBTI';
                     
-                    // 更新進度條顯示
-                    document.getElementById('progressText').textContent = `0/${questions.length}`;
-                    
-                    // 顯示第一題
-                    showQuestion(0);
+                    restoreTestProgress();
+                    showQuestion(currentQuestionIndex);
                 } else {
                     console.error('無法獲取題目');
                     document.getElementById('questionText').textContent = '無法載入題目，請重新整理頁面';
@@ -146,8 +190,10 @@
             
             question.options.forEach((option, i) => {
                 const button = document.createElement('button');
+                button.type = 'button';
                 button.className = 'option' + (userAnswers[index] === i ? ' selected' : '');
                 button.textContent = option;
+                button.setAttribute('aria-pressed', userAnswers[index] === i ? 'true' : 'false');
                 button.onclick = () => selectOption(i);
                 optionsContainer.appendChild(button);
             });
@@ -157,7 +203,9 @@
 
             // 更新按鈕狀態
             document.getElementById('prevButton').disabled = index === 0;
-            document.getElementById('nextButton').textContent = index === questions.length - 1 ? '提交' : '下一題';
+            const nextButton = document.getElementById('nextButton');
+            nextButton.disabled = userAnswers[index] === undefined;
+            nextButton.textContent = index === questions.length - 1 ? '查看結果' : '下一題';
         }
 
         // 選擇選項
@@ -166,14 +214,22 @@
             const options = document.querySelectorAll('.option');
             options.forEach((option, i) => {
                 option.classList.toggle('selected', i === optionIndex);
+                option.setAttribute('aria-pressed', i === optionIndex ? 'true' : 'false');
             });
+            document.getElementById('nextButton').disabled = false;
+            updateProgress();
+            saveTestProgress();
         }
 
         // 更新進度
         function updateProgress() {
-            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            const answeredCount = userAnswers.filter(answer => answer !== undefined).length;
+            const progress = questions.length ? (answeredCount / questions.length) * 100 : 0;
             document.getElementById('progressBar').style.width = `${progress}%`;
-            document.getElementById('progressText').textContent = currentQuestionIndex + 1;
+            document.getElementById('progressText').textContent = `第 ${currentQuestionIndex + 1} 題／${questions.length} 題`;
+            document.getElementById('progressPercent').textContent = `完成 ${Math.round(progress)}%`;
+            const remainingMinutes = Math.max(1, Math.ceil((questions.length - answeredCount) * 18 / 60));
+            document.getElementById('progressEta').textContent = answeredCount === questions.length ? '已完成作答' : `約剩 ${remainingMinutes} 分鐘`;
         }
 
         // 下一題
@@ -186,6 +242,7 @@
             if (currentQuestionIndex < questions.length - 1) {
                 currentQuestionIndex++;
                 showQuestion(currentQuestionIndex);
+                saveTestProgress();
             } else {
                 calculateResult();
             }
@@ -196,6 +253,7 @@
             if (currentQuestionIndex > 0) {
                 currentQuestionIndex--;
                 showQuestion(currentQuestionIndex);
+                saveTestProgress();
             }
         }
 
@@ -295,6 +353,9 @@
                 scores
             };
             localStorage.setItem('currentTestResult', JSON.stringify(resultPayload));
+            localStorage.removeItem(TEST_PROGRESS_KEY);
+            localStorage.setItem('colorlab-engaged', 'true');
+            testCompleted = true;
 
             // 轉跳結果頁
             window.location.href = 'result.html';
@@ -407,6 +468,24 @@
         // 頁面載入時執行
         document.addEventListener('DOMContentLoaded', function() {
             loadQuestions();
+        });
+
+        window.addEventListener('pagehide', saveTestProgress);
+        window.addEventListener('beforeunload', function(event) {
+            saveTestProgress();
+            if (!testCompleted && userAnswers.some(answer => answer !== undefined)) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.altKey || event.ctrlKey || event.metaKey || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
+            const optionIndex = Number(event.key) - 1;
+            if (optionIndex >= 0 && optionIndex < 4 && questions[currentQuestionIndex]?.options[optionIndex]) {
+                selectOption(optionIndex);
+                document.querySelectorAll('.option')[optionIndex]?.focus();
+            }
         });
     </script>
 </body>

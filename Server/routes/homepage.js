@@ -6,6 +6,13 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const {claimIllustration} = require('../services/contentIllustration');
+function metadata(body) {
+ const result={};
+ for(const key of ['sourceName','contentKind','registrationUrl','sourcePublishedAt','sourceCheckedAt']) if(typeof body[key]==='string')result[key]=body[key].slice(0,2000);
+ if(body.expiresAt!==undefined){result.expiresAt=body.expiresAt?new Date(body.expiresAt+'T23:59:59+08:00'):null;if(result.expiresAt&&!Number.isFinite(+result.expiresAt))throw new Error('截止日期不正確');}
+ return result;
+}
 
 // 管理員權限驗證中間件
 const adminProtect = async (req, res, next) => {
@@ -14,6 +21,7 @@ const adminProtect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            if(decoded.role!=='admin')return res.status(403).json({message:'僅管理員可使用'});
             const admin = await Admin.findById(decoded.id).select('-password');
             if (!admin) return res.status(403).json({ message: '無權限訪問' });
             req.user = admin;
@@ -48,8 +56,9 @@ const upload = multer({ storage: storage });
 // 取得最新/一般資訊（可分類type/news/common）
 router.get('/', async (req, res) => {
     try {
+        res.set('Cache-Control', 'no-store');
         const { type } = req.query;
-        const filter = type ? { type } : {};
+        const filter = { ...(type ? { type } : {}), archivedAt: { $exists: false }, $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }] };
         const homepage = await Homepage.find(filter).sort({ createdAt: -1 });
         res.json(homepage);
     } catch (error) {
@@ -61,7 +70,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const item = await Homepage.findById(req.params.id);
-        if (!item) return res.status(404).json({ message: '找不到內容' });
+        if (!item || item.archivedAt || (item.expiresAt && item.expiresAt <= new Date())) return res.status(404).json({ message: '找不到內容或已下架' });
         res.json(item);
     } catch (error) {
         res.status(500).json({ message: '讀取失敗' });
@@ -72,10 +81,14 @@ router.get('/:id', async (req, res) => {
 router.post('/', adminProtect, async (req, res) => {
     try {
         const { type, title, imageUrl, link, description } = req.body;
-        const created = await Homepage.create({ type, title, imageUrl, link, description });
+        const created = new Homepage({ type, title, imageUrl, link, description, ...metadata(req.body) });
+        await Homepage.db.transaction(async session => {
+            await claimIllustration(Homepage.db.db, req.body, created._id, session);
+            await created.save({session});
+        });
         res.status(201).json(created);
     } catch (error) {
-        res.status(500).json({ message: '新增失敗' });
+        res.status(error.status || 500).json({ message: error.status ? error.message : '新增失敗' });
     }
 });
 
@@ -83,10 +96,16 @@ router.post('/', adminProtect, async (req, res) => {
 router.put('/:id', adminProtect, async (req, res) => {
     try {
         const { type, title, imageUrl, link, description } = req.body;
-        const updated = await Homepage.findByIdAndUpdate(req.params.id, { type, title, imageUrl, link, description, updatedAt: Date.now() }, { new: true });
+        let updated;
+        await Homepage.db.transaction(async session => {
+            const current = await Homepage.findById(req.params.id).session(session);
+            if (!current) throw Object.assign(new Error('找不到內容'), {status:404});
+            await claimIllustration(Homepage.db.db, req.body, current._id, session);
+            updated = await Homepage.findByIdAndUpdate(req.params.id, { type, title, imageUrl, link, description, ...metadata(req.body), updatedAt: Date.now() }, { new: true, runValidators: true, session });
+        });
         res.json(updated);
     } catch (error) {
-        res.status(500).json({ message: '修改失敗' });
+        res.status(error.status || 500).json({ message: error.status ? error.message : '修改失敗' });
     }
 });
 
