@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const {ObjectId} = require('mongoose').mongo;
 const {buildDigest} = require('./weeklyDigest');
+const {assertIllustration} = require('./contentIllustration');
 const FIELDS = ['type','title','description','link','imageUrl','sourceName','contentKind','registrationUrl','sourcePublishedAt','sourceCheckedAt','expiresAt'];
 const SOURCES = ['1980.org.tw','life1995.org.tw','1995.org.tw','lifeline.org.tw','twtcpa.org.tw','tpcpa.org.tw','tpa-tw.org','tpa.org.tw','psychology.org.tw','tcpa.org.tw','clinicalpsychology.org.tw','mohw.gov.tw','gov.tw','gov.taipei','nature.com','pubmed.ncbi.nlm.nih.gov','doi.org','sciencedirect.com','jamanetwork.com','thelancet.com','apa.org'];
 const fail = (message, status=400) => Object.assign(new Error(message),{status});
@@ -76,6 +77,7 @@ async function decide(connection, ids, decision, actor) {
    if(item.status!=='pending')throw fail('選取項目已由其他操作處理，請重新載入。',409);
    const now=new Date();let publishedId;
    if(decision==='approve'){
+    if(item.action!=='remove')assertIllustration(item.content);
     if(item.action==='add'){
      if(await db.collection('homepages').findOne({link:item.content.link,archivedAt:{$exists:false}},{session}))throw fail('相同來源已刊登，請略過重複建議。',409);
      if(item.content.expiresAt&&+new Date(item.content.expiresAt)<=+now)throw fail('選取活動已過截止時間，請略過或重新蒐集。',409);

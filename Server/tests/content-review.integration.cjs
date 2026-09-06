@@ -7,7 +7,7 @@ const service=require('../services/contentReview');
 const express=require('express'),jwt=require('jsonwebtoken');
 let repl,server,base,db,adminToken;
 const report=(items,weekStart='2026-08-31')=>({weekStart,checkedAt:'2026-09-06',collectionComplete:true,sourceFailures:[],items});
-const add=(name)=>({action:'add',title:name,reason:'已查核官方來源，供管理員審核。',sourceName:'張老師',sourceUrl:'https://www.1980.org.tw/'+name,content:{type:'common',contentKind:'article',title:name,description:'測試摘要',sourceName:'張老師',link:'https://www.1980.org.tw/'+name}});
+const add=(name)=>({action:'add',title:name,reason:'已查核官方來源，供管理員審核。',sourceName:'張老師',sourceUrl:'https://www.1980.org.tw/'+name,content:{imageUrl:'/assets/images/posts/empathy-20260906.webp',type:'common',contentKind:'article',title:name,description:'測試摘要',sourceName:'張老師',link:'https://www.1980.org.tw/'+name}});
 before(async()=>{
  repl=await MongoMemoryReplSet.create({replSet:{count:1},binary:{version:'7.0.14'}});
  await mongoose.connect(repl.getUri(),{dbName:'colorlab_review_isolated'});
@@ -27,7 +27,7 @@ test('source/schema validation rejects unverified hosts, invalid weeks and undat
  assert.throws(()=>service.normalize(report([{...add('bad'),sourceUrl:'https://example.com/no'}])),{status:400});
  assert.throws(()=>service.normalize(report([], '2026-09-06')),{status:400});
  const a=add('event');a.content.contentKind='workshop';assert.throws(()=>service.normalize(report([a])),{status:400});
- assert.equal(service.content(add('ok').content,'2026-09-06').imageUrl,'/assets/images/colorlab-support.svg');
+ assert.equal(service.content(add('ok').content,'2026-09-06').imageUrl,'/assets/images/posts/empathy-20260906.webp');
 });
 test('only authenticated administrators can review; ingestion credential cannot approve',async()=>{
  assert.equal((await fetch(base+'/api/admin/content-review')).status,401);
@@ -84,4 +84,14 @@ test('valid corrections publish; expired events stay hidden even after restore',
  const inventory=await fetch(base+'/api/content-review-ingest/current',{headers:{'X-Content-Review-Key':process.env.CONTENT_REVIEW_INGEST_KEY}});
  assert.equal(inventory.status,200);assert.equal((await inventory.json()).length,1);
  assert.equal((await fetch(base+'/api/content-review-ingest/current')).status,401);
+});
+test('missing generated illustration blocks review and direct publishing without changing public data',async()=>{
+ const draft=add('missing-art');delete draft.content.imageUrl;
+ await service.ingest(mongoose.connection,report([draft],'2026-10-19'));
+ const item=await db.collection('content_review_items').findOne({weekStart:'2026-10-19'});
+ const before=await db.collection('homepages').countDocuments();
+ await assert.rejects(service.decide(mongoose.connection,[String(item._id)],'approve','QA'),{status:400});
+ assert.equal((await db.collection('content_review_items').findOne({_id:item._id})).status,'pending');
+ const response=await fetch(base+'/api/homepage',{method:'POST',headers:{Authorization:'Bearer '+adminToken,'Content-Type':'application/json'},body:JSON.stringify(draft.content)});
+ assert.equal(response.status,400);assert.equal(await db.collection('homepages').countDocuments(),before);
 });

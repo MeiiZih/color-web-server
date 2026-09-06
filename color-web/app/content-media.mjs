@@ -14,7 +14,8 @@ export function mediaFor(item) {
   const theme = item.contentKind === 'paper' ? ['研究筆記','blue'] : item.contentKind === 'workshop' ? ['自我照顧','yellow'] : /公會|學會/.test(item.sourceName || '') ? ['心理知識','green'] : ['傾聽與支持','red'];
   const topic = `${item.title || ''} ${item.sourceName || ''}`;
   const illustration = item.contentKind === 'paper' ? 'research' : /工作坊|講座|課程/.test(topic) || ['workshop','lecture'].includes(item.contentKind) ? 'workshop' : /閱讀|文章|專欄|界線|壓力|情緒管理/.test(topic) || item.contentKind === 'article' ? 'reading' : 'support';
-  return { imageUrl: source ? source[0] : generic ? '' : item.imageUrl, credit: source ? `圖片來源：${source[1]}` : generic ? '' : item.sourceName ? `圖片來源：${item.sourceName}` : '', theme, illustration:`/assets/images/content-${illustration}.webp` };
+  const generated = /^\/assets\/images\/posts\/[a-z0-9-]+\.webp$/.test(item.imageUrl || '');
+  return { imageUrl: source ? source[0] : generic ? '' : item.imageUrl, credit: generated ? 'ColorLab AI 主題示意・非官方海報' : source ? `圖片來源：${source[1]}` : generic ? '' : item.sourceName ? `圖片來源：${item.sourceName}` : '', theme, illustration:`/assets/images/content-${illustration}.webp` };
 }
 export function contentMedia(item, mode = 'card') {
   const { imageUrl, credit, theme, illustration } = item.media;

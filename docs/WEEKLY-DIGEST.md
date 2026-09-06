@@ -14,13 +14,15 @@ add/update 的 content 必填：
 - type：news/common；contentKind：workshop/lecture/article/paper/resource。
 - title、sourceName、link：分別與上層 title、sourceName、sourceUrl 完全一致。
 - description：自行改寫短摘要，交代對象、時間、地點、費用、名額限制，不複製原文。
-- imageUrl：沒有原圖時使用 /assets/images/colorlab-support.svg，由前台依主題選 AI 插畫並標示非官方海報；不要偽稱圖片來自主辦。
+- imageUrl：每筆新增／更正貼文都要先用內建 image_gen 生成貼合內容的專屬插圖，保存為 /assets/images/posts/<主題>-<日期>.webp。標示「ColorLab AI 主題示意・非官方海報」，不以通用預設圖代替，也不冒充主辦圖片。
 - registrationUrl：主辦提供且查核的報名連結，沒有則省略。
 - expiresAt：活動必填 ISO 時間。報名截止優先，否則開課時間；時區以台北換算 UTC。
 - sourcePublishedAt：已知才填 YYYY-MM-DD，不可用查核日冒充發布日。
 
 來源限官方白名單，新增單位需人工核實後更新 Server/services/contentReview.js。暫時連線失敗不判永久失效；舊文章不因年份早下架。查不到的內容列 sourceFailures，其他查核項可完成本週清單。
 每週已同步清單不可修改；同內容跨週去重；沒有候選也可同步空清單。
+生成後人工檢查主題、比例、人物肢體與誤導風險，再登錄 Server/data/contentIllustrations.json：imageUrl、WebP 檔案 sha256、generator、generatedAt、reviewed:true、prompt。不要臆造生成紀錄。優先900×600、200KB以內，保持原始生成檔。插圖與登錄先提交並部署前後端，確認線上圖片可讀且雜湊一致，才同步清單。內建生成不可用／額度不足時保留草稿並通知，不私自開通付費 API。
+同步指令檢查本機插圖與前端線上位元組；後端待審核准與手動新增／更正也檢查插圖登錄和檔案雜湊。後台可預覽圖片。舊貼文仍正常顯示；未準備插圖的更新會被阻擋。公開內容依然須由管理員核准，部署插圖不等於發布貼文。
 對照完整資訊清單（含已到期未歸檔）：先執行 node --env-file=.local/content-review.env scripts/read-review-content.cjs，再讀 tmp/content-review/current-content.json。會員資料不在蒐集範圍。沒有授權時可比對公開 API，但須註記无法涵蓋已隱藏的過期項目。
 
 ## 憑證與指令

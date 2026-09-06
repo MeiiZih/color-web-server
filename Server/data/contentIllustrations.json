@@ -1,0 +1,26 @@
+[
+  {
+    "imageUrl": "/assets/images/posts/empathy-20260906.webp",
+    "sha256": "83099b16127aabdff1af8694442f09db12252068c5a8ccde48b8211d8fdec898",
+    "generator": "built-in image_gen",
+    "generatedAt": "2026-09-06",
+    "reviewed": true,
+    "prompt": "Landscape 3:2 ColorLab editorial gouache illustration. Empathy workshop: three adults in a welcoming discussion circle, listening without judgment. Cream paper texture, dusty berry, coral, ochre, sage and blue. Mature, readable thumbnail. No text, logos, official branding or claims. Symbolic scene, not an actual workshop photo."
+  },
+  {
+    "imageUrl": "/assets/images/posts/workplace-20260906.webp",
+    "sha256": "538631f018a0067f5ce77abaa997c24e8e187ce9332b5161221ffb8058738bd9",
+    "generator": "built-in image_gen",
+    "generatedAt": "2026-09-06",
+    "reviewed": true,
+    "prompt": "Landscape 3:2 ColorLab editorial gouache illustration. Workplace stress and personal needs: adult gently closes a laptop and turns toward a sunlit window, thoughtful calm expression, notebook, cup and plant. Warm cream, berry, sage, ochre and blue. Not a resignation scene. No text, logo or medical claims."
+  },
+  {
+    "imageUrl": "/assets/images/posts/counseling-20260906.webp",
+    "sha256": "7ed33586fef6effbf8bdb506159b1f58d22b6018a4d65de9906bd8e50b59ecfb",
+    "generator": "built-in image_gen",
+    "generatedAt": "2026-09-06",
+    "reviewed": true,
+    "prompt": "Landscape 3:2 ColorLab editorial gouache illustration. Accessible professional counseling for young and middle-aged adults: adult and counselor at equal eye level in a peaceful room, nonjudgmental conversation. Warm cream, berry, coral, ochre, sage and blue. No text, numbers, logos, government emblems, white coats or promises of cure."
+  }
+]
