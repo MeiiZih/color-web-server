@@ -6,7 +6,8 @@ const read = file => fs.readFileSync(path.resolve(__dirname, '../../color-web/ap
 
 test('shared motion is delivered to app, account and PDF without an animation dependency', () => {
   for (const file of ['index.html', 'account.html', 'pdf.html']) assert.match(read(file), /href="\/app\/motion.css"/);
-  assert.doesNotMatch(read('motion.css'), /@import|https?:|infinite|will-change|pointer-events/);
+  assert.doesNotMatch(read('motion.css'), /@import|https?:|will-change|pointer-events/);
+  assert.equal((read('motion.css').match(/infinite/g)||[]).length,1,'only the temporary waiting indicator loops');
 });
 test('motion is progressive enhancement and reduced motion keeps all information visible', () => {
   const css = read('motion.css');

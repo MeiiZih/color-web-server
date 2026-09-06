@@ -7,6 +7,10 @@ const TestRecord = require('../models/TestRecord');
 const emailVerification = require('../services/emailVerification');
 
 const router = express.Router();
+// Guest records stay on their originating browser; unproven guest IDs cannot be transferred.
+router.all('/sync-guest-records', (_req, res) => {
+    res.set('Cache-Control', 'no-store').status(410).json({ message: '舊版訪客紀錄同步已停用，既有紀錄不受影響。' });
+});
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 require('../services/passwordReset').attachPasswordReset(router, 'user');
 router.post('/email-verification/confirm', emailVerification.limitRequest, async (req, res) => {
@@ -100,12 +104,12 @@ router.post('/register', emailVerification.limitRequest, async (req, res) => {
 });
 
 // 登入
-router.post('/login', async (req, res) => {
+router.post('/login', require('../services/loginLimit')('user'), async (req, res) => {
     try {
         const { password } = req.body;
         const email = emailVerification.normalizeEmail(req.body.email);
 
-        if (!email || !password) {
+        if (!email || typeof password !== 'string' || !password) {
             return res.status(400).json({ message: '請填寫所有必要欄位' });
         }
 

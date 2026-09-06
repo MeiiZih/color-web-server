@@ -8,15 +8,15 @@ test('empty is a truthful zero, not fabricated chart data',async()=>{
   const {statisticsView}=await view;
   const html=statisticsView({totalParticipants:0,mbtiStats:[],colorStats:[],testTypeStats:[]},{readAt});
   assert.equal((html.match(/目前沒有可顯示的紀錄/g)||[]).length,3);
-  assert.equal((html.match(/<meter /g)||[]).length,0);
+  assert.equal((html.match(/<svg /g)||[]).length,0);
   assert.match(html,/<strong>0<\/strong>/);assert.doesNotMatch(html,/NaN|Infinity/);
 });
 test('overview reconciles with survey counts; color remains occurrences',async()=>{
   const {statisticsView}=await view;
   const html=statisticsView({totalParticipants:2,mbtiStats:[{_id:'ISFP',count:2},{_id:'ENFJ',count:1}],colorStats:[{_id:'green',count:3},{_id:'yellow',count:2}],testTypeStats:[{_id:'問卷甲',count:2},{_id:'問卷乙',count:1}]},{readAt});
   assert.match(html,/<strong>3<\/strong><span>份/);assert.match(html,/<strong>2<\/strong><span>組/);
-  assert.match(html,/共 3 份有 MBTI 分類的紀錄/);assert.match(html,/次數不等於測驗份數/);
-  assert.match(html,/min="0" max="3" value="3"/);assert.match(html,/aria-valuetext="3 次"/);
+  assert.match(html,/共 3 份有 MBTI 分類的紀錄/);assert.match(html,/並非人數或測驗份數占比/);
+  assert.match(html,/占比分母：5 次色彩出現/);assert.match(html,/綠色：3 次，60%/);
   assert.match(html,/datetime="2026-09-06T16:00:00.000Z"/);assert.match(html,/不重複計入同步副本/);
 });
 test('single survey stays a single category; labels escaped; input untouched',async()=>{
@@ -25,7 +25,7 @@ test('single survey stays a single category; labels escaped; input untouched',as
   const before=JSON.stringify(stats),html=statisticsView(stats,{readAt});
   assert.equal(JSON.stringify(stats),before);assert.match(html,/已保存紀錄來自 1 種問卷/);
   assert.doesNotMatch(html,/<script>|<img |onclick="bad/);assert.match(html,/&lt;script&gt;bad/);
-  assert.equal((html.match(/<meter /g)||[]).length,3);
+  assert.equal((html.match(/<svg /g)||[]).length,3);assert.equal((html.match(/<circle /g)||[]).length,3);
 });
 test('missing or invalid counts show unavailable rather than invented zero',async()=>{
   const {statisticsView}=await view;
@@ -37,5 +37,24 @@ test('missing or invalid counts show unavailable rather than invented zero',asyn
 test('duplicate categories aggregate before sizing and sorting',async()=>{
   const {statisticsView}=await view;
   const html=statisticsView({totalParticipants:1,mbtiStats:[{_id:'ISFP',count:1},{_id:'ISFP',count:2}],colorStats:[],testTypeStats:[{_id:'Q',count:3}]},{readAt});
-  assert.match(html,/max="3" value="3"/);assert.equal((html.match(/>ISFP<\/span>/g)||[]).length,1);
+  assert.match(html,/ISFP：3 份，100%/);assert.equal((html.match(/>ISFP<\/span>/g)||[]).length,1);
+});
+test('long tails have at most five slices while all exact categories stay available',async()=>{
+  const {statisticsView}=await view;
+  const mbtiStats=Array.from({length:9},(_,i)=>({_id:`類別${i+1}`,count:10-i}));
+  const html=statisticsView({totalParticipants:1,mbtiStats,colorStats:[],testTypeStats:[]},{readAt});
+  assert.equal((html.match(/<path /g)||[]).length,5);
+  assert.match(html,/其他 5 類：20 份，37%/);assert.match(html,/查看全部 9 類明細/);
+  assert.match(html,/類別9<\/span><strong>2 份 · 3.7%/);
+});
+test('zero counts do not create slices but remain in the complete breakdown',async()=>{
+  const {statisticsView}=await view;
+  const html=statisticsView({totalParticipants:1,mbtiStats:[{_id:'A',count:1},{_id:'B',count:0}],colorStats:[],testTypeStats:[]},{readAt});
+  assert.equal((html.match(/<circle /g)||[]).length,1);
+  assert.match(html,/B<\/span><strong>0 份 · 0%/);assert.doesNotMatch(html,/NaN|Infinity/);
+});
+test('overflowing sums stay unavailable',async()=>{
+  const {statisticsView}=await view;
+  const html=statisticsView({mbtiStats:[{_id:'A',count:Number.MAX_SAFE_INTEGER},{_id:'A',count:1}]},{readAt});
+  assert.equal((html.match(/<svg /g)||[]).length,0);assert.doesNotMatch(html,/NaN|Infinity/);
 });

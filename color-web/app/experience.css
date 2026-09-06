@@ -165,6 +165,17 @@ main[data-flipping] .articulated *,main[data-flipping] .articulated::after { ani
 .history-test-filter{grid-column:1/-1}.history-filters select{max-width:100%}.footer-companions{display:flex;align-items:flex-end;gap:14px;margin-top:16px}.footer-companions img{width:44px;height:64px;object-fit:contain}
 .profile-page>[data-logout]{display:flex;justify-content:center;min-width:148px;margin:28px auto 0;padding:12px 24px}.first-use-link>.icon:first-child{box-sizing:content-box;padding:9px;background:var(--rose-soft);border-radius:12px;color:var(--rose)}
 .first-use-link>span{flex:1}.first-use-link small{display:block;font-size:11px}.first-use-link .icon{width:18px;height:18px}.first-use-link:hover{color:var(--rose)}
+@media(min-width:768px){
+  .hero-copy>.microcopy{text-align:left;width:280px;margin-top:10px}
+  .hero-copy>.all-surveys-link{justify-content:flex-start;font-size:13px;margin-top:6px;min-height:44px}
+  .hero-copy>.first-use-link{width:280px;margin:16px 0 0;padding:16px 0;gap:10px}
+}
+@media(max-width:767px){
+  .hero-copy>.first-use-link{margin:28px auto 0;padding-block:24px}
+  .hero>.color-studio{margin-top:0}
+  .organized-footer .footer-brand{text-align:center}
+  .organized-footer .footer-companions{justify-content:center}
+}
 .organized-footer{display:grid;grid-template-columns:1.6fr 1fr 1.2fr;gap:32px;text-align:left;align-items:start}
 .organized-footer .footer-brand>strong{font:600 30px Georgia,serif}.organized-footer h2{font:600 14px var(--body-font);margin:0 0 12px}.organized-footer p{font-size:13px;margin:12px 0;color:var(--muted)}
 .organized-footer a{display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;width:fit-content}.organized-footer small{font-size:11px;color:var(--muted)}

@@ -33,8 +33,7 @@ async function sendReset(role, email) {
 
 async function confirmReset(role, token, password) {
   if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw invalid();
-  if (typeof password !== 'string' || password.length < 6 || password.length > 128) throw Object.assign(new Error('新密碼請使用 6 至 128 個字元。'), { status: 400 });
-  if (Buffer.byteLength(password, 'utf8') > 72) throw Object.assign(new Error('密碼過長，請縮短後再試（最多 72 個英數字元；中文或表情符號可用字數較少）。'), { status: 400 });
+  require('./passwordPolicy')(password);
   const query = { passwordResetTokenHash: hash(token), passwordResetExpiresAt: { $gt: new Date() },
     $expr: { $eq: ['$email', '$passwordResetEmail'] }, ...(role === 'user' ? { emailVerifiedAt: { $ne: null } } : {}) };
   if (!await accounts[role].exists(query)) throw invalid();

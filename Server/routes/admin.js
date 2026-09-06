@@ -14,33 +14,29 @@ router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); 
 require('../services/passwordReset').attachPasswordReset(router, 'admin');
 
 // 管理員登入路由
-router.post('/login', async (req, res) => {
+router.post('/login', require('../services/loginLimit')('admin'), async (req, res) => {
     try {
         const { email, password } = req.body;
-        const adminEmail = String(email || '').trim().toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
-            return res.status(401).json({ message: '請使用管理員電子郵件登入' });
+        const adminEmail = require('../services/emailVerification').normalizeEmail(email);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail) || typeof password !== 'string' || !password) {
+            return res.status(401).json({ message: '帳號或密碼錯誤' });
         }
 
         // 查找管理員
         const admin = await Admin.findOne({ email: adminEmail });
 
         if (!admin) {
-            return res.status(401).json({ message: '無效的管理員帳號' });
+            return res.status(401).json({ message: '帳號或密碼錯誤' });
         }
 
         // 驗證密碼
         const isMatch = await admin.matchPassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: '密碼錯誤' });
+            return res.status(401).json({ message: '帳號或密碼錯誤' });
         }
 
         // 生成 JWT token
-        const token = jwt.sign(
-            { id: admin._id, role: 'admin' },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '30d' }
-        );
+        const token = admin.generateToken();
 
         // 返回管理員信息和 token
         res.json({
@@ -120,25 +116,9 @@ router.delete('/users/:id', adminProtect, async (req, res) => {
 // 更新管理員個人資料
 router.put('/update-profile', adminProtect, async (req, res) => {
     try {
-        const { name, department, phone, password } = req.body;
-        // 直接用 req.user._id
-        const admin = await Admin.findById(req.user._id);
-        if (!admin) {
-            return res.status(404).json({ message: '找不到管理員帳號' });
-        }
-        // 更新管理員資料
-        if (name) admin.name = name;
-        if (department) admin.department = department;
-        if (phone) admin.phone = phone;
-        if (password) admin.password = password;
-        await admin.save();
-        const updatedAdmin = await Admin.findById(req.user._id).select('-password');
-        res.json({
-            message: '個人資料更新成功',
-            user: updatedAdmin
-        });
+        res.json(await require('../services/adminProfile')(req.user, req.body));
     } catch (error) {
-        res.status(500).json({ message: '伺服器錯誤，請稍後再試' });
+        res.status(error.status || 500).json({ message: error.status ? error.message : '伺服器錯誤，請稍後再試' });
     }
 });
 

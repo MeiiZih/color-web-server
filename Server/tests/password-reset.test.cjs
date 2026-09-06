@@ -61,6 +61,8 @@ test('admin reset revokes every admin guard while preserving same-email member a
   const response=await post('admin','/reset-password',{token:sentToken('admin'),password:'new-admin-password'});assert.equal(response.status,200);
   for(const [route,method]of[['/api/admin/users','GET'],['/api/homepage','POST'],['/api/review/current','GET'],['/api/explore/me','GET']])assert.equal((await authenticated(route,old,method)).status,401,route);
   const changed=await Admin.findById(admin._id);assert(await changed.matchPassword('new-admin-password'));assert.equal((await authenticated('/api/admin/users',changed.generateToken())).status,200);
+  const login=await post('admin','/login',{email:admin.email,password:'new-admin-password'});assert.equal(login.status,200);
+  const freshToken=(await login.json()).token;assert.equal(jwt.verify(freshToken,process.env.JWT_SECRET).sessionVersion,1);assert.equal((await authenticated('/api/admin/users',freshToken)).status,200);
   assert.equal((await authenticated('/api/user/profile',memberToken)).status,200);assert(await(await User.findById(user._id)).matchPassword('original-password'));
 });
 test('expiry, superseded token, changed email and overlong bcrypt password cannot reset',async()=>{
@@ -83,4 +85,22 @@ test('request limits persist for nonexistent identities, provider failures never
   for(let i=0;i<5;i++)assert.equal((await post('user','/forgot-password',{email:'none@example.invalid'})).status,202);
   assert.equal((await post('user','/forgot-password',{email:'none@example.invalid'})).status,429);
   mailFailure=true;await assert.rejects(reset.sendReset('user',user.email),/not accepted/);assert(await(await User.findById(user._id)).matchPassword('original-password'));
+});
+
+test('admin profile CAS uses real MongoDB and does not overwrite a concurrent reset',async()=>{
+  const old=admin.generateToken();
+  const updateProfile=body=>realFetch(base+'/api/admin/update-profile',{method:'PUT',headers:{Authorization:'Bearer '+admin.generateToken(),'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const ordinary=await updateProfile({name:'Profile only',password:''});assert.equal(ordinary.status,200);assert.equal((await ordinary.json()).passwordChanged,false);
+  assert.equal((await Admin.findById(admin._id)).sessionVersion,0);
+  const change=await updateProfile({password:'changed-admin-password',currentPassword:'original-password'});assert.equal(change.status,200);assert.equal((await change.json()).passwordChanged,true);
+  admin=await Admin.findById(admin._id);assert.equal(admin.sessionVersion,1);assert(await admin.matchPassword('changed-admin-password'));
+  for(const [route,method]of[['/api/admin/users','GET'],['/api/homepage','POST'],['/api/review/current','GET'],['/api/explore/me','GET']])assert.equal((await authenticated(route,old,method)).status,401,route);
+  const login=await post('admin','/login',{email:admin.email,password:'changed-admin-password'});assert.equal(login.status,200);assert.equal((await authenticated('/api/admin/users',(await login.json()).token)).status,200);
+  await reset.sendReset('admin',admin.email);const token=sentToken('admin'),original=Admin.findOneAndUpdate;
+  Admin.findOneAndUpdate=function(query,...args){
+    if(query.password){return{select:async()=>{Admin.findOneAndUpdate=original;await reset.confirmReset('admin',token,'reset-wins-password');return original.call(Admin,query,...args).select('-password');}};}
+    return original.call(Admin,query,...args);
+  };
+  try{assert.equal((await updateProfile({password:'stale-password-change',currentPassword:'changed-admin-password'})).status,409);}finally{Admin.findOneAndUpdate=original;}
+  const after=await Admin.findById(admin._id);assert.equal(after.sessionVersion,2);assert(await after.matchPassword('reset-wins-password'));
 });

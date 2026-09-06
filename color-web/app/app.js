@@ -10,6 +10,7 @@ import { pdfHref, accountHref, sessionIdentity, dataRevision, markDataChanged } 
 import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
 import { createNavigationMotion } from './navigation-motion.mjs';
+import { createQuizFeedback } from './quiz-feedback.mjs';
 restoreSession();
 const loadedIdentity=sessionIdentity();
 let loadedRevision=dataRevision();
@@ -23,6 +24,9 @@ window.addEventListener('pageshow',event=>{
 
 const main = document.querySelector('main');
 const navigationMotion = createNavigationMotion(main);
+const quizFeedback = createQuizFeedback();
+window.addEventListener('pagehide',()=>quizFeedback.dispose());
+window.addEventListener('hashchange',()=>quizFeedback.stop());
 const dialog = document.querySelector('dialog');
 const nav = document.querySelector('#navigation');
 let previewStorage;
@@ -349,7 +353,7 @@ function bindPage() {
     const a = isResource ? resources[Number(button.dataset.resource)] : articles[Number(button.dataset.article)];
     openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p>${sourceNote(a)}${contentMedia(a, 'poster')}${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}${sourceHelp(a.url)}`);
   }));
-  document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); } });
+  document.querySelector('[data-previous]')?.addEventListener('click', event => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); quizFeedback.play('previous',event,document.querySelector('[data-previous]')); } });
   document.querySelector('#question-form')?.addEventListener('change', event => {
     if (event.target.name !== 'answer') return;
     draft().answers[draft().index] = Number(event.target.value);
@@ -359,11 +363,12 @@ function bindPage() {
     document.querySelector('progress').value = answered();
     document.querySelector('#selection-status').textContent = '已選好，你也可以隨時更改。';
     document.querySelectorAll('[data-companion-message]').forEach(el => { el.textContent = '選好囉，也可以再想一想。準備好再按下一題。'; });
+    quizFeedback.play('answer',event,event.target.closest('.option'));
   });
   document.querySelector('#question-form')?.addEventListener('submit', async event => {
     event.preventDefault();
     if (draft().answers[draft().index] === null) return;
-    if (draft().index < questions.length - 1) { draft().index++; persist(); render('next'); document.querySelector('legend').focus({ preventScroll: true }); }
+    if (draft().index < questions.length - 1) { draft().index++; persist(); render('next'); document.querySelector('legend').focus({ preventScroll: true }); quizFeedback.play('next',event,document.querySelector('#next-question')); }
     else {
       const missing = draft().answers.indexOf(null);
       if (missing !== -1) { draft().index = missing; persist(); render(); return; }

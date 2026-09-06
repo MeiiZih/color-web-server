@@ -18,9 +18,9 @@ export function createNavigationMotion(main) {
     const transform=baseline.transform==='none' ? '' : baseline.transform;
     const opacity=Number(baseline.opacity);
     const animation=target.animate([
-      {transform:`translateY(6px) scale(.995) ${transform}`.trim(),opacity:opacity*.94},
+      {transform:`translateY(14px) scale(.985) ${transform}`.trim(),opacity:opacity*.86},
       {transform:transform || 'none',opacity}
-    ],{duration:190,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'});
+    ],{duration:320,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'});
     active=animation;
     animation.onfinish=()=>{if(active===animation)active=null;};
     return animation;

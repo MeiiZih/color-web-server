@@ -3,6 +3,10 @@ const TestQuestion = require('../models/TestQuestion');
 const TestRecord = require('../models/TestRecord');
 const adminProtect = require('../middleware/adminProtect');
 const router = express.Router();
+// Retired private-record API: the current app uses owner-checked /api/explore.
+router.all(['/user-stats/:userId', '/user-records/:userId/:testType', '/records', '/recordByInfo', '/saveRecord'], (_req, res) => {
+    res.set('Cache-Control', 'no-store').status(410).json({ message: '此舊版紀錄接口已停用，請使用新版測驗紀錄。' });
+});
 
 function getCompatibleTestTypes(rawTestType) {
     const normalized = decodeURIComponent(rawTestType).replace(/[\s\u3000]/g, '');

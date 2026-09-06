@@ -5,17 +5,19 @@ const jwt=require('jsonwebtoken');
 const User=require('../models/User');
 const Admin=require('../models/Admin');
 const Record=require('../models/TestRecord');
+const Rate=require('../models/EmailRateLimit');
 const user={_id:'1'.repeat(24),email:'member@example.invalid',name:'Test',save:async()=>{}};
-const original={user:User.findById,admin:Admin.findById,record:Record.findById};
+const original={user:User.findById,admin:Admin.findById,record:Record.findById,rate:Rate.findOneAndUpdate};
 let server,base;
 before(async()=>{
+  Rate.findOneAndUpdate=async()=>({count:1});
   User.findById=id=>({select:async()=>String(id)===user._id?user:null});
   Admin.findById=id=>({select:async()=>String(id)==='2'.repeat(24)?{_id:id,name:'Admin'}:null});
   Record.findById=()=>({lean:async()=>({_id:'3'.repeat(24),testType:'Test',answers:[]})});
   const app=express();app.use(express.json());app.use('/api/user',require('../routes/user'));app.use('/api/admin',require('../routes/admin'));
   await new Promise(resolve=>{server=app.listen(0,'127.0.0.1',resolve);});base='http://127.0.0.1:'+server.address().port;
 });
-after(()=>{server?.close();User.findById=original.user;Admin.findById=original.admin;Record.findById=original.record;});
+after(()=>{server?.close();User.findById=original.user;Admin.findById=original.admin;Record.findById=original.record;Rate.findOneAndUpdate=original.rate;});
 const headers=role=>({'Content-Type':'application/json',Authorization:'Bearer '+jwt.sign({id:role==='admin'?'2'.repeat(24):user._id,role},process.env.JWT_SECRET||'your-secret-key',{expiresIn:'1m'})});
 test('member update requires login and edits only the verified member',async()=>{
   const url=base+'/api/user/update-profile';
@@ -36,7 +38,7 @@ test('administrator can read a full record; malformed IDs are rejected',async()=
 });
 test('administrator login accepts normalized email but rejects the removed admin alias',async()=>{
   const findOne=Admin.findOne;let lookups=0;
-  Admin.findOne=async({email})=>{lookups++;assert.equal(email,'yehpty@gmail.com');return {_id:'2'.repeat(24),email,matchPassword:async password=>password==='fixture-only'};};
+  Admin.findOne=async({email})=>{lookups++;assert.equal(email,'yehpty@gmail.com');return {_id:'2'.repeat(24),email,matchPassword:async password=>password==='fixture-only',generateToken:Admin.prototype.generateToken};};
   try {
     const login=email=>fetch(base+'/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:'fixture-only'})});
     assert.equal((await login('admin')).status,401);assert.equal(lookups,0);
