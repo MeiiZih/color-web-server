@@ -7,6 +7,12 @@ export async function request(path, options = {}) {
   return body;
 }
 
+export function isCurrentContent(item, now = Date.now()) {
+  // These six imported activity posters were already classified as historical archives.
+  if (item.type === 'news' && /^\/assets\/images\/act[1-6]\./.test(item.imageUrl || '')) return false;
+  return !item.expiresAt || new Date(item.expiresAt).getTime() > now;
+}
+
 export function safeUrl(value, fallback = '/colorlab-mark.svg') {
   try {
     const url = new URL(value || fallback, location.origin);

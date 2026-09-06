@@ -1,5 +1,5 @@
 import { colors, scoreAnswers, finishSurvey } from './model.mjs';
-import { request, readLocal, saveRecord, safeUrl } from './client.mjs';
+import { request, readLocal, saveRecord, safeUrl, isCurrentContent } from './client.mjs';
 import { restoreSession, clearSession } from './auth.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 restoreSession();
@@ -204,6 +204,7 @@ function bindPage() {
   document.querySelectorAll('.horizontal-list').forEach(list => list.addEventListener('keydown', event => {
     if (event.target !== list || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
     event.preventDefault();
+    if (!list.firstElementChild) return;
     const distance = list.firstElementChild.getBoundingClientRect().width + parseFloat(getComputedStyle(list).gap);
     list.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * distance, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }));
@@ -278,7 +279,7 @@ try {
   try {
     const feed = await request('/api/homepage');
     const mapItem = a => ({ tag: /^\/assets\/images\/act[1-6]\./.test(a.imageUrl || '') ? '歷史活動存檔' : a.type === 'news' ? '最新資訊' : '一般資訊', title: a.title, description: a.description, image: safeUrl(a.imageUrl), url: safeUrl(a.link, ''), sourceNote: a.sourceName ? [a.sourceName, a.sourcePublishedAt && `發布 ${a.sourcePublishedAt}`, a.sourceCheckedAt && `查核 ${a.sourceCheckedAt}`].filter(Boolean).join(' · ') : '' });
-    const currentFeed = feed.filter(a => !a.expiresAt || new Date(a.expiresAt).getTime() > Date.now());
+    const currentFeed = feed.filter(a => isCurrentContent(a));
     articles = currentFeed.filter(a => a.type === 'news').map(mapItem);
     resources = currentFeed.filter(a => a.type === 'common').map(mapItem);
   } catch { articles = []; resources = []; }
