@@ -15,10 +15,14 @@
   transition: transform var(--motion-step) var(--motion-ease);
 }
 .article-card, .resource-card, .history-card { transition: border-color var(--motion-quick) ease-out, background-color var(--motion-quick) ease-out; }
+/* Scoped feedback; no permanent compositor layers or touch-hover movement. */
+@media(prefers-reduced-motion:no-preference) {
+  :is(.first-use-link,.refresh-view,.profile-page>[data-logout],.studio-end [data-signout]) { transition:transform 160ms var(--motion-ease); }
+  :is(.first-use-link,.refresh-view,.profile-page>[data-logout],.studio-end [data-signout]):active { transform:scale(.985); }
+}
+@media(prefers-reduced-motion:no-preference) and (hover:hover) and (pointer:fine) { .first-use-link:hover>.icon:last-child { transform:translateX(2px);transition:transform 160ms var(--motion-ease); } }
 
 /* The heading leads; the paper deck settles once. No idle loop or new artwork. */
-.hero-copy { animation: cl-arrive var(--motion-reveal) var(--motion-ease); }
-.color-studio { animation: cl-arrive var(--motion-reveal) 100ms var(--motion-ease) backwards; }
 .swatch { transform-origin: 50% 88%; transition: transform 320ms var(--motion-ease); }
 .swatch.selected .color-shape { animation: cl-ink var(--motion-reveal) var(--motion-ease); }
 .swatch:focus-visible { z-index: 7; }
@@ -29,10 +33,6 @@
   .swatch:hover { transform: translateY(-15px) rotate(var(--rotate)); }
 }
 
-#main > :is(.survey-list-page, .history-page, .profile-page),
-.account-app[data-studio="false"] #main > :is(.auth-layout, .form-width) {
-  animation: cl-arrive 320ms var(--motion-ease);
-}
 /* Only the form moves between questions. The progress rail and action semantics stay put. */
 .test-page .question-area { animation: none; }
 #question-form { animation: cl-question var(--motion-step) var(--motion-ease); }
@@ -43,9 +43,6 @@
 .option:active { transform: scale(.992); }
 progress::-webkit-progress-value { transition: width var(--motion-step) var(--motion-ease); }
 
-.result-hero { animation: cl-arrive var(--motion-reveal) var(--motion-ease); }
-.result-flower { animation: cl-ink 500ms 80ms var(--motion-ease) backwards; }
-.bar-track > span { transform-origin: left; animation: cl-fill 500ms 160ms var(--motion-ease) backwards; }
 .insight[open] p { animation: cl-arrive 220ms var(--motion-ease); }
 dialog[open] { animation: cl-dialog var(--motion-step) var(--motion-ease); }
 dialog[open]::backdrop { animation: cl-shade 180ms ease-out; }

@@ -4,8 +4,11 @@ import { safeUrl } from './client.mjs';
 import { verificationStatus, bindVerificationStatus } from './verification-status.mjs';
 import {reviewPage,bindReview,adminContentMedia} from './content-review.mjs';
 import { pdfHref, bindAppReturn, sessionIdentity, dataRevision } from './navigation-state.mjs';
+import { statisticsView } from './statistics-view.mjs';
+import { createNavigationMotion } from './navigation-motion.mjs';
 
 const main = document.querySelector('main');
+const navigationMotion = createNavigationMotion(main);
 const modal = document.querySelector('dialog');
 const navigation = document.querySelector('#navigation');
 const studio = document.querySelector('#studio-nav');
@@ -205,6 +208,7 @@ function information(route) {
 }
 
 async function render() {
+  navigationMotion.cancel();
   const seq = ++revision;
   const identity = sessionIdentity(), version = dataRevision();
   if (identity !== retainedIdentity || version !== retainedRevision) invalidateViews();
@@ -232,7 +236,7 @@ async function render() {
     ({page,survey,contentItems,currentRecords,userItems}=retained); mountedKey=routeKey;
     main.inert=false; main.removeAttribute('aria-busy');
     const notice=document.querySelector('#route-status');if(notice)notice.hidden=true;
-    window.scrollTo({top:retained.top,behavior:'instant'}); return;
+    window.scrollTo({top:retained.top,behavior:'instant'}); navigationMotion.commit(routeKey,{restored:true}); return;
   }
   // Leave the previous page painted, but disable its actions until the destination is ready.
   main.setAttribute('aria-busy', 'true'); main.inert = true;
@@ -257,8 +261,7 @@ async function render() {
     else if (current === 'content-review') html=await reviewPage();
     else if (current === 'statistics') {
       const stats=await adminAPI('/api/admin/data-stats');
-      const group=(title,rows,labels={})=>`<section class="panel"><h2>${title}</h2>${table(['分類','份數'],rows.map(r=>[esc(labels[r._id]||r._id||'未分類'),esc(r.count)]))}</section>`;
-      html=`${intro('測驗統計','全站已保存的研究紀錄，不含僅存於裝置的訪客紀錄。')}<p>歷來參與識別數：${esc(stats.totalParticipants)}（依帳號／訪客識別去重，並非即時在線人數）</p>${group('MBTI 結果',stats.mbtiStats)}${group('主要色彩',stats.colorStats,{red:'紅色',yellow:'黃色',green:'綠色',blue:'藍色'})}${group('問卷分布',stats.testTypeStats)}<div class="actions editor-tools">${link('#records','篩選與查看原始紀錄','secondary','history')}</div>`;
+      html=`${intro('測驗統計','用圖表看見每一次探索留下的紀錄。')}${statisticsView(stats)}<div class="actions editor-tools">${link('#records','篩選與查看原始紀錄','secondary','history')}</div>`;
     }
     else if (current === 'records') {
       const [types, records] = await Promise.all([adminAPI('/api/admin/test-types'),adminAPI('/api/admin/test-records?page='+page+'&limit=20')]);
@@ -271,7 +274,8 @@ async function render() {
     main.inert = false; main.focus({preventScroll:true}); window.scrollTo(0,0); bind(loaded);
     if(!['login','admin-login','register'].includes(current))bindAppReturn(main.querySelector('.back-link[href^="/app/#"]'));
     mountedKey=routeKey;
-    if (retainedRoutes.has(current) && isAdmin) main.querySelector('.page-intro')?.insertAdjacentHTML('beforeend','<button type="button" class="text-button" data-refresh-view>更新資料</button>');
+    if (retainedRoutes.has(current) && isAdmin) { const heading=main.querySelector('.page-intro');heading?.classList.add('with-refresh');heading?.insertAdjacentHTML('beforeend','<button type="button" class="refresh-view" data-refresh-view><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.2 7a8 8 0 0 1 13-1L20 9M4 15l1.8 3a8 8 0 0 0 13-1"/></svg><span>更新資料</span></button>'); }
+    navigationMotion.commit(routeKey);
     if (current==='content-review') await bindReview(main,{showDialog,modal,notify,setBusy:value=>{pendingSave=value;}});
   } catch(error) {
     if(seq!==revision)return;

@@ -5,10 +5,11 @@ import { verificationStatus, bindVerificationStatus } from './verification-statu
 import { mediaFor, contentMedia } from './content-media.mjs';
 import { character, characterCast, motionToggle, bindCharacterMotion } from './character-art.mjs';
 import { bindCompanionInteractions } from './companion-interaction.mjs';
-import { historySelection } from './history-view.mjs';
+import { historySelection, historyTests } from './history-view.mjs';
 import { pdfHref, accountHref, sessionIdentity, dataRevision, markDataChanged } from './navigation-state.mjs';
 import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
+import { createNavigationMotion } from './navigation-motion.mjs';
 restoreSession();
 const loadedIdentity=sessionIdentity();
 let loadedRevision=dataRevision();
@@ -21,6 +22,7 @@ window.addEventListener('pageshow',event=>{
 });
 
 const main = document.querySelector('main');
+const navigationMotion = createNavigationMotion(main);
 const dialog = document.querySelector('dialog');
 const nav = document.querySelector('#navigation');
 let previewStorage;
@@ -35,7 +37,7 @@ let FEATURED_SURVEY;
 let member = null;
 let storageKey;
 let historyError = '';
-const historyOptions = {range:'all',from:'',to:'',size:'20',page:1};
+const historyOptions = {test:'all',range:'all',from:'',to:'',size:'20',page:1};
 let historyComplete = false, historyLoading = false;
 const routeScroll = new Map();
 let paintedRoute = '';
@@ -84,6 +86,7 @@ function shape(key, extra = '') {
 
 let articles = [];
 let resources = [];
+const sourceNote = a => a.sourceNote ? `<p class="source-note">${a.sourceNote.split(' · ').flatMap(part=>part.replace(/（資料來源：([^）]+)）/g,' · 來源：$1').split(' · ')).map(part=>`<span>${escape(part)}</span>`).join('')}</p>` : '';
 
 function home() {
   const featured = catalog.find(s => s.id === FEATURED_SURVEY) || catalog[0];
@@ -107,19 +110,19 @@ function home() {
     </section>
     <section class="gentle-note"><span class="note-symbol">↳</span><p>不急著定義自己，<strong>先好好認識自己。</strong></p><span class="note-end">YOUR OWN PACE</span></section>
     <section class="editorial-section" aria-labelledby="news-heading"><div class="section-heading"><div><span class="eyebrow">SOMETHING TO EXPLORE</span><h2 id="news-heading">最近，值得留意的事</h2></div><a class="text-button collection-entry" href="#news">查看全部資訊${icon('arrow')}</a></div>
-      <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
+      <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p>${sourceNote(a)}<span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
       <p class="archive-note">活動日期與參加方式，請以主辦單位公告為準。</p>
     </section>
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><a class="text-button collection-entry" href="#resources">探索全部內容${icon('arrow')}</a></div>
-      <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
+      <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p>${sourceNote(a)}</span>${icon('arrow')}</button>`).join('')}</div>
     </section>
-    <footer class="page-footer organized-footer"><div class="footer-brand"><strong>ColorLab<span class="brand-dot">.</span></strong><p>每一種顏色，都有值得被理解的地方。</p><small>自我探索與心理健康資訊</small></div><nav aria-label="網站資訊"><h2>認識 ColorLab</h2><a href="/app/account.html#about">關於我們</a><a href="/app/account.html#privacy">隱私與資料</a></nav><div class="footer-contact"><h2>與我們聯繫</h2><p>使用上的問題或想法，都可以告訴我們。</p><a href="/app/account.html#contact">意見回饋 ${icon('arrow')}</a></div></footer>
+    <footer class="page-footer organized-footer"><div class="footer-brand"><strong>ColorLab<span class="brand-dot">.</span></strong><p>每一種顏色，都有值得被理解的地方。</p><small>自我探索與心理健康資訊</small><div class="footer-companions" aria-hidden="true">${colors.map(c=>`<img src="/assets/characters/${c.key}.webp" alt="" width="44" height="64" loading="lazy" decoding="async">`).join('')}</div></div><nav aria-label="網站資訊"><h2>認識 ColorLab</h2><a href="/app/account.html#about">關於我們</a><a href="/app/account.html#privacy">隱私與資料</a></nav><div class="footer-contact"><h2>與我們聯繫</h2><p>使用上的問題或想法，都可以告訴我們。</p><a href="/app/account.html#contact">意見回饋 ${icon('arrow')}</a></div></footer>
   </div>`;
 }
 
 function collectionPage(kind) {
   const list=kind==='news'?articles:resources, label=kind==='news'?'最近，值得留意的事':'給心一點空間', attr=kind==='news'?'article':'resource';
-  return `<div class="page-width collection-page"><a href="#home" class="text-button">${icon('back')}返回首頁</a><header class="collection-heading"><span class="eyebrow">${kind==='news'?'SOMETHING TO EXPLORE':'A MOMENT FOR YOURSELF'}</span><h1>${label}</h1><p>${kind==='news'?'工作坊、講座與值得留意的心理健康消息。':'閱讀、支持與休息，依照此刻的需要慢慢探索。'}</p><nav class="collection-switch" aria-label="資訊分類"><a href="#news" ${kind==='news'?'aria-current="page"':''}>最新資訊</a><a href="#resources" ${kind==='resources'?'aria-current="page"':''}>一般資訊</a></nav><span class="muted">共 ${list.length} 則內容</span></header><div class="collection-grid">${list.map((a,i)=>`<button class="article-card" data-${attr}="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p><span class="read-link">閱讀內容與來源 ${icon('arrow')}</span></div></button>`).join('')||'<p class="muted">目前沒有可顯示的內容，請稍後再來看看。</p>'}</div></div>`;
+  return `<div class="page-width collection-page"><a href="#home" class="text-button">${icon('back')}返回首頁</a><header class="collection-heading"><span class="eyebrow">${kind==='news'?'SOMETHING TO EXPLORE':'A MOMENT FOR YOURSELF'}</span><h1>${label}</h1><p>${kind==='news'?'工作坊、講座與值得留意的心理健康消息。':'閱讀、支持與休息，依照此刻的需要慢慢探索。'}</p><nav class="collection-switch" aria-label="資訊分類"><a href="#news" ${kind==='news'?'aria-current="page"':''}>最新資訊</a><a href="#resources" ${kind==='resources'?'aria-current="page"':''}>一般資訊</a></nav><span class="muted">共 ${list.length} 則內容</span></header><div class="collection-grid">${list.map((a,i)=>`<button class="article-card" data-${attr}="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p>${sourceNote(a)}<span class="read-link">閱讀內容與來源 ${icon('arrow')}</span></div></button>`).join('')||'<p class="muted">目前沒有可顯示的內容，請稍後再來看看。</p>'}</div></div>`;
 }
 
 function quizCompanion(index, total, variant) {
@@ -182,11 +185,11 @@ function receipt(record, survey) {
 }
 
 function historyPage() {
-  const view=historySelection(state.records,historyOptions);historyOptions.page=view.page;
-  const options=(list,value)=>list.map(([key,label])=>`<option value="${key}" ${String(value)===String(key)?'selected':''}>${label}</option>`).join('');
+  const view=historySelection(state.records,historyOptions,new Date(),catalog);historyOptions.page=view.page;
+  const options=(list,value)=>list.map(([key,label])=>`<option value="${escape(key)}" ${String(value)===String(key)?'selected':''}>${escape(label)}</option>`).join('');
   return `<div class="narrow-width history-page"><div class="eyebrow">YOUR COLOR DIARY</div><h1>每一次，都更認識自己。</h1><p class="muted">${member?'收藏不同問卷的作答與結果。':'本機訪客紀錄只保存在這個瀏覽器，不會自動合併到帳號。'}</p>
     <div class="history-heading"><h2>${member?'我的測驗紀錄':'本機訪客紀錄'}</h2><span>${view.total} 份${!historyComplete?'（整理中）':''}</span></div>
-    <form class="history-filters" id="history-filters"><label>時間範圍<select name="range">${options([['all','全部時間'],['month','本月'],['half','近半年'],['year','今年'],['custom','自訂日期']],historyOptions.range)}</select></label><label>每頁筆數<select name="size">${options([['20','20 筆'],['50','50 筆'],['100','100 筆'],['150','150 筆'],['all','全部顯示']],historyOptions.size)}</select></label><div class="history-dates" ${historyOptions.range==='custom'?'':'hidden'}><label>開始日期<input type="date" name="from" value="${escape(historyOptions.from)}"></label><label>結束日期<input type="date" name="to" value="${escape(historyOptions.to)}"></label></div></form>
+    <form class="history-filters" id="history-filters"><label class="history-test-filter">測驗類別<select name="test">${options([['all','全部測驗'],...historyTests(state.records,catalog).map(t=>[t.key,t.title])],historyOptions.test)}</select></label><label>時間範圍<select name="range">${options([['all','全部時間'],['month','本月'],['half','近半年'],['year','今年'],['custom','自訂日期']],historyOptions.range)}</select></label><label>每頁筆數<select name="size">${options([['20','20 筆'],['50','50 筆'],['100','100 筆'],['150','150 筆'],['all','全部顯示']],historyOptions.size)}</select></label><div class="history-dates" ${historyOptions.range==='custom'?'':'hidden'}><label>開始日期<input type="date" name="from" value="${escape(historyOptions.from)}"></label><label>結束日期<input type="date" name="to" value="${escape(historyOptions.to)}"></label></div></form>
     <p class="history-load-status" role="status">${escape(historyError||(!historyComplete?'正在整理較早的紀錄，已載入的內容可先查看。':''))}</p>${historyError&&!historyComplete?'<button class="button secondary" data-history-retry>重新讀取較早紀錄</button>':''}
     ${view.invalidRange?'<p role="alert">結束日期不能早於開始日期。</p>':view.groups.length?view.groups.map(group=>`<section class="history-month"><h3>${group.key.includes('-')?group.key.replace(/^(\d+)-(\d+)$/,'$1 年 $2 月'):group.key}</h3>${group.records.map(r=>`<div class="history-entry">${historyCard(r)}<button class="delete-record" data-delete-record="${escape(r.id)}" aria-label="刪除 ${escape(r.title || r.survey?.title || '測驗')} 紀錄">刪除紀錄</button></div>`).join('')}</section>`).join(''):`<div class="empty-state"><h2>${state.records.length?'這段時間沒有紀錄':'第一頁，等你來寫。'}</h2><p>${state.records.length?'試著調整時間範圍。':'完成測驗後，紀錄會出現在這裡。'}</p><a href="#surveys" class="text-button">查看全部測驗${icon('arrow')}</a></div>`}
     <nav class="history-pagination" aria-label="測驗紀錄分頁"><button class="button secondary" data-history-page="${view.page-1}" ${view.page===1?'disabled':''}>上一頁</button><span>第 ${view.page} / ${view.pages} 頁</span><button class="button secondary" data-history-page="${view.page+1}" ${view.page===view.pages?'disabled':''}>下一頁</button></nav><p class="preview-note">${member?'紀錄依完成時間由新到舊排列。':'清除網站資料或更換瀏覽器，可能遺失本機紀錄。'}</p></div>`;
@@ -269,6 +272,7 @@ function render(direction = 'page') {
   main.focus({ preventScroll: true });
   if (!reuse) bindPage();
   if (reusable) publicViews.set(route, {signature, node:main.firstElementChild});
+  navigationMotion.commit(paintedRoute,{restored:reuse});
   if(route==='history'&&!historyError)completeHistory();
 }
 
@@ -343,7 +347,7 @@ function bindPage() {
   document.querySelectorAll('[data-article], [data-resource]').forEach(button => button.addEventListener('click', () => {
     const isResource = button.hasAttribute('data-resource');
     const a = isResource ? resources[Number(button.dataset.resource)] : articles[Number(button.dataset.article)];
-    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p>${contentMedia(a, 'poster')}${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}${sourceHelp(a.url)}`);
+    openDialog(`<span class="eyebrow">${escape(a.tag)}</span><h2 id="dialog-title">${escape(a.title)}</h2><p>${escape(a.description)}</p>${sourceNote(a)}${contentMedia(a, 'poster')}${a.registrationUrl ? `<a class="button secondary" href="${escape(a.registrationUrl)}" target="_blank" rel="noopener noreferrer">主辦報名表${icon('external')}</a> ` : ''}${a.url ? `<a class="button primary" href="${escape(a.url)}" target="_blank" rel="noopener noreferrer">${a.tag === '研究論文' ? '查看期刊原文／DOI' : a.sourceNote ? '查看官方原文' : '前往網站'}${icon('external')}</a>` : '<p class="preview-note">此為原站活動存檔，日期與報名方式請參考海報。</p>'}${sourceHelp(a.url)}`);
   }));
   document.querySelector('[data-previous]')?.addEventListener('click', () => { if (draft().index > 0) { draft().index--; persist(); render('previous'); document.querySelector('legend').focus({ preventScroll: true }); } });
   document.querySelector('#question-form')?.addEventListener('change', event => {

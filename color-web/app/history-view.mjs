@@ -1,6 +1,11 @@
 // Calendar groups use Taiwan dates, not the browser's locale or an approximate month length.
 export const dayKey = value => Number.isFinite(new Date(value).getTime()) ? new Date(new Date(value).getTime()+8*3600000).toISOString().slice(0,10) : '';
-export function historySelection(records, options, now = new Date()) {
+export function historyTest(record, catalog = []) {
+  const title=record.survey?.title||record.title||'未命名測驗';
+  return {key:String(record.surveyId||record.survey?.id||catalog.find(s=>s.title===title)?.id||'legacy:'+title),title};
+}
+export function historyTests(records,catalog=[]){return [...new Map(records.map(r=>{const t=historyTest(r,catalog);return [t.key,t];})).values()].sort((a,b)=>a.title.localeCompare(b.title,'zh-TW'));}
+export function historySelection(records, options, now = new Date(), catalog = []) {
   const today=dayKey(now), month=today.slice(0,7), year=today.slice(0,4);
   const [y,m,d]=today.split('-').map(Number), startMonth=new Date(Date.UTC(y,m-1-6,1));
   const lastDay=new Date(Date.UTC(startMonth.getUTCFullYear(),startMonth.getUTCMonth()+1,0)).getUTCDate();
@@ -8,6 +13,7 @@ export function historySelection(records, options, now = new Date()) {
   const halfYear=startMonth.toISOString().slice(0,10);
   const invalidRange=options.range==='custom'&&options.from&&options.to&&options.from>options.to;
   const matching=records.filter(r=>{
+    if(options.test&&options.test!=='all'&&historyTest(r,catalog).key!==options.test)return false;
     const day=dayKey(r.date);
     if(invalidRange)return false;
     if(options.range==='month')return day.startsWith(month);

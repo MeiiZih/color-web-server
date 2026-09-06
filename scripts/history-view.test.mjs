@@ -1,8 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {historySelection,dayKey} from '../color-web/app/history-view.mjs';
+import {historySelection,historyTests,dayKey} from '../color-web/app/history-view.mjs';
 const records=Array.from({length:251},(_,i)=>({id:String(i),date:new Date(Date.UTC(2026,8,7-i)).toISOString()}));
 const base={range:'all',size:'20',page:1};
+test('test filter uses stable questionnaire identity, preserves legacy and retired surveys',()=>{
+  const catalog=[{id:'color',title:'色彩測驗'}], date='2026-09-07';
+  const rows=[{id:'1',date,title:'色彩測驗',legacy:true},{id:'2',date,surveyId:'color',survey:{title:'色彩測驗'}},{id:'3',date,surveyId:'stress',survey:{title:'壓力探索'}},{id:'4',date,surveyId:'retired',survey:{title:'已下架問卷'}}];
+  assert.equal(historyTests(rows,catalog).length,3);
+  assert.equal(historySelection(rows,{...base,test:'color'},new Date(),catalog).total,2);
+  assert.equal(historySelection(rows,{...base,test:'retired'},new Date(),catalog).total,1);
+  assert.equal(historySelection(rows,{...base,test:'missing'},new Date(),catalog).total,0);
+  assert.equal(historySelection(rows,{...base,test:'all'},new Date(),catalog).total,4);
+});
 test('newest first, monthly grouping, all 251 and each page size',()=>{
   for(const size of ['20','50','100','150','all']){
     const v=historySelection([...records].reverse(),{...base,size});

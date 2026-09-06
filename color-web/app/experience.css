@@ -160,7 +160,10 @@ main[data-flipping] .articulated *,main[data-flipping] .articulated::after { ani
 .guest-account-actions .button{min-width:124px}
 .guest-account .guest-account-note{padding-top:16px;border-top:1px solid var(--line);font-size:14px}
 @media(max-width:600px){.guest-account{padding:20px}.guest-account h2{font-size:19px}.guest-account-actions .button{flex:1;min-width:0}}
-.first-use-link{display:flex;align-items:center;gap:10px;max-width:380px;margin-top:16px;padding:12px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.first-use-link{display:flex;align-items:center;gap:12px;width:min(100%,380px);margin:24px auto 12px;padding:14px 12px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.source-note{display:grid;gap:2px;text-align:left}.source-note>span{display:block;line-height:1.7;word-break:normal;overflow-wrap:normal}
+.history-test-filter{grid-column:1/-1}.history-filters select{max-width:100%}.footer-companions{display:flex;align-items:flex-end;gap:14px;margin-top:16px}.footer-companions img{width:44px;height:64px;object-fit:contain}
+.profile-page>[data-logout]{display:flex;justify-content:center;min-width:148px;margin:28px auto 0;padding:12px 24px}.first-use-link>.icon:first-child{box-sizing:content-box;padding:9px;background:var(--rose-soft);border-radius:12px;color:var(--rose)}
 .first-use-link>span{flex:1}.first-use-link small{display:block;font-size:11px}.first-use-link .icon{width:18px;height:18px}.first-use-link:hover{color:var(--rose)}
 .organized-footer{display:grid;grid-template-columns:1.6fr 1fr 1.2fr;gap:32px;text-align:left;align-items:start}
 .organized-footer .footer-brand>strong{font:600 30px Georgia,serif}.organized-footer h2{font:600 14px var(--body-font);margin:0 0 12px}.organized-footer p{font-size:13px;margin:12px 0;color:var(--muted)}
