@@ -22,7 +22,14 @@ async function main() {
       const file = path.join(dir, entry.name);
       if (entry.isDirectory()) await injectHtml(file);
       else if (entry.name.endsWith('.html') && file !== path.join(output, 'app/pdf.html')) {
-        const source = await fs.readFile(file, 'utf8');
+        let source = await fs.readFile(file, 'utf8');
+        const relative = path.relative(output, file).split(path.sep).join('/');
+        if (relative.startsWith('main/') && !source.includes('http-equiv="refresh"')) {
+          const section = relative.startsWith('main/admin/') ? ' cl-admin' : /login-user|register/.test(relative) ? ' cl-auth' : '';
+          source = source.replace(/<html\b([^>]*)>/i, `<html$1 class="cl-integrated${section}">`)
+            .replace('</head>', '<link rel="stylesheet" href="/css/integrated-shell.css"><script src="/js/integrated-shell.js" defer></script></head>')
+            .replace('content="#f8bcc8"', 'content="#fcf8f4"');
+        }
         await fs.writeFile(file, source.replace(/<head([^>]*)>/i, `<head$1>${inject}`));
       }
     }

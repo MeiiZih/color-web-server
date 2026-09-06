@@ -2,11 +2,17 @@
 
 ## Status
 
-Implementation and local integration validation complete. **Not deployed yet.** Render is signed out; no production database records, hosting settings, or paid plans were changed.
+**Deployed on 2026-09-06** at https://colorlab-start.onrender.com/ using commit `0a7485752848f9183a85ea0e9750fd829b39ff46`. Existing backend remains https://color-web-server-jprj.onrender.com/. No production questionnaire/member records or paid plans were changed by verification.
+
+- Backend deploy: `dep-daedtu6q1p3s738v1p5g`; health 200 / OK, catalog returns the original 20-question questionnaire, unauthenticated records 401, cross-origin preflight 204.
+- Static deploy: `dep-daedun9t0dsc739rhjkg`, Render confirmed Live. Existing `colorlab-start` service now uses root `.`, build `npm ci --prefix Server --omit=dev && node scripts/build-static.cjs`, publish `static-dist`. Auto-deploy was temporarily disabled during configuration then restored to On Commit.
+- Static header `/manifest.webmanifest`: `Content-Type: application/manifest+json`, verified live.
+- Live browser verified homepage real content, visitor completion of all 20 questions, results, all 5 PDF pages rendered, and administrator deep-link redirect to login. Original PDF download response is 703905 bytes with `%PDF-` signature. Server source, `.env`, and design-preview paths return 404.
+- Real member/admin sign-in (requires user entry), physical iPhone standalone PWA, and a newly sleeping backend cold start still require live verification. The cold-start workflow was tested with the local simulated backend.
 
 ## Scope and call chain
 
-- `color-web/app/` is the approved homepage, questionnaire catalog, single-question flow, results/history and member entry. It preserves the warm pink/four-color design. Admin/profile/login pages remain the existing implementation; they have not been completely redesigned.
+- `color-web/app/` is the approved homepage, questionnaire catalog, single-question flow, results/history and member entry. It preserves the warm pink/four-color design. Legacy main pages now receive `integrated-shell.js` and its scoped CSS at static build time: desktop admin sidebar, collapsible mobile navigation, member bottom navigation, warm form panels and mobile table cards. Original form IDs, event handlers and APIs remain unchanged; the new app and PDF viewer do not load the legacy shell.
 - `/api/explore/catalog` reads existing `TestQuestion` documents. Only the recognized original 20-question, four-choice survey uses existing color/MBTI scoring. Other current single-choice questionnaires produce an answer receipt, not invented MBTI scores. Multiple-choice/text/custom scoring are not implemented.
 - New member records require a verified user JWT. `/api/explore/me` and `/records` derive ownership from the database user, not caller-supplied email. Existing login and administrator-first routing remain unchanged.
 - Guests keep device-only records. Member drafts are separated by user ID. Preview data keys are not imported. Guest records are not silently merged into an account.
@@ -43,9 +49,12 @@ Rollback: restore the previous static publish/build configuration and previous b
 ```
 node --test Server/tests/explore.test.cjs Server/tests/explore-client.test.mjs design-preview/model.test.mjs
 node scripts/build-static.cjs
+node --test scripts/static-shell.test.cjs
 node scripts/preview-static.cjs
 ```
 
 The local integration server binds only `127.0.0.1:4180`, uses explicitly labeled fixtures, does not connect to MongoDB or real accounts, and can simulate cold health responses at `/qa/cold`.
+
+`/qa/review` adds deliberately invalid local fixture sessions and responsive 320/390/desktop frames for admin/member UI checks. Its read-only API fixtures and session setup are not copied into the deployable directory. All writes remain blocked. The shared administrator logout removes only administrator session keys from both stores so legacy pages cannot immediately restore the logged-out token; survey drafts and records are preserved.
 
 Passed: 20 tests (catalog/type/version validation, snapshot persistence, corrupt storage, JWT ownership, unauthenticated/admin rejection, invalid answers, repeated submission, original preview scoring/drafts); browser guest 20-question completion, three-question completion, history, original 5-page PDF rendering; desktop/mobile visual checks; simulated cold start -> branded wake -> automatic homepage. Live deployment/member login and physical iPhone PWA remain unverified.
