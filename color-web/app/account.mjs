@@ -12,6 +12,13 @@ const sections = [['admin', '管理總覽', 'home'], ['users', '帳號管理', '
 sections.splice(5,0,['statistics','測驗統計','test']);
 let revision = 0, recordsRevision = 0, current = '', page = 1, dirty = false, pendingSave = false, timer;
 let survey, contentItems = [], currentRecords = [], userItems = [];
+let verificationToken = '';
+function verificationPage(confirm = false) {
+  return `<div class="form-width">${back('#login','回到登入')}${intro(confirm ? '確認這個 Email 屬於你' : '到信箱完成最後一步', confirm ? '請輸入你的 ColorLab 密碼，完成電子郵件驗證。' : '新會員驗證後即可登入。既有會員可自由選擇驗證，不影響原本的使用。')}<section class="panel form-stack"><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>${confirm ? `<form id="verify-form" class="form-stack">${password()}${status}${submit('確認並驗證 Email')}</form>` : `<p>驗證連結有效 24 小時。若沒有收到，請先查看垃圾郵件；重新寄送後請使用最新一封信。</p><form id="resend-form" class="form-stack">${field('email','註冊的電子郵件',sessionStorage.getItem('colorlab:pending-email')||'','type="email" autocomplete="username" required')}${password()}${status}${submit('重新寄送驗證信')}</form>`}<div class="actions">${link('#login','我已驗證，前往登入')}${confirm ? link('#verification','重新寄送驗證信') : ''}</div><p class="hint">若不是你申請的帳號，請勿驗證。</p></section></div>`;
+}
+function verificationProfile(user) {
+  return `<section class="panel form-stack"><h2>Email 驗證</h2><p>${user.emailVerifiedAt ? '已驗證，你的電子郵件已確認。' : '尚未驗證。你是既有會員，可選擇補上驗證，不影響登入與測驗紀錄。'}</p>${user.emailVerifiedAt ? '' : `<form id="request-verification-form" class="form-stack">${status}${submit('寄送驗證信')}</form><p class="hint">寄送至帳號中的 Email；連結有效 24 小時。</p>`}</section>`;
+}
 const adminAPI = (path, options = {}) => api(path, { ...options, role: 'admin' });
 const status = '<p class="form-status" role="alert"></p>';
 const back = (href, title) => `<a class="back-link" href="${esc(href)}">${icon('back')}<span>${esc(title)}</span></a>`;
@@ -58,13 +65,13 @@ document.addEventListener('click', event => {
 });
 window.addEventListener('beforeunload', event => { if (dirty || pendingSave) { event.preventDefault(); event.returnValue = ''; } });
 function authPage(admin = false) {
-  return `<div class="auth-layout"><section class="auth-story"><span class="eyebrow">A LITTLE CLOSER TO YOU</span><h1>每一面，<br>都值得被理解。</h1><p>留一點時間給自己。<br>從一場色彩探索，重新認識你的模樣。</p><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div></section><section class="panel auth-panel">${back('/app/#home', '回到首頁')}<h2>${admin ? '管理員登入' : '歡迎回來'}</h2><p class="hint">${admin ? '使用管理員電子郵件進入管理工作室。' : '登入後，讓每一次探索都有跡可循。'}</p><form id="login-form" class="form-stack">${field('email', admin ? '管理員電子郵件' : '電子郵件', '', 'type="email" autocomplete="username" required')}${password()}${status}${submit(admin ? '登入管理工作室' : '登入')}</form>${admin ? '<a class="auth-switch" href="#login">回到會員登入</a>' : `<div class="auth-links">${link('/app/#surveys', '先以訪客探索')}${link('#register', '建立帳號')}</div><a class="auth-switch" href="#admin-login">管理員登入</a>`}</section></div>`;
+  return `<div class="auth-layout"><section class="auth-story"><span class="eyebrow">A LITTLE CLOSER TO YOU</span><h1>每一面，<br>都值得被理解。</h1><p>留一點時間給自己。<br>從一場色彩探索，重新認識你的模樣。</p><div class="color-marks" aria-hidden="true"><i></i><i></i><i></i><i></i></div></section><section class="panel auth-panel">${back('/app/#home', '回到首頁')}<h2>${admin ? '管理員登入' : '歡迎回來'}</h2><p class="hint">${admin ? '使用管理員電子郵件進入管理工作室。' : '登入後，讓每一次探索都有跡可循。'}</p><form id="login-form" class="form-stack">${field('email', admin ? '管理員電子郵件' : '電子郵件', '', 'type="email" autocomplete="username" required')}${password()}${status}${admin ? '' : link('#verification','重新寄送驗證信')}${submit(admin ? '登入管理工作室' : '登入')}</form>${admin ? '<a class="auth-switch" href="#login">回到會員登入</a>' : `<div class="auth-links">${link('/app/#surveys', '先以訪客探索')}${link('#register', '建立帳號')}</div><a class="auth-switch" href="#admin-login">管理員登入</a>`}</section></div>`;
 }
 function registerPage() {
-  return `<div class="form-width">${back('#login','回到登入')}${intro('建立你的探索空間','登入後的測驗紀錄會保存在帳號中，訪客紀錄不會自動合併。')}<form id="register-form" class="panel form-stack"><div class="form-grid">${field('name','姓名','','autocomplete="name" required')}${select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']])}${field('birthDate','出生日期','','type="date" required max="'+new Date().toISOString().slice(0,10)+'"')}${field('phone','電話（選填）','','type="tel" autocomplete="tel"')}</div>${field('email','電子郵件','','type="email" autocomplete="email" required')}${password('password','密碼','required minlength="6"','new-password')}${password('confirmPassword','確認密碼','required minlength="6"','new-password')}<p class="hint">密碼至少 6 個字元。</p><label class="check-label"><input type="checkbox" name="consent" required><span>我已閱讀並同意 <a href="#privacy" target="_blank">隱私與資料說明</a>。</span></label>${status}${submit('建立帳號')}</form></div>`;
+  return `<div class="form-width">${back('#login','回到登入')}${intro('建立你的探索空間','登入後的測驗紀錄會保存在帳號中，訪客紀錄不會自動合併。')}<form id="register-form" class="panel form-stack"><div class="form-grid">${field('name','姓名','','autocomplete="name" required')}${select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']])}${field('birthDate','出生日期','','type="date" required max="'+new Date().toISOString().slice(0,10)+'"')}${field('phone','電話（選填）','','type="tel" autocomplete="tel"')}</div>${field('email','電子郵件','','type="email" autocomplete="email" required')}${password('password','密碼','required minlength="6"','new-password')}${password('confirmPassword','確認密碼','required minlength="6"','new-password')}<p class="hint">密碼至少 6 個字元。新會員須完成 Email 驗證後才能登入。</p><label class="check-label"><input type="checkbox" name="consent" required><span>我已閱讀並同意 <a href="#privacy" target="_blank">隱私與資料說明</a>。</span></label>${link('#verification','已註冊但沒有收到驗證信？')}${status}${submit('建立帳號並寄送驗證信')}</form></div>`;
 }
 function profilePage(user, isAdmin = false) {
-  return `<div class="form-width">${back(isAdmin ? '#admin' : '/app/#me', isAdmin ? '管理總覽' : '我的空間')}${intro(isAdmin ? '管理員資料' : '我的個人資料','確認內容後按下儲存，變更才會生效。')}<form id="profile-form" class="panel form-stack"><div class="form-grid">${field('name','姓名',user.name,'required autocomplete="name"')}${field('email','電子郵件',user.email,'readonly')}${isAdmin ? field('department','處室',user.department,'required') : select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']],user.gender)}${field('phone','電話（選填）',user.phone,'type="tel" autocomplete="tel"')}${isAdmin ? '' : field('birthDate','出生日期',user.birthDate?.slice(0,10),'type="date"') + field('occupation','職業（選填）',user.occupation)}</div>${isAdmin ? `<details><summary>修改管理員密碼</summary><div class="form-stack">${password('password','新密碼','minlength="6"','new-password')}${password('confirmPassword','確認新密碼','','new-password')}<p class="hint">不修改密碼時請留空。</p></div></details>` : ''}${status}<div class="actions form-actions">${submit('儲存資料')}${button('取消修改','data-reset')}</div></form></div>`;
+  return `<div class="form-width">${back(isAdmin ? '#admin' : '/app/#me', isAdmin ? '管理總覽' : '我的空間')}${intro(isAdmin ? '管理員資料' : '我的個人資料','確認內容後按下儲存，變更才會生效。')}<form id="profile-form" class="panel form-stack"><div class="form-grid">${field('name','姓名',user.name,'required autocomplete="name"')}${field('email','電子郵件',user.email,'readonly')}${isAdmin ? field('department','處室',user.department,'required') : select('gender','性別',[['unknown','不願透露'],['男','男'],['女','女']],user.gender)}${field('phone','電話（選填）',user.phone,'type="tel" autocomplete="tel"')}${isAdmin ? '' : field('birthDate','出生日期',user.birthDate?.slice(0,10),'type="date"') + field('occupation','職業（選填）',user.occupation)}</div>${isAdmin ? `<details><summary>修改管理員密碼</summary><div class="form-stack">${password('password','新密碼','minlength="6"','new-password')}${password('confirmPassword','確認新密碼','','new-password')}<p class="hint">不修改密碼時請留空。</p></div></details>` : ''}${status}<div class="actions form-actions">${submit('儲存資料')}${button('取消修改','data-reset')}</div></form>${isAdmin ? '' : verificationProfile(user)}</div>`;
 }
 function pagination(total, prefix = '') { return `<div class="pagination">${button('上一頁', `data-page="${page-1}" ${page <= 1 ? 'disabled' : ''}`, 'secondary','back')}<span>${prefix}第 ${page} / ${Math.max(1,total)} 頁</span>${button('下一頁', `data-page="${page+1}" ${page >= total ? 'disabled' : ''}`, 'secondary','arrow')}</div>`; }
 function usersView(filter = '') {
@@ -87,7 +94,7 @@ function details(user) { return `<dl class="definition-list">${[['姓名',user.n
 function information(route) {
   if (route === 'contact') return `<div class="form-width">${back('/app/#me','我的空間')}${intro('想告訴我們什麼？','無論是操作問題、建議或資料需求，都可以在這裡留下訊息。')}<form id="contact-form" class="panel form-stack">${area('description','你的訊息','','required maxlength="5000"')}${field('name','稱呼（選填）')}${field('email','電子郵件（選填，供後續聯絡）','','type="email"')}${status}${submit('送出回饋')}</form></div>`;
   if (route === 'about') return `<article class="prose">${back('/app/#home','回到首頁')}${intro('每一面，都是你。','關於 ColorLab')}<section class="panel"><h2>用色彩，開啟自我探索</h2><p>我們是國立臺中科技大學資訊管理系的專題團隊。ColorLab 從日常選擇出發，探索 MBTI 與色彩之間的連結，讓認識自己成為一件容易開始的事。</p></section><section><h2>為誰而設計？</h2><p>給想更認識自己的你，也提供教學研究與輔導對話的參考。本測驗並非經臨床驗證的診斷工具，不能取代專業評估。</p></section><section><h2>我們的團隊</h2><p>余旻諺、蔡美姿、呂依潔、陳湘儒、張嘉哲</p></section><div class="actions">${link('/app/#surveys','開始探索','primary','arrow')}${link('#contact','聯絡我們')}</div></article>`;
-  return `<article class="prose">${back('/app/#me','我的空間')}${intro('隱私與資料說明','了解 ColorLab 如何處理你的資料。')}<section><h2>一般帳號</h2><p>電子郵件與密碼用於登入；姓名、生日、性別、電話與職業用於個人資料及研究統計。電話與職業為選填。密碼以雜湊方式保存。</p></section><section><h2>訪客與會員紀錄</h2><p>新版訪客測驗答案與結果只保存在目前瀏覽器，清除網站資料後可能遺失，不會自動併入會員帳號。登入會員後完成的測驗會儲存至帳號，並保留完成時的題目快照。</p></section><section><h2>瀏覽器與圖片服務</h2><p>網站在裝置保存登入狀態、公開頁面快取與測驗草稿。登出清除登入狀態，但不主動刪除測驗紀錄。管理員上傳的圖片會傳送至本網站原有的 Cloudinary 圖片空間。</p></section><section><h2>測驗與回饋資料</h2><p>測驗答案、結果與完成時間用於產生報告及研究統計。回饋的姓名與電子郵件為選填，供必要的後續聯絡。測驗僅供自我探索與教學研究，不構成心理或醫療診斷。</p></section><section><h2>查詢、更正與刪除</h2><p>你可以在會員資料頁更正個人資料。如需查詢或刪除資料，請透過意見回饋說明需求並留下聯絡方式。</p>${link('#contact','提出資料需求')}</section></article>`;
+  return `<article class="prose">${back('/app/#me','我的空間')}${intro('隱私與資料說明','了解 ColorLab 如何處理你的資料。')}<section><h2>一般帳號</h2><p>電子郵件與密碼用於登入；姓名、生日、性別、電話與職業用於個人資料及研究統計。電話與職業為選填。密碼以雜湊方式保存。</p></section><section><h2>電子郵件驗證</h2><p>新會員須驗證 Email；既有會員可選擇補上驗證。驗證信由 Brevo 代為寄送，會處理收件 Email 與驗證連結，不包含你的測驗答案或結果。連結有效 24 小時，可在驗證頁重新寄送。</p></section><section><h2>訪客與會員紀錄</h2><p>新版訪客測驗答案與結果只保存在目前瀏覽器，清除網站資料後可能遺失，不會自動併入會員帳號。登入會員後完成的測驗會儲存至帳號，並保留完成時的題目快照。</p></section><section><h2>瀏覽器與圖片服務</h2><p>網站在裝置保存登入狀態、公開頁面快取與測驗草稿。登出清除登入狀態，但不主動刪除測驗紀錄。管理員上傳的圖片會傳送至本網站原有的 Cloudinary 圖片空間。</p></section><section><h2>測驗與回饋資料</h2><p>測驗答案、結果與完成時間用於產生報告及研究統計。回饋的姓名與電子郵件為選填，供必要的後續聯絡。測驗僅供自我探索與教學研究，不構成心理或醫療診斷。</p></section><section><h2>查詢、更正與刪除</h2><p>你可以在會員資料頁更正個人資料。如需查詢或刪除資料，請透過意見回饋說明需求並留下聯絡方式。</p>${link('#contact','提出資料需求')}</section></article>`;
 }
 
 async function render() {
@@ -96,6 +103,7 @@ async function render() {
   const [route = 'login', rawId] = location.hash.slice(1).split('/');
   if (current !== route) page = 1;
   current = route || 'login'; const id = rawId ? decodeURIComponent(rawId) : '';
+  if (current === 'verify' && id) { verificationToken = id; history.replaceState(null,'',location.pathname+'#verify'); }
   const role = restoreSession(), isAdmin = adminRoutes.has(current);
   if (isAdmin && role !== 'admin') { location.replace('#admin-login'); return; }
   if (current === 'profile' && role !== 'user') { location.replace('#login'); return; }
@@ -105,6 +113,7 @@ async function render() {
   try {
     if (current === 'login' || current === 'admin-login') html = authPage(current === 'admin-login');
     else if (current === 'register') html = registerPage();
+    else if (current === 'verification' || current === 'verify') html = verificationPage(current === 'verify');
     else if (['about','privacy','contact'].includes(current)) html = information(current);
     else if (current === 'profile' || current === 'admin-profile') { loaded = current==='profile' ? await api('/api/user/profile') : (await adminAPI('/api/admin/profile')).user; html = profilePage(loaded,isAdmin); }
     else if (current === 'admin') html = `${intro('照顧每一次探索。','問卷、內容與帳號，都在這裡有條理地管理。')}<div class="cards">${sections.slice(1).map(([r,t,i])=>`<article class="management-card"><div class="card-symbol">${icon(i)}</div><h2>${t}</h2><p>${({users:'搜尋與查看會員資料。',surveys:'建立新問卷、維護題目與選項。',content:'整理首頁的最新資訊與一般資訊。',records:'篩選、查看與匯出測驗紀錄。',statistics:'查看問卷、MBTI 與色彩的整體分布。',feedbacks:'閱讀使用者的建議與問題。','admin-profile':'更新個人資料與登入密碼。'})[r]}</p>${link('#'+r,'開啟'+t,'secondary','arrow')}</article>`).join('')}</div>`;
@@ -157,6 +166,22 @@ async function upload(input) {
   catch(error){note.textContent=error.message;}finally{input.disabled=false;form.querySelector('[type=submit]').disabled=false;}
 }
 function bind(loaded) {
+  const verify = main.querySelector('#verify-form');
+  if (verify) verify.onsubmit = event => { event.preventDefault(); saveForm(verify, async () => {
+    const result = await api('/api/user/email-verification/confirm',json('POST',{token:verificationToken,password:data(verify).password}));
+    verificationToken=''; sessionStorage.removeItem('colorlab:pending-email');
+    verify.innerHTML=`<p role="status">${esc(result.message)}</p>${link('#login','前往登入','primary')}`;
+  }); };
+  const resend = main.querySelector('#resend-form');
+  if (resend) resend.onsubmit = event => { event.preventDefault(); saveForm(resend, async () => {
+    const result = await api('/api/user/email-verification/resend',json('POST',data(resend)));
+    resend.elements.password.value=''; formError(resend,result.alreadyVerified ? '這個 Email 已驗證，請回到登入頁。' : '驗證信已寄出。請查看信箱；如需重寄，請等候 60 秒。');
+  }); };
+  const requestVerification = main.querySelector('#request-verification-form');
+  if (requestVerification) requestVerification.onsubmit = event => { event.preventDefault(); saveForm(requestVerification,async()=>{
+    const result=await api('/api/user/email-verification/request',json('POST',{}));
+    formError(requestVerification,result.alreadyVerified ? 'Email 已驗證，重新整理即可查看狀態。' : '驗證信已寄出，請查看信箱。60 秒後可以重新寄送。');
+  }); };
   main.querySelectorAll('[data-password]').forEach(toggle=>toggle.onclick=()=>{const input=toggle.previousElementSibling;const show=input.type==='password';input.type=show?'text':'password';toggle.setAttribute('aria-pressed',String(show));toggle.setAttribute('aria-label',show?'隱藏密碼':'顯示密碼');});
   main.querySelectorAll('form:not(#login-form):not(#record-filter)').forEach(form=>form.addEventListener('input',()=>dirty=true));
   const login=main.querySelector('#login-form');
@@ -167,7 +192,7 @@ function bind(loaded) {
     saveSession(result,role);location.assign(role==='admin'?'/app/account.html#admin':'/app/#me');
   });};
   const registration=main.querySelector('#register-form');
-  if(registration)registration.onsubmit=event=>{event.preventDefault();saveForm(registration,async()=>{const values=data(registration);if(values.password!==values.confirmPassword)throw new Error('兩次密碼不同，請再確認。');const result=await api('/api/user/register',json('POST',values));saveSession(result,'user');dirty=false;location.assign('/app/#me');});};
+  if(registration)registration.onsubmit=event=>{event.preventDefault();saveForm(registration,async()=>{const values=data(registration);if(values.password!==values.confirmPassword)throw new Error('兩次密碼不同，請再確認。');const result=await api('/api/user/register',json('POST',values));if(result.verificationRequired){sessionStorage.setItem('colorlab:pending-email',result.email);dirty=false;location.hash='verification';notify(result.message);return;}throw new Error('請重新整理後再試，註冊服務正在更新。');});};
   const profile=main.querySelector('#profile-form');
   if(profile){profile.querySelector('[data-reset]').onclick=()=>{profile.reset();dirty=false;};profile.onsubmit=event=>{event.preventDefault();saveForm(profile,async()=>{const values=data(profile);if(values.password!==undefined&&values.password!==values.confirmPassword)throw new Error('兩次新密碼不同。');const admin=current==='admin-profile';const result=await api('/api/'+(admin?'admin':'user')+'/update-profile',json('PUT',values,admin?'admin':'user'));updateSessionUser(result.user,admin?'admin':'user');await render();notify('資料已儲存。');});};}
   const contact=main.querySelector('#contact-form');
