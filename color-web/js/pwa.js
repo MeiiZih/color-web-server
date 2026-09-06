@@ -67,6 +67,7 @@
   }
 
   function setupUnifiedWait() {
+    if (window.COLORLAB_STATIC) return; // The independent frontend owns its branded wake screen.
     ensureWaitOverlay();
     const delayedShow = window.setTimeout(() => showWaitOverlay(), 220);
     const finishInitialLoad = () => { window.clearTimeout(delayedShow); hideWaitOverlay(); };

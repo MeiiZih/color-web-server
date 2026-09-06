@@ -11,6 +11,13 @@
   <link rel="dns-prefetch" href="https://color-web-server-jprj.onrender.com">
   <title>ColorLab｜調一杯今日心情色</title>
   <style>
+    [hidden] { display: none !important; }
+    .compact-progress { display: none; }
+    @media (max-width: 860px) {
+      .compact-progress { display: flex; align-items: center; gap: 12px; margin: 14px 22px 0; font-size: .72rem; color: #725561; }
+      .compact-progress span { flex: 1; height: 5px; border-radius: 5px; background: #f5e5e8; overflow: hidden; }
+      .compact-progress i { display: block; width: var(--wake-progress, 8%); height: 100%; background: #d57d95; transition: width .5s ease; }
+    }
     :root {
       font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
       color: #413b41;
@@ -490,6 +497,7 @@
       </div>
       <span class="top-note">COLOR MOOD LAB</span>
     </header>
+    <div class="compact-progress" aria-hidden="true">準備你的探索空間<span><i></i></span></div>
 
     <div class="layout">
       <section class="intro" aria-labelledby="pageTitle">
@@ -502,11 +510,12 @@
           <span id="statusText">正在準備 ColorLab 空間</span>
         </div>
         <div class="wake-progress" id="wakeProgress" role="progressbar" aria-label="ColorLab 準備進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8">
-          <div class="wake-progress-copy"><span>準備進度</span><span id="progressText">8%</span></div>
+          <div class="wake-progress-copy"><span>準備進度（估計）</span><span id="progressText">8%</span></div>
           <div class="wake-progress-track"><div class="wake-progress-fill"></div></div>
         </div>
 
         <div class="prompt-card">
+          <button class="prompt-refresh" id="retryConnection" type="button" hidden>重新連線</button>
           <div class="prompt-head">
             <span class="prompt-label">色彩小提問</span>
             <button class="prompt-refresh" id="nextPrompt" type="button" aria-label="換一個色彩小提問">
@@ -583,11 +592,14 @@
       const SERVER_ORIGIN = 'https://color-web-server-jprj.onrender.com';
       const params = new URLSearchParams(window.location.search);
       const requestedPath = params.get('next');
-      const safePath = requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//')
+      const safePath = requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//') && !requestedPath.includes('\\')
         ? requestedPath
         : '/main/common.html';
       const destination = `${SERVER_ORIGIN}${safePath}`;
       const previewMode = params.get('preview') === '1';
+      const embedded = params.get('embedded') === '1' && window.parent !== window;
+      const retryConnection = document.getElementById('retryConnection');
+      let attemptStarted = Date.now();
 
       const palette = {
         coral: { hex: '#ef7180', soft: '#facbd3', single: '珊瑚勇氣', message: '保留熱情，也溫柔地照顧自己的步調。' },
@@ -653,6 +665,7 @@
       };
 
       const warmDestination = async () => {
+        if (embedded) return; // The independent frontend already has its own local assets.
         if (!safePath.startsWith('/main/common.html')) return;
 
         const warmAsset = path => fetch(`${SERVER_ORIGIN}${path}`, {
@@ -808,7 +821,10 @@
         window.setTimeout(() => {
           readyCurtain.classList.add('show');
           readyCurtain.setAttribute('aria-hidden', 'false');
-          window.setTimeout(() => window.location.replace(destination), 1150);
+          window.setTimeout(() => {
+            if (embedded) window.parent.postMessage({ type: 'colorlab:ready' }, location.origin);
+            else window.location.replace(destination);
+          }, 1150);
         }, wait);
       };
 
@@ -825,17 +841,33 @@
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const body = await response.text();
-          if (!body.trim().toUpperCase().includes('OK')) throw new Error('Health check failed');
+          if (body.trim() !== 'OK') throw new Error('Health check failed');
           setProgress(78);
           await warmDestination();
           setProgress(94);
           markReady();
         } catch (_error) {
-          if (!completed) wakeTimer = window.setTimeout(wakeServer, 2600);
+          if (!completed && Date.now() - attemptStarted < 120000 && navigator.onLine) wakeTimer = window.setTimeout(wakeServer, 2600);
+          else if (!completed) {
+            window.clearInterval(progressTimer);
+            statusText.textContent = navigator.onLine ? '這次連線需要久一點，你可以重新連線；作答進度不會清除。' : '目前沒有網路，連線恢復後再試一次。';
+            progressText.textContent = '等待連線';
+            wakeProgress.removeAttribute('aria-valuenow');
+            retryConnection.hidden = false;
+          }
         } finally {
           window.clearTimeout(timeout);
         }
       };
+
+      retryConnection.addEventListener('click', () => {
+        retryConnection.hidden = true;
+        attemptStarted = Date.now();
+        progress = 8;
+        statusText.textContent = '正在準備 ColorLab 空間';
+        startProgress();
+        wakeServer();
+      });
 
       if (previewMode) {
         statusText.textContent = 'ColorLab 色彩空間預覽中';

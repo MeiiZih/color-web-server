@@ -28,6 +28,7 @@ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['X-Report-Pages', 'X-Report-Width', 'X-Report-Height', 'Content-Disposition'],
 }));
 
 // 解析 JSON
@@ -257,6 +258,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/homepage', homepageRoutes);
+app.use('/api/explore', require('./routes/explore'));
 
 // ---- 錯誤處理 ----
 app.use((err, _req, res, _next) => {
