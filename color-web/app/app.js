@@ -242,13 +242,23 @@ function bindPage() {
     const distance = list.firstElementChild.getBoundingClientRect().width + parseFloat(getComputedStyle(list).gap);
     list.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * distance, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }));
-  document.querySelectorAll('[data-hue]').forEach(button => button.addEventListener('click', () => {
+  document.querySelectorAll('[data-hue]').forEach(button => button.addEventListener('click', async () => {
+    if(main.dataset.flipping)return;
+    main.dataset.flipping='true';
+    let turn;
+    try {
     hue = Number(button.dataset.hue);
     document.querySelectorAll('[data-hue]').forEach(el => { const selected = Number(el.dataset.hue) === hue; el.classList.toggle('selected', selected); el.setAttribute('aria-pressed', selected); });
     document.querySelector('.color-caption strong').textContent = `${colors[hue].name}色 · ${colors[hue].title}`;
     const c=colors[hue], d=colorDetails[c.key];
+    if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      turn=button.animate([{transform:getComputedStyle(button).transform},{transform:'perspective(900px) rotateY(0deg) scale(1.08)',offset:.25},{transform:'perspective(900px) rotateY(88deg) scale(1.08)'}],{duration:380,easing:'ease-in',fill:'forwards'});
+      await turn.finished;
+    }
+    if(!button.isConnected || dialog.open)return;
     dialog.classList.add('color-detail-dialog');
     openDialog(`<article class="color-detail" style="--detail-tint:${c.light};--detail-ink:${c.ink}"><div class="color-detail-hero">${character(c.key)}<div><span class="eyebrow">COLORLAB / ${c.en.toUpperCase()}</span><h2 id="dialog-title">${c.name}色 · ${c.title}</h2><p>${c.description}</p></div></div><div class="color-detail-copy">${[['你的色彩力量',d.strengths],['相處時的你',d.relationships],['給自己的照顧',d.care],['留給你的小提問',d.question]].map(([h,p])=>`<section><h3>${h}</h3><p>${p}</p></section>`).join('')}<p class="preview-note">這是 ColorLab 的色彩探索描述，不是固定的人格標籤或心理診斷；每個人都可能有不同色彩的一面。</p></div></article>`);
+    } finally {turn?.cancel();delete main.dataset.flipping;}
   }));
   document.querySelectorAll('[data-article], [data-resource]').forEach(button => button.addEventListener('click', () => {
     const isResource = button.hasAttribute('data-resource');

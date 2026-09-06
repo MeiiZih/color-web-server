@@ -1,6 +1,6 @@
 /* ColorLab's paper cards unfold into a quiet reading space. */
 .color-detail-dialog { padding:0; overflow-x:hidden; }
-.color-detail-dialog[open] { animation:color-unfold 560ms cubic-bezier(.2,.7,.2,1); }
+.color-detail-dialog[open] { animation:color-unfold 650ms cubic-bezier(.2,.7,.2,1); }
 .color-detail-dialog::backdrop { backdrop-filter:blur(4px); }
 .color-detail-dialog .dialog-close { z-index:2; background:var(--white); }
 .color-detail-hero { display:flex; align-items:center; gap:28px; padding:42px 32px 26px; background:var(--detail-tint); color:var(--detail-ink); }
@@ -9,7 +9,24 @@
 .color-detail-copy { padding:26px 32px 32px; display:grid; gap:24px; }
 .color-detail-copy h3 { font:600 20px/1.5 var(--serif); margin-bottom:7px; }
 .color-detail-copy p { line-height:1.9; }
-@keyframes color-unfold { 0%{opacity:0;transform:perspective(1200px) rotateY(-78deg) scale(.78)} 48%{opacity:1;transform:perspective(1200px) rotateY(12deg) scale(.97)} 100%{transform:perspective(1200px) rotateY(0) scale(1)} }
+@keyframes color-unfold { 0%{transform:perspective(1200px) rotateY(-88deg) scale(.55)} 55%{transform:perspective(1200px) rotateY(-24deg) scale(.85)} 100%{transform:perspective(1200px) rotateY(0) scale(1)} }
+.color-detail-dialog[open] .color-detail-copy { animation:detail-arrive 650ms ease-out; }
+@keyframes detail-arrive { 0%,45%{opacity:0;transform:translateY(14px)} 100%{opacity:1;transform:none} }
+/* Independent character paths stay in the companion space, never over answers. */
+.quiz-companion .companion-cast { position:relative; pointer-events:none; --roam-x:9px; --roam-y:-15px; }
+.quiz-companion .companion-member { position:absolute; animation:companion-wander 14s ease-in-out infinite; }
+.quiz-companion .companion-member:nth-child(2) { animation-delay:-3.5s; }
+.quiz-companion .companion-member:nth-child(3) { animation-delay:-7s; }
+.quiz-companion .companion-member:nth-child(4) { animation-delay:-10.5s; }
+@keyframes companion-wander { 0%,100%{transform:translate(0,0)} 18%{transform:translate(var(--roam-x),calc(var(--roam-y)/2)) rotate(3deg)} 36%{transform:translate(calc(var(--roam-x)*-1),var(--roam-y)) rotate(-3deg)} 55%,82%{transform:translate(0,0)} }
+@media(min-width:768px) {
+ .companion-desktop .companion-cast { height:310px; margin:20px 0; --roam-x:24px; --roam-y:-24px; }
+ .companion-desktop .companion-member { width:44%; height:140px; }
+ .companion-desktop .companion-member:nth-child(1) { left:3%;top:12px; }
+ .companion-desktop .companion-member:nth-child(2) { right:3%;top:28px; }
+ .companion-desktop .companion-member:nth-child(3) { left:7%;bottom:0; }
+ .companion-desktop .companion-member:nth-child(4) { right:0;bottom:12px; }
+}
 .collection-entry { flex-shrink:0; color:var(--rose); font-size:12px; }
 .collection-page { padding:28px 40px 60px; }
 .collection-heading { margin:24px 0 28px; }
@@ -56,10 +73,14 @@
   .test-page>.survey-context { display:none; }
   .question-area { animation:none; }
   #question-form { animation:none; transform:none; }
-  .companion-mobile { display:flex; align-items:center; gap:12px; padding:5px 0 10px; margin-bottom:8px; }
-  .companion-mobile .companion-cast { flex:0 0 142px; height:58px; gap:4px; margin:0; }
-  .companion-mobile .companion-member { width:calc((100% - 12px)/4); }
-  .companion-mobile .companion-copy { text-align:left; }
+  .companion-mobile { display:block; padding:10px 0 0; margin-bottom:8px; }
+  .companion-mobile .companion-cast { height:110px; margin:0; }
+  .companion-mobile .companion-member { width:23%; height:90px; bottom:3px; }
+  .companion-mobile .companion-member:nth-child(1) { left:0; }
+  .companion-mobile .companion-member:nth-child(2) { left:25%; }
+  .companion-mobile .companion-member:nth-child(3) { left:50%; }
+  .companion-mobile .companion-member:nth-child(4) { left:75%; }
+  .companion-mobile .companion-copy { display:none; }
   .companion-mobile .companion-copy strong { font-size:12px; }
   .companion-mobile .companion-copy p { font-size:11px; line-height:1.5; }
   .question-progress { margin-bottom:5px; font-size:11px; }
@@ -78,10 +99,13 @@
   .question-bottom { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 }
 @media(max-width:767px) and (max-height:700px) {
-  .companion-mobile .companion-cast { height:48px; }
+  .companion-mobile .companion-cast { height:68px; }
+  .companion-mobile .companion-member { height:60px; }
+  .test-topline { min-height:30px; }
+  .test-topline .text-button { min-height:30px; }
   .companion-mobile { padding:2px 0 6px; margin-bottom:5px; }
   .question-text { font-size:19px; }
-  .test-page legend { margin:9px 0; }
+  .test-page legend { margin:6px 0; }
   .option { min-height:48px; padding:8px 10px; }
   .option-copy { font-size:14px; }
   .options { gap:7px; }
@@ -92,9 +116,9 @@
   .question-actions .button { white-space:nowrap; gap:6px; padding:9px 8px; font-size:13px; }
   .question-actions .icon { width:17px; }
   .companion-mobile .companion-copy { display:none; }
-  .companion-mobile .companion-cast { height:38px; flex:0 0 170px; margin:auto; }
+  .companion-mobile .companion-cast { height:62px; margin:auto; }
   .test-page .option { gap:7px; padding:8px; }
   .option-letter { width:22px; height:22px; }
   .question-text { font-size:18px; }
 }
-@media(prefers-reduced-motion:reduce) { .color-detail-dialog[open]{animation:none} }
+@media(prefers-reduced-motion:reduce) { .color-detail-dialog[open],.color-detail-dialog[open] .color-detail-copy,.quiz-companion .companion-member{animation:none} }
