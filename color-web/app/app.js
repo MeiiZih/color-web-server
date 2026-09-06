@@ -5,6 +5,7 @@ import { verificationStatus, bindVerificationStatus } from './verification-statu
 import { mediaFor, contentMedia } from './content-media.mjs';
 import { character, characterCast, motionToggle, bindCharacterMotion } from './character-art.mjs';
 import { bindCompanionInteractions } from './companion-interaction.mjs';
+import { bindLegacyImport } from './legacy-import.mjs';
 import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
 restoreSession();
@@ -95,7 +96,8 @@ function home() {
     <section class="editorial-section resources" aria-labelledby="resources-heading"><div class="section-heading"><div><span class="eyebrow">A MOMENT FOR YOURSELF</span><h2 id="resources-heading">給心一點空間</h2></div><a class="text-button collection-entry" href="#resources">探索全部內容${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="一般資訊，可左右滑動或使用方向鍵">${resources.map((a, i) => `<button class="resource-card" data-resource="${i}">${contentMedia(a, 'compact')}<span class="resource-copy"><small>${escape(a.tag)}</small><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p><p class="source-note">${escape(a.sourceNote)}</p></span>${icon('arrow')}</button>`).join('')}</div>
     </section>
-    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a class="text-button" href="/app/account.html#install">把 ColorLab 加入主畫面 · 安裝說明</a></p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
+    <aside class="first-visit"><a href="/app/account.html#install"><span class="first-visit-symbol" aria-hidden="true">${icon('home')}</span><span><span class="eyebrow">START HERE</span><strong>初次使用 ColorLab</strong><span>怎麼開始測驗、保存紀錄，或加入手機主畫面？</span><span class="first-visit-link">查看完整使用說明 ${icon('arrow')}</span></span></a></aside>
+    <footer class="page-footer"><span>ColorLab<span class="brand-dot">.</span></span><p>每一種顏色，都有值得被理解的地方。</p><p><a href="/app/account.html#about">關於我們</a> · <a href="/app/account.html#privacy">隱私與資料</a> · <a href="/app/account.html#contact">意見回饋</a></p><small>ColorLab · 自我探索與心理健康資訊</small></footer>
   </div>`;
 }
 
@@ -185,6 +187,7 @@ function openDialog(content) {
 dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
 dialog.addEventListener('close', () => { document.querySelector('#dialog-content').replaceChildren(); dialog.classList.remove('color-detail-dialog'); });
+document.addEventListener('keydown', () => document.querySelectorAll('[data-pointer-focus]').forEach(el => el.removeAttribute('data-pointer-focus')));
 
 function render(direction = 'page') {
   if (!state) return;
@@ -223,6 +226,7 @@ function render(direction = 'page') {
 function bindPage() {
   bindCharacterMotion(main);
   bindCompanionInteractions(main);
+  if (member?.role === 'admin') bindLegacyImport(main, async () => { state.records = await request('/api/explore/records'); render(); notify('舊測驗紀錄已同步。'); });
   document.querySelectorAll('[data-delete-record]').forEach(button=>button.addEventListener('click',()=>{
     const record=state.records.find(r=>r.id===button.dataset.deleteRecord);if(!record)return;
     openDialog(`<h2 id="dialog-title">刪除這份測驗紀錄？</h2><p>${escape(record.title || record.survey?.title || '測驗紀錄')} · ${dateLabel(record.date)}</p><p>刪除後無法復原，不會影響其他紀錄或未完成的問卷。${record.cloud?'此操作會刪除帳號中的這份紀錄。':'此操作只刪除此瀏覽器的這份紀錄。'}</p><p role="alert" id="delete-error"></p><div class="delete-actions"><button class="button secondary" data-cancel-delete>取消</button><button class="button primary" data-confirm-delete>確認刪除</button></div>`);
@@ -260,9 +264,11 @@ function bindPage() {
     const distance = list.firstElementChild.getBoundingClientRect().width + parseFloat(getComputedStyle(list).gap);
     list.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * distance, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }));
-  document.querySelectorAll('[data-hue]').forEach(button => button.addEventListener('click', async () => {
+  document.querySelectorAll('[data-hue]').forEach(button => button.addEventListener('click', async event => {
     if(main.dataset.flipping)return;
     main.dataset.flipping='true';
+    button.toggleAttribute('data-pointer-focus', event.detail > 0);
+    dialog.toggleAttribute('data-pointer-focus', event.detail > 0);
     let turn;
     try {
     hue = Number(button.dataset.hue);

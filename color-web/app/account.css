@@ -1,4 +1,12 @@
+@import url('./content-media.css');
 /* New application components. No legacy selectors or overrides are loaded. */
+.account-app .admin-content-media { width:100%; min-width:0; margin:12px 0; }
+.account-app .admin-content-media .media-poster { margin:0; }
+.account-app .admin-content-media img { aspect-ratio:auto; border-radius:0; }
+.account-app .admin-content-media .source-thumbnail { height:auto; max-height:320px; }
+.account-app .admin-content-media .media-unavailable { padding:24px; text-align:center; }
+.account-app .content-editor-preview { width:100%; max-width:620px; }
+.account-app .content-editor-preview h2 { font-size:20px; margin:0; }
 .account-app { --line:#e8dfdc; --panel:#fffefd; --subtle:#f5efeb; }
 .account-app { padding-top:80px; }
 .account-app .site-header { position:fixed; inset:0 0 auto; height:80px; max-width:none; background:var(--paper); padding:0 32px; z-index:40; }
@@ -93,6 +101,26 @@
 .account-app .prose { max-width:760px; margin:auto; }
 .account-app .prose section { margin:30px 0; }
 .account-app .prose ul { padding-left:22px; line-height:1.9; }
+.account-app .first-use-guide { max-width:880px; }
+.account-app .first-use-guide .guide-step { display:grid; grid-template-columns:44px minmax(0,1fr); gap:20px; padding:28px 0; margin:0; border-top:1px solid var(--line); }
+.account-app .guide-number { font:500 22px/1.5 Georgia,serif; color:var(--rose); padding-top:2px; }
+.account-app .guide-step p { margin:0 0 16px; color:var(--muted); }
+.account-app .guide-step strong { color:var(--ink); }
+.account-app .guide-saving { display:grid; gap:12px; margin:20px 0; }
+.account-app .guide-saving > div { padding:16px 18px; border-left:3px solid var(--rose-soft); background:var(--panel); }
+.account-app .guide-saving dt { font-weight:600; margin-bottom:5px; }
+.account-app .guide-saving dd { margin:0; color:var(--muted); line-height:1.8; }
+.account-app .guide-step .guide-caution { font-size:13px; padding:14px 16px; background:var(--subtle); border-radius:12px; }
+.account-app .guide-mode { padding:18px 20px; margin:20px 0; border:1px solid var(--line); border-radius:16px; }
+.account-app .guide-mode p { font-size:14px; margin:8px 0 0; }
+.account-app .guide-devices { margin-bottom:20px; border-top:1px solid var(--line); }
+.account-app .guide-devices details { padding:0 0 12px; border-bottom:1px solid var(--line); }
+.account-app .guide-devices summary { min-height:52px; padding:16px 8px; cursor:pointer; font-weight:600; color:var(--ink); }
+.account-app .guide-devices summary:focus-visible { outline:3px solid var(--rose); outline-offset:2px; border-radius:8px; }
+.account-app .guide-devices ol { margin:0 0 12px; padding-left:26px; line-height:1.9; }
+.account-app .guide-devices li { padding:3px 0; }
+.account-app .guide-devices a { display:inline-flex; align-items:center; min-height:44px; color:var(--rose); font-size:14px; }
+@media(max-width:700px) { .account-app .first-use-guide .guide-step { grid-template-columns:28px minmax(0,1fr); gap:12px; padding:24px 0; } .account-app .guide-number { font-size:18px; } .account-app .guide-step h2 { font-size:21px; } }
 .account-app dialog { max-height:85dvh; width:min(680px,calc(100% - 32px)); }
 .account-app dialog .actions { margin-top:24px; }
 .account-app dialog .button { margin-top:0; }

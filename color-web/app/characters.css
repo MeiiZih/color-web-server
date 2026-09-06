@@ -92,7 +92,6 @@ html[data-character-motion="off"] .articulated *,html[data-character-motion="off
 .quiz-companion .companion-reply.is-visible { opacity:1; }
 @keyframes companion-idle { 0%,100%{transform:none} 50%{transform:translateY(-2px) scale(1.005,1.015)} }
 @media(prefers-reduced-motion:reduce) { .quiz-companion .character-art { animation:none; } }
-.quiz-companion .companion-flame-tip,.quiz-companion .companion-flame-burst { transform-origin:330px 254px; }
-.quiz-companion .companion-flame-tip { animation:companion-flame-breathe 4.6s ease-in-out infinite; }
-@keyframes companion-flame-breathe { 0%,100%{transform:skewX(-1.4deg) scale(1,.99)} 36%{transform:skewX(2deg) scale(.99,1.045)} 72%{transform:skewX(-1deg) scale(1.01,1.015)} }
-@media(prefers-reduced-motion:reduce) { .quiz-companion .companion-flame-tip { animation:none; } }
+.quiz-companion .companion-flame-burst { pointer-events:none; }
+.quiz-companion .companion-flame-burst path { opacity:.86; }
+@media(prefers-reduced-motion:reduce) { .quiz-companion .companion-flame-burst { display:none; } }

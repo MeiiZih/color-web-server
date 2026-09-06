@@ -5,6 +5,7 @@ const Admin = require('../models/Admin');
 const TestQuestion = require('../models/TestQuestion');
 const TestRecord = require('../models/TestRecord');
 const { catalogEntry, recordView, submissionId } = require('../services/explore');
+const { previewLegacyRecords, importLegacyRecords } = require('../services/legacyRecordImport');
 const router = express.Router();
 const model = import('../../color-web/app/model.mjs');
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -35,6 +36,16 @@ router.use(async (req, res, next) => {
 });
 
 router.get('/me', (req, res) => res.json({ id: String(req.member._id), role: req.memberRole, email: req.member.email, name: req.member.name, ...(req.memberRole === 'user' ? { emailVerifiedAt: req.member.emailVerifiedAt || null, emailVerificationRequired: req.member.emailVerificationRequired === true } : {}) }));
+router.route('/records/legacy-import').all((req, res, next) => {
+  if (req.memberRole !== 'admin') return res.status(403).json({ message: '請使用管理員帳號同步舊紀錄。' });
+  next();
+}).get(handle(async (req, res) => {
+  try { res.json(await previewLegacyRecords(req.member)); }
+  catch (error) { if (!error.status) throw error; res.status(error.status).json({ message: error.message }); }
+})).post(handle(async (req, res) => {
+  try { res.json(await importLegacyRecords(req.member, req.body)); }
+  catch (error) { if (!error.status) throw error; res.status(error.status).json({ message: error.message }); }
+}));
 router.get('/records', handle(async (req, res) => {
   const records = await TestRecord.find(ownerQuery(req)).sort({ timestamp: -1 }).limit(200).lean();
   res.json(records.map(recordView));

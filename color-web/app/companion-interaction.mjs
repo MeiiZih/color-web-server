@@ -12,6 +12,8 @@ const poses = {
 const timings = [0, .12, .4, .75, 1];
 const activeCasts = new WeakMap();
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const flames = new Set(), flameFor = new WeakMap();
+let flameFrame = 0, flameLast = 0;
 
 function animate(node, frames, duration = 1900) {
   if (!node) return null;
@@ -19,28 +21,56 @@ function animate(node, frames, duration = 1900) {
 }
 
 function prepareFlame(button) {
-  // Only the flame tip above the face articulates; the face and body stay intact.
+  // Three moving silhouettes behind the untouched artwork: never over the face.
+  for (const stale of flames) if (!stale.button.isConnected) flames.delete(stale);
   const svg = button.querySelector('svg');
-  const head = svg.querySelector('.character-head');
-  const originalClip = svg.querySelector('clipPath[id$="-head"]');
-  const clip = originalClip.cloneNode(true);
-  clip.id += '-flame';
-  clip.querySelector('rect').setAttribute('height', '264');
-  svg.querySelector('defs').append(clip);
-  originalClip.querySelector('rect').setAttribute('y', '244');
-  originalClip.querySelector('rect').setAttribute('height', '576');
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  group.classList.add('companion-flame-tip');
-  const clipped = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  clipped.setAttribute('clip-path', `url(#${clip.id})`);
-  clipped.append(head.querySelector('image').cloneNode(true));
-  group.append(clipped);
-  head.prepend(group);
-  // An outer wrapper keeps the click burst additive to the ongoing idle timeline.
-  const burst = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  burst.classList.add('companion-flame-burst');
-  group.before(burst); burst.append(group);
+  group.classList.add('companion-flame-burst');
+  const paths = ['#ed7258','#f49a62','#ef5b50'].map(fill => {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('fill', fill); group.append(path); return path;
+  });
+  svg.insertBefore(group, svg.querySelector('g'));
+  const flame = {button, paths, time:0, burst:Infinity, mobile:!!button.closest('.companion-mobile')};
+  flames.add(flame); flameFor.set(button, flame); drawFlame(flame, 0);
+  scheduleFlames();
 }
+
+function drawFlame(flame, energy) {
+  [[130,505,385,95],[328,370,425,112],[502,465,365,94]].forEach(([x,y,h,w], i) => {
+    const phase = flame.time * (1.9 + i*.19) + i*2.2;
+    const sway = Math.sin(phase)*30 + Math.sin(phase*.61)*12;
+    const height = h*(.94 + .065*Math.sin(phase+.8)) + energy*(90+i*15);
+    const tipX = x+sway, tipY = y-height;
+    // The tip and two shoulders move at different phases, so the contour curls.
+    const curl = Math.sin(phase-1.1)*25;
+    flame.paths[i].setAttribute('d', `M${x-w*.55} ${y} C${x-w*.9} ${y-height*.31} ${tipX+curl} ${y-height*.57} ${tipX} ${tipY} C${tipX+25} ${tipY+height*.22} ${x+w*.9+curl} ${y-height*.45} ${x+w*.6} ${y-height*.13} Q${x+w*.3} ${y+15} ${x-w*.55} ${y}Z`);
+  });
+}
+
+function scheduleFlames() {
+  if (!flameFrame && flames.size && !document.hidden && !reduced()) flameFrame = requestAnimationFrame(tickFlames);
+}
+function tickFlames(now) {
+  flameFrame = 0;
+  if (document.hidden || reduced()) { flameLast=0; return; }
+  const elapsed = flameLast ? now-flameLast : 0;
+  if (elapsed && elapsed < 32) { scheduleFlames(); return; }
+  flameLast = now;
+  const dt = Math.min(elapsed,64)/1000;
+  const mobile = matchMedia('(max-width:767px)').matches;
+  for (const flame of flames) {
+    if (!flame.button.isConnected) { flames.delete(flame); continue; }
+    if (flame.mobile !== mobile) continue;
+    flame.time += dt; flame.burst += dt;
+    const u = Math.min(1,flame.burst/1.9);
+    const energy = Number.isFinite(u) ? Math.pow(Math.sin(Math.PI*u),1.4) : 0;
+    drawFlame(flame, energy);
+  }
+  scheduleFlames();
+}
+document.addEventListener('visibilitychange', () => { flameLast=0; scheduleFlames(); });
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { flameLast=0; scheduleFlames(); });
 
 function prepareYellow(button) {
   // Crop only the outside forearm, not the head/torso wedge used by the old rig.
@@ -72,6 +102,7 @@ function greet(button) {
   const stop = () => {
     if (stopped) return;
     stopped = true;
+    const flame = flameFor.get(button); if (flame) flame.burst=Infinity;
     animations.forEach(a => a?.cancel());
     clearTimeout(timer);
     button.classList.remove('is-greeting');
@@ -98,15 +129,7 @@ function greet(button) {
     animations.push(animate(head, [{transform:'none'}, {transform:tilt,offset:.43}, {transform:'none',offset:.88}, {transform:'none'}]));
   }
   if (key === 'red') {
-    animations.push(animate(button.querySelector('.companion-flame-burst'), [
-      {transform:'none',offset:0},
-      {transform:'scale(1.025,.95) skewX(-2deg)',offset:.12},
-      {transform:'scale(.96,1.19) skewX(5deg)',offset:.32},
-      {transform:'scale(1.025,1.06) skewX(-4deg)',offset:.49},
-      {transform:'scale(.98,1.12) skewX(3deg)',offset:.64},
-      {transform:'scale(1.01,.99) skewX(-1deg)',offset:.83},
-      {transform:'none',offset:1}
-    ]));
+    flameFor.get(button).burst=0;
   }
   if (key === 'yellow') {
     animations.push(animate(button.querySelector('.character-arm'), [

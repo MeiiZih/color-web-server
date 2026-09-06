@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Admin = require('../models/Admin');
 const TestRecord = require('../models/TestRecord');
+const { originalRecordsOnly } = require('../services/legacyRecordImport');
 const TestQuestion = require('../models/TestQuestion');
 const Feedback = require('../models/Feedback');
 
@@ -205,7 +206,7 @@ router.get('/test-records', adminProtect, async (req, res) => {
     try {
         const { testType, mbtiResult, colorResult, page = 1, limit = 50 } = req.query;
         
-        let query = {};
+        let query = { ...originalRecordsOnly };
         if (testType && testType !== 'ALL') {
             query.testType = testType;
         }
@@ -278,6 +279,7 @@ router.get('/data-stats', adminProtect, async (req, res) => {
         console.log('正在取得數據統計...');
         // 總測驗人數 - 計算不重複的使用者
         const totalParticipants = await TestRecord.aggregate([
+            { $match: originalRecordsOnly },
             {
                 $group: {
                     _id: {
@@ -295,7 +297,7 @@ router.get('/data-stats', adminProtect, async (req, res) => {
         const totalCount = totalParticipants.length > 0 ? totalParticipants[0].total : 0;
         
         // 建立基礎篩選條件
-        let baseMatch = {};
+        let baseMatch = { ...originalRecordsOnly };
         if (req.query.testType && req.query.testType !== 'ALL') {
             baseMatch.testType = req.query.testType;
         }
@@ -339,6 +341,7 @@ router.get('/data-stats', adminProtect, async (req, res) => {
 
         // 問卷類型統計
         const testTypeStats = await TestRecord.aggregate([
+            { $match: originalRecordsOnly },
             { $group: { _id: '$testType', count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);

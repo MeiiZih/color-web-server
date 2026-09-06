@@ -1,11 +1,16 @@
 import {esc,date,link,button} from './ui.mjs';
 import {api,json} from './auth.mjs';
 import {safeUrl} from './client.mjs';
+import {mediaFor,contentMedia} from './content-media.mjs';
+export function adminContentMedia(item={}){
+ const media=mediaFor(item);
+ return `<figure class="admin-content-media" aria-label="貼文圖片預覽">${contentMedia({...item,media:{...media,imageUrl:media.imageUrl?safeUrl(media.imageUrl,''):''}},'poster')}</figure>`;
+}
 const request=(path,options={})=>api('/api/admin/content-review'+path,{...options,role:'admin'});
 const actions={add:'建議新增',update:'建議更正',remove:'建議下架'};
 const states={pending:'待審核',approved:'已核准',rejected:'已略過',restored:'已恢復'};
 const external=(url,label)=>`<a href="${esc(safeUrl(url,'#'))}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`;
-const detail=(title,c)=>`<section class="review-copy"><h4>${title}</h4>${c?`<strong>${esc(c.title)}</strong>${c.imageUrl?`<figure class="review-art"><img src="${esc(safeUrl(c.imageUrl,'#'))}" alt="貼文插圖預覽" loading="lazy"><figcaption>${c.imageUrl.startsWith('/assets/images/posts/')?'ColorLab AI 主題示意・非官方海報':'原有資訊圖片'}</figcaption></figure>`:''}<p>${esc(c.description)}</p><p class="hint">${esc(c.sourceName||'')} · ${c.type==='news'?'最新資訊':'一般資訊'}</p>${c.expiresAt?`<p class="hint">截止／下架時間：${date(c.expiresAt)}</p>`:''}`:'<p class="hint">尚未刊登</p>'}</section>`;
+const detail=(title,c)=>`<section class="review-copy"><h4>${title}</h4>${c?`<strong>${esc(c.title)}</strong>${adminContentMedia(c)}<p>${esc(c.description)}</p><p class="hint">${esc(c.sourceName||'')} · ${c.type==='news'?'最新資訊':'一般資訊'}</p>${c.expiresAt?`<p class="hint">截止／下架時間：${date(c.expiresAt)}</p>`:''}`:'<p class="hint">尚未刊登</p>'}</section>`;
 export async function reviewPage(){
  return `<div class="page-intro"><span class="eyebrow">COLORLAB / CONTENT DESK</span><h1>每週資訊待審</h1><p>先看來源，再決定留給大家的內容。未核准的建議不會公開。</p></div><section class="review-summary panel"><div><strong>你的內容編輯桌</strong><p class="hint">每週電腦、網路與 Codex 可執行時補跑一次，整理後同步到這裡並寄摘要信。</p></div><a class="button secondary" href="#content">查看首頁資訊</a></section><div class="review-tabs" role="group" aria-label="審核狀態">${Object.entries(states).map(([key,label])=>`<button type="button" class="button secondary" data-review-state="${key}" aria-pressed="${key==='pending'}">${label}</button>`).join('')}</div><div id="review-results" aria-live="polite"></div><details class="panel review-import"><summary>手動匯入已查核清單</summary><p class="hint">自動同步暫停時可使用；匯入只建立待審建議，不會發布。每週清單同步後不可覆寫。</p><label>選取清單 JSON<input type="file" accept="application/json,.json" data-review-file></label><p role="status" data-import-status></p></details>`;
 }
