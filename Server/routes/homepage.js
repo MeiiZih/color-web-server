@@ -48,6 +48,7 @@ const upload = multer({ storage: storage });
 // 取得最新/一般資訊（可分類type/news/common）
 router.get('/', async (req, res) => {
     try {
+        res.set('Cache-Control', 'no-store');
         const { type } = req.query;
         const filter = type ? { type } : {};
         const homepage = await Homepage.find(filter).sort({ createdAt: -1 });

@@ -2,50 +2,7 @@ const Homepage = require('../models/Homepage');
 const TestQuestion = require('../models/TestQuestion');
 const colorTestQuestions = require('../data/finalSurveyQuestions');
 
-const defaultNews = [
-    {
-        type: 'news',
-        title: '輔導股長系列培訓｜社會劇工作坊',
-        imageUrl: '/assets/images/act1.png',
-        link: '/assets/images/act1.png',
-        description: '透過社會劇練習人際互動與關係中的表達。'
-    },
-    {
-        type: 'news',
-        title: '2025 臺中有愛｜年輕情感經營工作坊',
-        imageUrl: '/assets/images/act2.png',
-        link: '/assets/images/act2.png',
-        description: '從知識、互動與分享中認識健康的親密關係。'
-    },
-    {
-        type: 'news',
-        title: '情緒釀造所｜情緒探索團體',
-        imageUrl: '/assets/images/act3.jpg',
-        link: '/assets/images/act3.jpg',
-        description: '在安全的團體空間裡探索情緒，也練習與自己連結。'
-    },
-    {
-        type: 'news',
-        title: '人際成長團體 ACE',
-        imageUrl: '/assets/images/act4.png',
-        link: '/assets/images/act4.png',
-        description: '以活動、繪畫與討論，覺察自己並練習連結他人。'
-    },
-    {
-        type: 'news',
-        title: '苗栗賽夏族原鄉部落探索體驗',
-        imageUrl: '/assets/images/act5.jpg',
-        link: '/assets/images/act5.jpg',
-        description: '走進向天湖部落，認識賽夏族文化與自然環境。'
-    },
-    {
-        type: 'news',
-        title: '國際頂尖學者講座｜你想活出怎樣的人生？',
-        imageUrl: '/assets/images/act6.jpg',
-        link: '/assets/images/act6.jpg',
-        description: '從生態成人禮出發，思考成長與人生方向。'
-    }
-];
+const defaultNews = []; // School-only historical activities are no longer seeded.
 
 const defaultResources = [
     {
@@ -96,11 +53,12 @@ const defaultSurvey = {
     testType: '我在色彩學中的MBTI',
     totalQuestions: colorTestQuestions.length,
     questions: colorTestQuestions,
-    description: '我們是國立臺中科技大學資訊管理系的學生。此份問卷主要想探討 MBTI 與色彩學之間的聯繫。整份問卷共有 20 道題目，約需 6 分鐘，請依第一直覺作答。',
+    description: '從日常選擇探索個性與色彩的連結。共 20 題，約需 6 分鐘，請依第一直覺作答。本測驗僅供自我探索，不能取代心理師或醫師的專業評估。',
     imgUrl: '/assets/images/test.png'
 };
 
 async function insertHomepageDefaults(type, items) {
+    if (!items.length) return 0;
     const existingCount = await Homepage.countDocuments({ type });
     if (existingCount > 0) return 0;
 

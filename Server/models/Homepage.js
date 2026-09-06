@@ -7,6 +7,8 @@ const homepageSchema = new mongoose.Schema({
     link: { type: String, required: true },
     description: { type: String, required: true },
     sourceName: String,
+    contentKind: { type: String, enum: ['workshop', 'lecture', 'article', 'paper', 'resource'] },
+    registrationUrl: String,
     sourcePublishedAt: String,
     sourceCheckedAt: String,
     expiresAt: Date,

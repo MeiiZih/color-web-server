@@ -280,6 +280,7 @@ async function startServer() {
   await connectDB();
   await seedDefaultContent();
   await require('./services/publishOfficialContent')();
+  await require('./services/publishPublicMentalHealth')();
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
