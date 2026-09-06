@@ -12,14 +12,22 @@ export function bindVerificationStatus(root, load, onChange = () => {}) {
   dispose();
   if (!root) return;
   let active = true, busy = false, lastChecked = 0;
-  const refresh = async () => {
+  const refresh = async (manual = false) => {
     if (!active || !root.isConnected || busy) return;
     busy = true;
+    const restoreFocus = document.activeElement === root.querySelector('button');
     root.setAttribute('aria-busy', 'true');
     root.querySelector('button').disabled = true;
+    root.querySelector('button').textContent = '正在確認…';
+    root.querySelector('[data-verification-message]').textContent = '正在查詢最新驗證狀態，請稍候。';
     try {
       const user = await load();
-      if (active && root.isConnected) { root.innerHTML = verificationStatus(user); onChange(user); }
+      if (active && root.isConnected) {
+        root.innerHTML = verificationStatus(user); onChange(user);
+        if (manual) root.querySelector('[data-verification-message]').textContent = user.emailVerifiedAt
+          ? '已重新確認：你的 Email 已完成驗證。'
+          : '已重新確認：目前尚未驗證。請先寄送驗證信，再點開信中的驗證連結；重新確認狀態不會寄信或自動完成驗證。';
+      }
     } catch {
       if (active && root.isConnected) {
         if (root.querySelector('.verification-badge').textContent.includes('正在確認')) root.querySelector('.verification-badge').textContent = '狀態待確認';
@@ -27,11 +35,15 @@ export function bindVerificationStatus(root, load, onChange = () => {}) {
       }
     } finally {
       busy = false; lastChecked = Date.now();
-      if (active && root.isConnected) { root.removeAttribute('aria-busy'); root.querySelector('button').disabled = false; }
+      if (active && root.isConnected) {
+        root.removeAttribute('aria-busy'); root.querySelector('button').disabled = false;
+        root.querySelector('button').textContent = '重新確認狀態';
+        if (restoreFocus) root.querySelector('button').focus({ preventScroll: true });
+      }
     }
   };
   const resume = () => { if (!document.hidden && Date.now() - lastChecked > 2000) refresh(); };
-  const click = event => { if (event.target.closest('[data-check-verification]')) refresh(); };
+  const click = event => { if (event.target.closest('[data-check-verification]')) refresh(true); };
   root.addEventListener('click', click);
   window.addEventListener('focus', resume);
   document.addEventListener('visibilitychange', resume);
