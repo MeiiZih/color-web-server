@@ -17,7 +17,7 @@ body:has(.color-detail-dialog[open]) main .articulated *,body:has(.color-detail-
 .quiz-companion .companion-member:nth-child(2) { animation-delay:-3.5s; }
 .quiz-companion .companion-member:nth-child(3) { animation-delay:-7s; }
 .quiz-companion .companion-member:nth-child(4) { animation-delay:-10.5s; }
-@keyframes companion-wander { 0%,100%{transform:translate(0,0)} 18%{transform:translate(var(--roam-x),calc(var(--roam-y)/2)) rotate(3deg)} 36%{transform:translate(calc(var(--roam-x)*-1),var(--roam-y)) rotate(-3deg)} 55%,82%{transform:translate(0,0)} }
+@keyframes companion-wander { 0%,100%{transform:translate(0,0)} 25%{transform:translate(var(--roam-x),calc(var(--roam-y)/2)) rotate(2deg)} 50%{transform:translate(0,var(--roam-y))} 75%{transform:translate(calc(var(--roam-x)*-1),calc(var(--roam-y)/2)) rotate(-2deg)} }
 @media(min-width:768px) {
  .companion-desktop .companion-cast { height:310px; margin:20px 0; --roam-x:24px; --roam-y:-24px; }
  .companion-desktop .companion-member { width:44%; height:140px; }

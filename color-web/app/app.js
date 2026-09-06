@@ -187,6 +187,22 @@ dialog.addEventListener('close', () => { document.querySelector('#dialog-content
 
 function render(direction = 'page') {
   if (!state) return;
+  // Keep the mounted cast and its animation timelines alive between questions.
+  if (['next','previous'].includes(direction) && document.body.dataset.page === 'test' && main.querySelector('#question-form')) {
+    const next = document.createElement('template');
+    next.innerHTML = test();
+    main.dataset.stepMotion = direction;
+    for (const selector of ['#question-form','.question-progress','progress','.test-sidebar ol']) {
+      main.querySelector(selector).replaceWith(next.content.querySelector(selector));
+    }
+    main.querySelectorAll('.quiz-companion').forEach((companion, i) => {
+      const updated = next.content.querySelectorAll('.quiz-companion')[i];
+      companion.querySelector('[data-companion-message]').textContent = updated.querySelector('[data-companion-message]').textContent;
+      companion.querySelectorAll('.companion-member').forEach((el, j) => el.classList.toggle('is-active', updated.querySelectorAll('.companion-member')[j].classList.contains('is-active')));
+    });
+    bindPage();
+    return;
+  }
   if (dialog.open) dialog.close();
   const [rawRoute, id] = location.hash.slice(1).split('/');
   const route = rawRoute || 'home';
@@ -252,7 +268,7 @@ function bindPage() {
     document.querySelector('.color-caption strong').textContent = `${colors[hue].name}色 · ${colors[hue].title}`;
     const c=colors[hue], d=colorDetails[c.key];
     if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
-      turn=button.animate([{transform:getComputedStyle(button).transform},{transform:'perspective(900px) rotateY(88deg) scale(1.02)'}],{duration:220,easing:'cubic-bezier(.4,0,.8,1)',fill:'forwards'});
+      turn=button.animate([{transform:getComputedStyle(button).transform,opacity:1},{transform:'perspective(900px) rotateY(80deg) scale(1.02)',opacity:.25}],{duration:280,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
       await turn.finished;
     }
     if(!button.isConnected || dialog.open)return;
