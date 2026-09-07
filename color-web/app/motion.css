@@ -71,3 +71,15 @@ dialog[open]::backdrop { animation: cl-shade 180ms ease-out; }
   html { scroll-behavior: auto; }
   :is(.button, .back-link, .text-button, .option):active:not(:disabled) { transform: none; }
 }
+/* Success is a short, opaque interstitial before the destination is revealed. */
+.brand-entry{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;gap:14px;background:#fbf8f4eb;pointer-events:none;animation:brand-entry-out .2s .4s ease-in forwards}.brand-entry>span{font:600 32px Georgia,serif;color:#393435}.brand-entry img{animation:brand-entry-in .35s cubic-bezier(.2,.8,.2,1) both}.brand-entry .brand-dot{color:#9d4564}
+@keyframes brand-entry-in{from{opacity:0;transform:translateY(6px) scale(.92)}to{opacity:1;transform:none}}@keyframes brand-entry-out{to{opacity:0;visibility:hidden}}
+@media(prefers-reduced-motion:reduce){.brand-entry img{animation:none}.brand-entry{animation:none}}
+.completion-feedback{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:24px;background:#fcf8f4;color:#393435;transition:opacity .14s ease-in}.completion-feedback.is-leaving{opacity:0;pointer-events:none}.completion-content{display:grid;justify-items:center;gap:12px;text-align:center;animation:completion-arrive .38s cubic-bezier(.2,.8,.2,1) both}
+.completion-feedback strong{font:600 18px/1.5 system-ui}.completion-feedback small{font:13px/1.6 system-ui;color:#746d70}
+.completion-mark{position:relative;display:block;width:48px;height:48px;background:#f3e6eb;border-radius:50%}.completion-mark svg{width:48px;height:48px;fill:none;stroke:#9d4564;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.completion-mark path{stroke-dasharray:40;animation:completion-check .32s .1s ease-out both}
+.completion-mark i{position:absolute;left:22px;top:22px;width:5px;height:5px;border-radius:50%;background:var(--dot);animation:completion-dot .5s cubic-bezier(.2,.8,.2,1) both}.completion-mark i:nth-of-type(1){--x:-34px;--y:-23px;--dot:#df7280}.completion-mark i:nth-of-type(2){--x:35px;--y:-19px;--dot:#edc96c}.completion-mark i:nth-of-type(3){--x:32px;--y:28px;--dot:#89aa8c}.completion-mark i:nth-of-type(4){--x:-31px;--y:30px;--dot:#8bb1d1}
+@keyframes completion-arrive{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes completion-check{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+@keyframes completion-dot{from{transform:translate(0,0);opacity:0}40%{opacity:1}to{transform:translate(var(--x),var(--y));opacity:0}}
+@media(prefers-reduced-motion:reduce){.completion-feedback{transition:none}.completion-content,.completion-mark path,.completion-mark i{animation:none}.completion-mark i{display:none}}

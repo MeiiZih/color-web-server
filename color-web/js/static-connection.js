@@ -33,11 +33,13 @@
         window.removeEventListener('message', onReady);
         // Release API requests now, but keep the painted wake screen until the app can replace it.
         let revealing = false;
+        const logoReadyAt = performance.now() + (matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450);
         const main = document.querySelector('#main');
         const observer = new MutationObserver(checkContent);
         const fallback = window.setTimeout(reveal, 8000);
         function reveal() {
           if (revealing) return;
+          if (performance.now() < logoReadyAt) { window.setTimeout(reveal, logoReadyAt - performance.now()); return; }
           revealing = true;
           observer.disconnect();
           window.clearTimeout(fallback);

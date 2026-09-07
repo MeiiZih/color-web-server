@@ -21,4 +21,18 @@ export const motionToggle = () => '';
 export function bindCharacterMotion(root = document) {
   delete document.documentElement.dataset.characterMotion;
   root.querySelectorAll('[data-character-toggle]').forEach(button => button.remove());
+  root.querySelectorAll('[data-result-character]:not([data-motion-bound])').forEach(button=>{
+    button.dataset.motionBound='true';
+    button.addEventListener('click',event=>{
+      button.toggleAttribute('data-pointer-focus',event.detail>0);
+      const stage=button.closest('.result-characters');if(stage.dataset.playing)return;
+      const art=button.querySelector('.character-art'),key=button.dataset.resultCharacter;
+      const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+      const poses={red:'translateY(-2px) rotate(-3deg)',yellow:'translateY(-7px)',green:'rotate(3deg)',blue:'translateY(-3px) rotate(-3deg)'};
+      const frames=[{transform:'none',offset:0,easing:'ease-in-out'},{transform:poses[key],offset:.42,easing:'ease-in-out'},{transform:'none',offset:1}];
+      stage.dataset.playing='true';
+      const animation=art.animate(reduced?[{opacity:1},{opacity:.85},{opacity:1}]:frames,{duration:reduced?180:1000});
+      animation.finished.catch(()=>{}).finally(()=>delete stage.dataset.playing);
+    });
+  });
 }

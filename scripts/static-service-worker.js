@@ -1,11 +1,13 @@
 // Independent frontend: cache public shell only, never tokens, records, APIs or Render wake HTML.
-const CACHE = 'colorlab-static-shell-v16';
+const CACHE = 'colorlab-static-shell-v17';
 const SHELL = ['/app/', '/app/app.js', '/app/model.mjs', '/app/client.mjs', '/app/auth.mjs', '/app/ui.mjs', '/app/account.html', '/app/account.mjs', '/app/account.css', '/app/style.css', '/app/motion.css', '/js/static-connection.js', '/colorlab-mark.svg', '/wake.html'];
 SHELL.push('/app/verification-status.mjs', '/app/verification-status.css');
 SHELL.push('/app/character-art.mjs');
 SHELL.push('/assets/images/survey-color-cover-20260906.webp');
 SHELL.push('/app/companion-interaction.mjs', '/app/content-illustrations.mjs', '/app/legacy-import.mjs');
 SHELL.push('/app/source-help.mjs');
+SHELL.push('/app/result-summary.mjs', '/app/completion-feedback.mjs');
+SHELL.push('/app/exploration-interactions.mjs', '/app/crayon-b.webp');
 SHELL.push('/app/quiz-feedback.mjs', '/app/navigation-motion.mjs', '/app/statistics-view.mjs', '/app/statistics.css');
 SHELL.push('/app/content-review.mjs','/app/content-review.css');
 SHELL.push('/app/experience.css','/app/color-details.mjs');

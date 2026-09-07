@@ -256,6 +256,10 @@ router.get('/test-types', adminProtect, async (req, res) => {
 });
 
 // 取得數據統計 (暫時移除權限驗證)
+router.get('/result-feedback-stats', adminProtect, async(_req,res)=>{
+    try {res.set('Cache-Control','no-store').json(await require('../services/resultFeedback').statistics());}
+    catch {res.status(500).json({message:'無法讀取結果回饋統計。'});}
+});
 router.get('/data-stats', adminProtect, async (req, res) => {
     try {
         console.log('正在取得數據統計...');

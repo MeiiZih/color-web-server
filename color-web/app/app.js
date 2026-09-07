@@ -11,7 +11,11 @@ import { colorDetails } from './color-details.mjs';
 import { sourceHelp } from './source-help.mjs';
 import { createNavigationMotion } from './navigation-motion.mjs';
 import { createQuizFeedback } from './quiz-feedback.mjs';
+import { resultSummary, resultColorWash } from './result-summary.mjs';
+import { showCompletion, showBrandEntry } from './completion-feedback.mjs';
+import { reflectionView, bindExplorationInteractions } from './exploration-interactions.mjs';
 restoreSession();
+showBrandEntry();
 const loadedIdentity=sessionIdentity();
 let loadedRevision=dataRevision();
 function markLocalChange(){markDataChanged();loadedRevision=dataRevision();}
@@ -113,6 +117,7 @@ function home() {
       </div>
     </section>
     <section class="gentle-note"><span class="note-symbol">↳</span><p>不急著定義自己，<strong>先好好認識自己。</strong></p><span class="note-end">YOUR OWN PACE</span></section>
+    ${reflectionView('mood')}
     <section class="editorial-section" aria-labelledby="news-heading"><div class="section-heading"><div><span class="eyebrow">SOMETHING TO EXPLORE</span><h2 id="news-heading">最近，值得留意的事</h2></div><a class="text-button collection-entry" href="#news">查看全部資訊${icon('arrow')}</a></div>
       <div class="horizontal-list" tabindex="0" aria-label="最新資訊，可左右滑動或使用方向鍵">${articles.map((a, i) => `<button class="article-card" data-article="${i}"><div class="article-image">${contentMedia(a)}<span class="tag">${escape(a.tag)}</span></div><div class="article-copy"><h3>${escape(a.title)}</h3><p>${escape(a.description)}</p>${sourceNote(a)}<span class="read-link">查看資訊 ${icon('arrow')}</span></div></button>`).join('')}</div>
       <p class="archive-note">活動日期與參加方式，請以主辦單位公告為準。</p>
@@ -152,28 +157,31 @@ function test() {
     </section></div></div>`;
 }
 
+function resultHero(record, summary) {
+  const c = summary.matched[0], tied=summary.matched.length>1;
+  const heading=tied?summary.matched.map(c=>c.name+'色').join('、')+'共同呈現':c?.title||'你的測驗結果';
+  return `<section class="result-hero result-paper" style="--result-ink:${tied?'#393435':c?.ink || '#746d70'}">${resultColorWash(summary)}<div class="eyebrow">A LITTLE MORE YOU</div><p class="result-kicker">你的色彩探索完成了</p><div class="result-characters">${summary.matched.map(c => `<button type="button" class="result-character-action" data-result-character="${c.key}" aria-label="跟${c.name}色角色打招呼">${character(c.key)}</button>`).join('')}</div><h1>${heading}</h1><p class="result-type">${summary.matched.map(c => c.name + '色').join('、')}${summary.matched.length ? '性格' : ''} ${summary.mbti ? `<span>×</span> ${escape(summary.mbti)}` : ''}</p><div class="result-intros">${summary.matched.map(c=>`<p class="result-intro"><strong style="color:${c.ink}">${c.name}色 · ${c.title}</strong>${c.description}</p>`).join('')}</div><div class="result-stamp">${icon('check')}${record.answers.length || ''} 題完成 · ${dateLabel(record.date)}</div></section>`;
+}
 function result(record) {
   if (record.legacy) return legacyResult(record);
   const survey = record.survey;
   if (survey.resultType !== 'color-mbti') return receipt(record, survey);
   const r = scoreAnswers(record.answers);
-  const c = colors[r.primary];
   const matched = colors.filter((_, i) => r.counts[i] === Math.max(...r.counts));
   const report = `/test/detailed-reports/${r.mbti}-${matched.map(c => c.key).sort().join('-')}.pdf`;
-  return `<div class="result-page narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a><section class="result-hero" style="--result-light:${c.light};--result-ink:${c.ink}"><div class="eyebrow">A LITTLE MORE YOU</div><p class="result-kicker">你的色彩探索完成了</p><div class="result-characters">${matched.map(c => character(c.key)).join('')}</div><h1>${c.title}</h1><p class="result-type">${c.name}色性格 <span>×</span> ${r.mbti}</p><p class="result-intro">${c.description}</p><div class="result-stamp">${icon('check')}20 題完成 · ${dateLabel(record.date)}</div></section>
-    <section class="result-section"><div class="section-heading"><h2>你的四色比例</h2><span class="muted">每個選擇，都是你的一部分</span></div><div class="color-bars">${colors.map((color, i) => `<div class="color-bar"><span class="bar-label"><i style="background:${color.fill}"></i>${color.name}色</span><span class="bar-track"><span style="width:${r.counts[i] * 5}%;background:${color.fill}"></span></span><strong>${r.counts[i] * 5}%</strong></div>`).join('')}</div>${matched.length > 1 ? `<p class="muted">${matched.map(c => c.name + '色').join('、')}同為最高分；摘要排序沿用原站規則。</p>` : ''}</section>
+  return `<div class="result-page narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a>${resultHero(record, resultSummary(record))}
+    <section class="result-section"><div class="section-heading"><h2>你的四色比例</h2><span class="muted">每個選擇，都是你的一部分</span></div><div class="color-bars">${colors.map((color, i) => `<div class="color-bar"><span class="bar-label"><i style="background:${color.fill}"></i>${color.name}色</span><span class="bar-track"><span style="width:${r.counts[i] * 5}%;background:${color.fill}"></span></span><strong>${r.counts[i] * 5}%</strong></div>`).join('')}</div>${matched.length > 1 ? `<p class="muted">${matched.map(c => c.name + '色').join('、')}同為最高分，並列呈現。</p>` : ''}</section>
     <section class="result-section"><h2>多認識自己一點</h2>${colors.filter((_, i) => r.counts[i] > 0).sort((a, b) => r.counts[colors.indexOf(b)] - r.counts[colors.indexOf(a)]).map(color => `<details class="insight"><summary><span><i style="background:${color.fill}"></i>${color.name}色 · ${color.title}</span><span class="expand-symbol">＋</span></summary><p>${color.description}</p></details>`).join('')}</section>
     <section class="report-panel"><div class="report-heading">${icon('test')}<div><h2>把這份認識，留給自己</h2><p>完整報告書 · ${r.mbti} / ${matched.map(c => c.name).join('、')}色</p></div></div><div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download="ColorLab-${r.mbti}.pdf">${icon('download')}下載 PDF</a></div></section>
-    <p class="preview-note">${record.cloud ? '已儲存至你的帳號。' : '訪客紀錄保存在此瀏覽器，清除網站資料後將無法恢復。'}<br>本測驗用於自我探索，不是心理或醫療診斷。</p><a class="text-button centered" href="#home">回到首頁${icon('arrow')}</a>
+    ${reflectionView('resonance', record)}<p class="preview-note">${record.cloud ? '已儲存至你的帳號。' : '訪客紀錄保存在此瀏覽器，清除網站資料後將無法恢復。'}<br>本測驗用於自我探索，不是心理或醫療診斷。</p><a class="text-button centered" href="#home">回到首頁${icon('arrow')}</a>
   </div>`;
 }
 
 function historyCard(record) {
-  if (record.legacy) return `<a class="history-card" href="#result/${record.id}"><div class="history-art">${icon('history')}</div><div><time>${dateLabel(record.date)}</time><h3>${escape(record.title)}</h3><p>${escape(record.result)} · 歷史紀錄</p></div>${icon('arrow')}</a>`;
-  const survey = record.survey;
-  const scored = survey.resultType === 'color-mbti' ? scoreAnswers(record.answers) : null;
-  const color = scored ? colors[scored.primary] : (colors.find(c => c.key === survey.color) || colors[3]);
-  return `<a class="history-card" href="#result/${record.id}"><div class="history-art" style="background:${color.light};color:${color.ink}">${shape(color.key)}</div><div><time datetime="${escape(record.date)}">${dateLabel(record.date)}</time><h3>${escape(survey.title)}</h3><p>${scored ? `${color.title} · ${scored.mbti}` : `${record.answers.length} 題已完成 · 一般問卷`}</p></div>${icon('arrow')}</a>`;
+  const summary = resultSummary(record);
+  const matched = summary?.matched || [], color = matched[0];
+  const heading = matched.length > 1 ? matched.map(c => c.name + '色').join('、') + '共同呈現' : color?.title || '這一次的探索';
+  return `<a class="history-card history-card-unified" href="#result/${escape(record.id)}" style="--record-accent:${color?.ink || '#994760'};--record-tint:${color?.light || '#f3efeb'}"><div class="history-summary"><span class="history-kicker">本次結果${summary?.mbti ? ' · MBTI' : ''}</span><strong class="history-mbti">${escape(summary?.mbti || '已完成')}</strong><h3>${escape(heading)}</h3><div class="history-result-labels">${matched.map(c => `<span style="--result-light:${c.light};--result-ink:${c.ink}">${c.name}色 · ${c.word}</span>`).join('')}</div></div>${matched.length ? `<div class="history-portraits" aria-hidden="true">${matched.map(c => `<img src="/assets/characters/${c.key}.webp" alt="" width="80" height="112" loading="lazy" decoding="async">`).join('')}</div>` : `<div class="history-portraits" aria-hidden="true">${icon('test')}</div>`}<p class="history-takeaway">${matched.length ? `<span>色彩重點</span>${escape(matched.map(c => c.description.split('。')[1] || c.description).join('；'))}。` : escape(record.result || `${record.answers.length} 題作答已保存`)}</p><div class="history-meta"><span>${escape(record.title || record.survey?.title || '測驗')}</span><time datetime="${escape(record.date)}">${dateLabel(record.date)}</time></div><span class="history-open">查看完整結果 ${icon('arrow')}</span></a>`;
 }
 
 function surveyList() {
@@ -214,10 +222,11 @@ async function completeHistory() {
   } catch(error){historyError=error.message;} finally {historyLoading=false;if(location.hash==='#history')render('retain');}
 }
 function legacyResult(record) {
-  const primary = Array.isArray(record.colorResult?.primary) ? record.colorResult.primary : [record.colorResult?.primary];
-  const reportColors = [...new Set(primary)].filter(key => colors.some(c => c.key === key)).sort();
-  const report = /^[EI][NS][FT][JP]$/.test(record.mbtiResult || '') && reportColors.length ? `/test/detailed-reports/${record.mbtiResult}-${reportColors.join('-')}.pdf` : null;
-  return `<div class="narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a><section class="result-section"><h1>${escape(record.title)}</h1><p>${dateLabel(record.date)}</p><h2>${escape(record.result)}</h2><div class="result-characters">${reportColors.map(character).join('')}</div><p class="muted">保留原始測驗結果與作答，不以更新後的題目重新計分。</p>${report ? `<div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download>${icon('download')}下載 PDF</a></div>` : ''}${record.answers.map((a, i) => `<div class="receipt-answer"><h3>${i + 1}. ${escape(a.question || '原始題目')}</h3><p>${escape(a.answer || '未記錄')}</p></div>`).join('')}</section></div>`;
+  const summary = resultSummary(record), reportColors = summary?.matched.map(c => c.key).sort() || [];
+  const report = summary?.mbti && reportColors.length ? `/test/detailed-reports/${summary.mbti}-${reportColors.join('-')}.pdf` : null;
+  return `<div class="result-page narrow-width"><a href="#history" class="text-button">${icon('back')}測驗紀錄</a>${summary ? resultHero(record, summary) : `<section class="result-hero"><h1>${escape(record.title)}</h1><p>${escape(record.result)}</p><p>${dateLabel(record.date)}</p></section>`}
+    ${report ? `<section class="report-panel"><div class="report-heading">${icon('test')}<div><h2>把這份認識，留給自己</h2><p>完整報告書 · ${summary.mbti} / ${summary.matched.map(c => c.name).join('、')}色</p></div></div><div class="report-actions"><button class="button secondary" data-pdf="${report}">${icon('eye')}預覽 PDF</button><a class="button primary" href="${report}" download>${icon('download')}下載 PDF</a></div></section>` : ''}
+    ${reflectionView('resonance', record)}<section class="result-section"><h2>我的作答</h2><p class="muted">保留當時的答案與結果，不以目前題目重新推算比例。</p>${record.answers.map((a, i) => `<div class="receipt-answer"><h3>${i + 1}. ${escape((a.question || '原始題目').replace(/^\s*\d+[.．、]\s*/, ''))}</h3><p>${escape(a.answer || '未記錄')}</p></div>`).join('')}</section></div>`;
 }
 
 function me() {
@@ -281,6 +290,22 @@ function render(direction = 'page') {
 }
 
 function bindPage() {
+  bindExplorationInteractions(main,{saveReflection:async(id,choice,text)=>{
+    const record=state.records.find(r=>r.id===id);
+    if(!record)throw new Error('找不到這次測驗，請重新開啟紀錄。');
+    if(!record.cloud){
+      record.feedbackKey ||= Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
+      try {previewStorage.setItem(storageKey,JSON.stringify({drafts:state.drafts,records:state.records.filter(r=>!r.cloud)}));}
+      catch {throw new Error('瀏覽器無法保存這次回饋的識別，請允許網站儲存後再試。');}
+    }
+    const path=record.cloud?`/api/explore/records/${encodeURIComponent(id)}/reflection`:'/api/explore/guest-result-feedback';
+    const body=record.cloud?{choice}:{choice,surveyId:record.surveyId||record.survey?.id,key:record.feedbackKey};
+    if(choice==='other')body.text=text;
+    const saved=await request(path,{method:record.cloud?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(saved.choice!==choice)throw new Error('回饋尚未確認儲存，請重試。');
+    if(choice==='other'&&saved.text!==text)throw new Error('回覆內容尚未確認儲存，請重試。');
+    record.reflection={choice,...(choice==='other'?{text:saved.text}:{})};persist();markLocalChange();
+  }});
   main.querySelectorAll('a[href^="/app/account.html#"]').forEach(a=>{const route=a.hash.slice(1);if(!['login','admin-login','register'].includes(route))a.href=accountHref(route);});
   bindCharacterMotion(main);
   bindCompanionInteractions(main);
@@ -388,7 +413,8 @@ function bindPage() {
         state.records = [record, ...state.records.filter(r => r.id !== record.id)];
         delete state.drafts[survey.id];
         persist();
-        markLocalChange();location.hash = `result/${record.id}`;
+        clearTimeout(noticeTimer);document.querySelector('#notice').classList.remove('visible');
+        markLocalChange();showCompletion('quiz', () => { location.hash = `result/${record.id}`; });
       } catch (error) { notify(error.message); button.disabled = false; button.textContent = '重新儲存'; }
     }
   });

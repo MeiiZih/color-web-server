@@ -823,6 +823,8 @@
         serviceState.classList.add('ready');
 
         if (embedded) {
+          readyCurtain.classList.add('show');
+          readyCurtain.setAttribute('aria-hidden', 'false');
           // Parent starts loading data behind this screen, then performs a single smooth reveal.
           window.parent.postMessage({ type: 'colorlab:ready' }, location.origin);
           return;

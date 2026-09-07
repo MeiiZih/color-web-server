@@ -52,7 +52,7 @@ const server = http.createServer((req, res) => {
         await page.waitForFunction(() => window.apiFinished || window.apiFailed);
         assert.equal(await page.locator('iframe').count(), 1, 'wake screen must stay while app data is not rendered');
         const frame = page.frames().find(f => f.url().includes('wake.html'));
-        assert.equal(await frame.locator('#readyCurtain').evaluate(el => el.classList.contains('show')), false, 'embedded launch must skip second curtain');
+        assert.equal(await frame.locator('#readyCurtain').evaluate(el => el.classList.contains('show')), true, 'cold launch shows the completion logo while the app prepares');
         if (mode !== 'fallback') await page.evaluate(error => { document.querySelector('#main').innerHTML = error ? '<h1>Unable to load</h1><button>Retry</button>' : '<h1>Content ready</h1>'; }, mode === 'reduced-error');
         await page.locator('iframe').waitFor({state:'detached',timeout:10000});
         assert.equal(await page.locator('#main').evaluate(el => el.inert), false);

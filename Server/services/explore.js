@@ -12,10 +12,10 @@ function catalogEntry(doc) {
 }
 
 function recordView(record) {
-  if (record.exploration) return { ...record.exploration, id: String(record._id), date: record.timestamp, cloud: true };
+  if (record.exploration) return { ...record.exploration, reflection:record.reflection, id: String(record._id), date: record.timestamp, cloud: true };
   // Old records keep their stored answers and result, never reinterpret them with today's questions.
   return { id: String(record._id), date: record.timestamp, legacy: true, cloud: true, title: record.testType,
-    result: record.result || record.mbtiResult || '已完成', mbtiResult: record.mbtiResult, colorResult: record.colorResult, answers: record.answers || [] };
+    result: record.result || record.mbtiResult || '已完成', mbtiResult: record.mbtiResult, colorResult: record.colorResult, scores:record.scores, answers: record.answers || [], reflection:record.reflection };
 }
 
 function submissionId(userId, key) {

@@ -2,7 +2,9 @@
 
 ## Status
 
-**Full replacement phase (current work, not yet deployed):** The shared-shell approach below was rejected by the user. The new `app/account.html` application now owns login, registration, member profile, administrator overview/users/questionnaires/content/records/statistics/feedback/profile and public information pages. Every old main/test HTML is replaced in the static output by a redirect-only compatibility entrypoint. Express uses the same route map to redirect old backend UI requests to the static frontend. Original source remains in Git for recovery; it is no longer the delivered interface. Accounts, completed records and original scoring are retained. Questionnaire deletion no longer deletes completed legacy records.
+**Full replacement deployed on 2026-09-06:** commit `3276bcec6164c75ee3e66572e5ba1eb1536d48ac`; static deploy `dep-daeei2mq1p3s73918aqg` confirmed Live, backend deploy `dep-daeeiev40ujc73eu2ncg` logs confirm service live and the new routes respond. The shared-shell approach below was rejected by the user. The new `app/account.html` application now owns login, registration, member profile, administrator overview/users/questionnaires/content/records/statistics/feedback/profile and public information pages. Every old main/test HTML is replaced in the static output by a redirect-only compatibility entrypoint. Express uses the same route map to redirect old backend UI requests to the static frontend. Original source remains in Git for recovery; it is no longer the delivered interface. Accounts, completed records and original scoring are retained. Questionnaire deletion no longer deletes completed legacy records.
+
+Live verification: account HTML/modules/CSS and static worker v2 return 200; old static login and intro contain redirect-only HTML with no legacy styles. Browser old intro -> branded wake/progress -> new question 1/20; old login -> new login; old backend account-management -> new admin login when unauthenticated. Backend `/health` returns 200 OK; old account/intro URLs return 302 to the static application; unauthenticated record-detail returns 401; catalog retains the original survey with 20 questions. No production record writes were used. Actual member/admin credential sign-in and physical iPhone standalone remain unverified.
 
 Current checks: 18 automated tests pass, including all legacy route mappings, no legacy CSS/JS on new pages, authenticated member-update ownership, admin-only record access, session restoration/logout, and snapshot preservation. Local browser verification covers 320/390px and desktop, new login controls, creation/save/readback of a questionnaire, member save/cancel baseline, and full-record dialogs. Fixtures and in-memory writes are localhost-only and never reach MongoDB. Production credential login and physical iPhone testing are not included.
 
@@ -55,6 +57,13 @@ The static-only service worker caches public shell assets, not API responses or 
 Rollback: restore the previous static publish/build configuration and previous backend commit. New additive snapshot records remain in the database; no migration or collection deletion is required.
 
 ## Local checks
+
+### 2026-09-07 release verification
+
+- Final B crayon background, proportional result colors, readable text backing, original character staging and gentle single-click motion are included. Member/guest result feedback and standalone completion interstitials are covered by isolated tests; no production records or passwords were changed during release verification.
+- All 240 static reports retain their original content: only the cover website label (`ColorLab`) and survey label (`我在色彩學中的 MBTI`) changed. `scripts/update-report-names.py` preserves local originals under ignored `tmp/pdfs/originals/` and checks text, embedded-image hashes, page counts and rendered pixels outside the two label areas. All 1,201 pages passed; both new names were verified in every report.
+- Backend/shared test suite: 105 passed. Browser checks passed at 320/390/768/1280 where applicable: mood-stage containment, result color proportions, gentle character motion, completion ordering, reduced motion, feedback failure/retry, and cached navigation/wake handoff.
+- This release uses the existing Render backend and static frontend, not a new hosting provider. Publishing and live verification are recorded in the task handoff.
 
 ```
 node --test Server/tests/explore.test.cjs Server/tests/explore-client.test.mjs design-preview/model.test.mjs

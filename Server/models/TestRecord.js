@@ -13,6 +13,7 @@ const testRecordSchema = new mongoose.Schema({
     details: { type: String },
     // Immutable questionnaire snapshot for the new multi-survey client.
     exploration: { type: mongoose.Schema.Types.Mixed },
+    reflection: { choice: { type: String, enum: ['red','yellow','green','blue','none','other'] }, text: { type: String, maxlength: 500 }, updatedAt: Date },
     
     // MBTI與色彩測驗專用字段
     mbtiResult: { type: String },

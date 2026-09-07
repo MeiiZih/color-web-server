@@ -8,6 +8,7 @@ const { catalogEntry, recordView, submissionId } = require('../services/explore'
 const { previewLegacyRecords, importLegacyRecords } = require('../services/legacyRecordImport');
 const router = express.Router();
 const model = import('../../color-web/app/model.mjs');
+const feedback = require('../services/resultFeedback');
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 const handle = fn => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 const ownerQuery = req => req.memberRole === 'admin' ? { adminId: req.member._id } : { adminId: null, $or: [{ userId: req.member._id }, { userId: null, email: req.member.email }] };
@@ -15,6 +16,18 @@ const ownerQuery = req => req.memberRole === 'admin' ? { adminId: req.member._id
 router.get('/catalog', handle(async (_req, res) => {
   const docs = await TestQuestion.find().sort({ createdAt: 1 }).lean();
   res.json(docs.map(catalogEntry).filter(Boolean));
+}));
+
+router.post('/guest-result-feedback', feedback.limit, handle(async(req,res)=>{
+  const {surveyId,key}=req.body||{},value=feedback.parse(req.body);
+  if(Object.keys(req.body||{}).some(k=>!['surveyId','key','choice','text'].includes(k)) || typeof surveyId!=='string' || typeof key!=='string' || !/^[a-f\d]{24}$/i.test(surveyId) || !/^[a-f\d]{64}$/i.test(key) || !value) return res.status(400).json({message:'請填寫有效回饋，其他回覆限 500 字。'});
+  const doc=await TestQuestion.findById(surveyId).lean();
+  if(!doc || catalogEntry(doc)?.resultType!=='color-mbti') return res.status(400).json({message:'這份問卷目前無法接收回饋。'});
+  const GuestFeedback=require('../models/ResultFeedback'), keyHash=feedback.hashKey(key);
+  try {
+    await GuestFeedback.findOneAndUpdate({keyHash,surveyId},{$set:{...value,updatedAt:new Date()}},{upsert:true,runValidators:true});
+  } catch(error) { if(error.code===11000)return res.status(409).json({message:'回饋識別已使用，請重新開啟原本的測驗紀錄。'});throw error; }
+  res.json(value);
 }));
 
 router.use(async (req, res, next) => {
@@ -64,6 +77,20 @@ router.delete('/records/:id', handle(async (req, res) => {
   const result = await TestRecord.deleteOne({ _id: req.params.id, ...ownerQuery(req) });
   if (!result.deletedCount) return res.status(404).json({ message: '找不到你的這筆紀錄，請重新載入確認。' });
   res.json({ deleted: true });
+}));
+
+router.put('/records/:id/reflection', feedback.limit, handle(async(req,res)=>{
+  const value=feedback.parse(req.body);
+  if(!/^[a-f\d]{24}$/i.test(req.params.id) || !value || Object.keys(req.body||{}).some(k=>!['choice','text'].includes(k)))return res.status(400).json({message:'請填寫有效回饋，其他回覆限 500 字。'});
+  const query={_id:req.params.id,...ownerQuery(req)},record=await TestRecord.findOne(query).lean();
+  if(!record)return res.status(404).json({message:'找不到你的這筆測驗紀錄。'});
+  const {resultSummary}=await import('../../color-web/app/result-summary.mjs');
+  const summary=resultSummary(recordView(record));
+  if(!summary?.matched.length || (!['none','other'].includes(value.choice)&&!summary.matched.some(c=>c.key===value.choice)))return res.status(400).json({message:'請選擇這次結果提供的回饋選項。'});
+  const reflection={...value,updatedAt:new Date()};
+  const updated=await TestRecord.updateOne(query,{$set:{reflection}},{runValidators:true});
+  if(!updated.matchedCount)return res.status(404).json({message:'這筆紀錄已不存在。'});
+  res.json(reflection);
 }));
 
 router.post('/records', handle(async (req, res) => {

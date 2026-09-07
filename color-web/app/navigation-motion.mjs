@@ -5,10 +5,15 @@ export function createNavigationMotion(main) {
   let paintedRoute=null, active=null;
   function cancel() { active?.cancel(); active=null; }
   function commit(route, { restored=false } = {}) {
+    const tabs=['home','surveys','history','me'];
+    const tab=String(route).replace(/^#/,'');
+    const previous=String(paintedRoute).replace(/^#/,'');
+    const tabChange=tabs.includes(tab) && tabs.includes(previous);
+    const mobileTab=view.matchMedia('(max-width:767px)').matches && tabChange;
     const changed=paintedRoute!==null && paintedRoute!==route;
     paintedRoute=route;
     cancel();
-    if(!changed || restored || reduced.matches || main.ownerDocument.hidden)return null;
+    if(!changed || (restored && !tabChange) || reduced.matches || main.ownerDocument.hidden)return null;
     // A transformed ancestor would relocate the quiz's fixed mobile action bar.
     // Keep quiz controls, characters, and form entirely still; only its top line settles.
     const quiz=String(route).replace(/^#/,'').split('/')[0]==='test';
@@ -18,9 +23,9 @@ export function createNavigationMotion(main) {
     const transform=baseline.transform==='none' ? '' : baseline.transform;
     const opacity=Number(baseline.opacity);
     const animation=target.animate([
-      {transform:`translateY(14px) scale(.985) ${transform}`.trim(),opacity:opacity*.86},
+      {transform:`${mobileTab ? `translateX(${tabs.indexOf(tab)>tabs.indexOf(previous)?32:-32}px)` : 'translateY(14px) scale(.985)'} ${transform}`.trim(),opacity:opacity*(mobileTab ? .72 : .86)},
       {transform:transform || 'none',opacity}
-    ],{duration:320,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'});
+    ],{duration:mobileTab?360:320,easing:'cubic-bezier(.22,1,.36,1)',fill:'none'});
     active=animation;
     animation.onfinish=()=>{if(active===animation)active=null;};
     return animation;
